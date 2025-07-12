@@ -6,7 +6,7 @@ import { useStore, type Project, type ProjectDataInput, type Client } from "@/st
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PlusCircle, Building, FileText, MoreHorizontal, Edit, Trash2, User, Calendar, ClipboardList } from "lucide-react";
+import { PlusCircle, Building, FileText, MoreHorizontal, Edit, Trash2, User, Calendar, ClipboardList, Home, Settings, BedDouble, Square } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -47,6 +47,10 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
     const [clientId, setClientId] = useState<string | undefined>("");
     const [scope, setScope] = useState("");
     const [timeline, setTimeline] = useState("");
+    const [projectType, setProjectType] = useState<Project['projectType']>('Residential');
+    const [services, setServices] = useState("");
+    const [roomCount, setRoomCount] = useState<number | string>("");
+    const [otherSpaces, setOtherSpaces] = useState("");
 
     useEffect(() => {
         if (open) {
@@ -54,19 +58,32 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
             setClientId(project?.clientId || "");
             setScope(project?.scope || "");
             setTimeline(project?.timeline || "");
+            setProjectType(project?.projectType || 'Residential');
+            setServices(project?.services || "");
+            setRoomCount(project?.roomCount || "");
+            setOtherSpaces(project?.otherSpaces || "");
         }
     }, [open, project]);
 
     const handleSave = () => {
         if (!name) return;
-        onSave({ name, clientId, scope, timeline });
+        onSave({ 
+            name, 
+            clientId, 
+            scope, 
+            timeline,
+            projectType,
+            services,
+            roomCount: Number(roomCount) || undefined,
+            otherSpaces,
+        });
         setOpen(false);
     }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{children}</DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{project ? "Edit Project" : "Create New Project"}</DialogTitle>
                     <DialogDescription>
@@ -90,6 +107,34 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="project-type">Project Type</Label>
+                        <Select onValueChange={(v: Project['projectType']) => setProjectType(v)} defaultValue={projectType}>
+                            <SelectTrigger id="project-type">
+                                <SelectValue placeholder="Select a type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Residential">Residential</SelectItem>
+                                <SelectItem value="Commercial">Commercial</SelectItem>
+                                <SelectItem value="Hospitality">Hospitality</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="project-services">Services</Label>
+                        <Input id="project-services" value={services} onChange={(e) => setServices(e.target.value)} placeholder="e.g., Full Service, Consultation" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="project-rooms">No of Rooms</Label>
+                            <Input id="project-rooms" type="number" value={roomCount} onChange={(e) => setRoomCount(e.target.value)} placeholder="e.g., 3" />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="project-spaces">Other spaces</Label>
+                            <Input id="project-spaces" value={otherSpaces} onChange={(e) => setOtherSpaces(e.target.value)} placeholder="e.g., Balcony" />
+                        </div>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="project-scope">Scope of Work</Label>
@@ -200,6 +245,42 @@ function ProjectCard({ project }: { project: Project }) {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 text-sm">
+                        {project.projectType && (
+                            <div className="flex items-start gap-2">
+                                <Home className="size-4 mt-0.5 text-primary" />
+                                <div>
+                                    <p className="font-semibold">Type</p>
+                                    <p className="text-muted-foreground">{project.projectType}</p>
+                                </div>
+                            </div>
+                        )}
+                        {project.services && (
+                            <div className="flex items-start gap-2">
+                                <Settings className="size-4 mt-0.5 text-primary" />
+                                <div>
+                                    <p className="font-semibold">Services</p>
+                                    <p className="text-muted-foreground">{project.services}</p>
+                                </div>
+                            </div>
+                        )}
+                        {project.roomCount && (
+                            <div className="flex items-start gap-2">
+                                <BedDouble className="size-4 mt-0.5 text-primary" />
+                                <div>
+                                    <p className="font-semibold">Rooms</p>
+                                    <p className="text-muted-foreground">{project.roomCount}</p>
+                                </div>
+                            </div>
+                        )}
+                        {project.otherSpaces && (
+                            <div className="flex items-start gap-2">
+                                <Square className="size-4 mt-0.5 text-primary" />
+                                <div>
+                                    <p className="font-semibold">Other Spaces</p>
+                                    <p className="text-muted-foreground">{project.otherSpaces}</p>
+                                </div>
+                            </div>
+                        )}
                         {project.timeline && (
                             <div className="flex items-start gap-2">
                                 <Calendar className="size-4 mt-0.5 text-primary" />

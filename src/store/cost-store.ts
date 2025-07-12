@@ -70,6 +70,10 @@ export type Project = {
     clientId?: string;
     scope?: string;
     timeline?: string;
+    projectType?: 'Residential' | 'Commercial' | 'Hospitality' | 'Other';
+    services?: string;
+    roomCount?: number;
+    otherSpaces?: string;
 }
 
 type ClientDataInput = Partial<Omit<Client, 'id' | 'createdAt' | 'interactions'>> & Pick<Client, 'name'>;
@@ -364,6 +368,10 @@ export const useStore = create<CostState>()(
                         clientId: projectData.clientId,
                         scope: projectData.scope,
                         timeline: projectData.timeline,
+                        projectType: projectData.projectType,
+                        services: projectData.services,
+                        roomCount: projectData.roomCount,
+                        otherSpaces: projectData.otherSpaces,
                     };
                     set({ projects: [...projects, newProject] });
                     return newProject;
