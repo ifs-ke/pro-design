@@ -39,6 +39,7 @@ import {
   PlusCircle,
   Briefcase,
   Handshake,
+  Milestone,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
@@ -235,7 +236,7 @@ export function CostForm() {
                     const rateType = form.watch(`labor.${index}.rateType`);
                     return (
                     <div key={field.id} className="p-4 border rounded-md space-y-4 bg-muted/20 relative">
-                        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-end">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                             <FormField
                                 control={form.control}
                                 name={`labor.${index}.vendor`}
@@ -251,12 +252,44 @@ export function CostForm() {
                             />
                             <FormField
                                 control={form.control}
+                                name={`labor.${index}.rateType`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Rate Type</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        className="flex items-center gap-4"
+                                        >
+                                        <FormItem className="flex items-center space-x-2">
+                                            <FormControl>
+                                                <RadioGroupItem value="hourly" id={`hourly-${field.id}`} />
+                                            </FormControl>
+                                            <FormLabel htmlFor={`hourly-${field.id}`} className="font-normal">Hourly</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-2">
+                                            <FormControl>
+                                                <RadioGroupItem value="daily" id={`daily-${field.id}`} />
+                                            </FormControl>
+                                            <FormLabel htmlFor={`daily-${field.id}`} className="font-normal">Daily</FormLabel>
+                                        </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                             <FormField
+                                control={form.control}
                                 name={`labor.${index}.units`}
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{rateType === 'hourly' ? 'Hours' : 'Days'}</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="8" {...field} className="w-24" />
+                                        <Input type="number" placeholder="8" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -269,43 +302,13 @@ export function CostForm() {
                                 <FormItem>
                                     <FormLabel>{`Rate (Ksh/${rateType === 'hourly' ? 'hr' : 'day'})`}</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="60" {...field} className="w-24" />
+                                        <Input type="number" placeholder="60" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )}
                             />
                         </div>
-                        <FormField
-                            control={form.control}
-                            name={`labor.${index}.rateType`}
-                            render={({ field }) => (
-                                <FormItem className="space-y-2">
-                                <FormLabel>Rate Type</FormLabel>
-                                <FormControl>
-                                    <RadioGroup
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                    className="flex items-center gap-4"
-                                    >
-                                    <FormItem className="flex items-center space-x-2">
-                                        <FormControl>
-                                            <RadioGroupItem value="hourly" id={`hourly-${field.id}`} />
-                                        </FormControl>
-                                        <FormLabel htmlFor={`hourly-${field.id}`} className="font-normal">Hourly</FormLabel>
-                                    </FormItem>
-                                    <FormItem className="flex items-center space-x-2">
-                                        <FormControl>
-                                            <RadioGroupItem value="daily" id={`daily-${field.id}`} />
-                                        </FormControl>
-                                        <FormLabel htmlFor={`daily-${field.id}`} className="font-normal">Daily</FormLabel>
-                                    </FormItem>
-                                    </RadioGroup>
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
                       <Button
                         type="button"
                         variant="ghost"
@@ -509,7 +512,7 @@ export function CostForm() {
               </AccordionItem>
             </Accordion>
             
-            <div className="border-t pt-4 space-y-6">
+            <div className="border-t pt-6 space-y-6">
                 <FormField
                   control={form.control}
                   name="businessType"
@@ -581,12 +584,12 @@ export function CostForm() {
                         name="profitMargin"
                         render={({ field }) => (
                         <FormItem className={businessType === 'sole_proprietor' ? 'md:col-span-2' : ''}>
-                            <FormLabel>
-                            Profit Margin (%) -{" "}
-                            <span className="font-bold text-primary">
-                                {field.value?.toFixed(2) ?? 0}%
-                            </span>
-                            </FormLabel>
+                            <div className="flex justify-between items-center">
+                                <FormLabel>Profit Margin (%)</FormLabel>
+                                <span className="font-bold text-primary">
+                                    {field.value?.toFixed(2) ?? 0}%
+                                </span>
+                            </div>
                             <FormControl>
                             <Slider
                                 min={0}
@@ -601,6 +604,15 @@ export function CostForm() {
                         </FormItem>
                         )}
                     />
+                </div>
+                <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 space-y-1 text-center">
+                    <Label className="text-xs text-primary/80 flex items-center justify-center gap-2">
+                        <Milestone className="size-3"/>
+                        Suggested Quote
+                    </Label>
+                    <p className="text-xl font-bold text-primary tracking-tight">
+                        {formatCurrency(calculations.grandTotal)}
+                    </p>
                 </div>
                 {(profitMargin ?? 0) < 18 && (
                 <Alert variant="destructive" className="bg-amber-100 border-amber-300 text-amber-900">
@@ -618,5 +630,3 @@ export function CostForm() {
     </Card>
   );
 }
-
-    
