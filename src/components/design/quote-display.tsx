@@ -33,6 +33,7 @@ interface QuoteDisplayProps {
     tax: number;
     grandTotal: number;
     taxRate: number;
+    taxType: string;
   };
   allocations: Allocation;
 }
@@ -57,6 +58,7 @@ export function QuoteDisplay({ calculations, allocations }: QuoteDisplayProps) {
     tax,
     grandTotal,
     taxRate,
+    taxType,
   } = calculations;
 
   // For clarity:
@@ -101,7 +103,7 @@ export function QuoteDisplay({ calculations, allocations }: QuoteDisplayProps) {
                     <p className="font-semibold">{formatCurrency(netRevenue)}</p>
                 </div>
                 <div className="flex justify-between">
-                    <p className="text-muted-foreground">VAT ({taxRate}%)</p>
+                    <p className="text-muted-foreground">{taxType} ({taxRate}%)</p>
                     <p className="font-semibold">{formatCurrency(tax)}</p>
                 </div>
             </div>

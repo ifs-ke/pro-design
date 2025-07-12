@@ -36,6 +36,7 @@ import {
   AlertTriangle,
   Trash2,
   PlusCircle,
+  Briefcase,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
@@ -62,6 +63,7 @@ export const formSchema = z.object({
   materials: z.array(materialItemSchema).optional(),
   labor: z.array(laborItemSchema).optional(),
   operations: z.array(operationItemSchema).optional(),
+  businessType: z.enum(['vat_registered', 'sole_proprietor']),
   taxRate: z.coerce.number().min(0, "Tax rate cannot be negative.").max(100),
   profitMargin: z.coerce.number().min(0, "Profit margin cannot be negative."),
 });
@@ -89,6 +91,7 @@ export function CostForm({ form }: CostFormProps) {
 
   const watchedValues = form.watch();
   const profitMargin = watchedValues.profitMargin;
+  const businessType = watchedValues.businessType;
 
   const totalMaterialCost =
     watchedValues.materials?.reduce((acc, item) => acc + (item.cost || 0), 0) ??
@@ -367,31 +370,77 @@ export function CostForm({ form }: CostFormProps) {
             </Accordion>
             
             <div className="border-t pt-4 space-y-6">
+                <FormField
+                  control={form.control}
+                  name="businessType"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Business Registration Type</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-1"
+                        >
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="vat_registered" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              VAT Registered Company
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="sole_proprietor" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Sole Proprietorship (Turnover Tax)
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid md:grid-cols-2 gap-6 items-start">
-                    <FormField
-                        control={form.control}
-                        name="taxRate"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Tax Rate (%)</FormLabel>
-                            <div className="relative">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                                    <ReceiptText className="size-4" />
+                    {businessType === 'vat_registered' && (
+                        <FormField
+                            control={form.control}
+                            name="taxRate"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>VAT Rate (%)</FormLabel>
+                                <div className="relative">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                        <ReceiptText className="size-4" />
+                                    </div>
+                                    <FormControl>
+                                        <Input type="number" placeholder="16" {...field} className="pl-10"/>
+                                    </FormControl>
                                 </div>
-                                <FormControl>
-                                    <Input type="number" placeholder="15" {...field} className="pl-10"/>
-                                </FormControl>
-                            </div>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    )}
+                     {businessType === 'sole_proprietor' && (
+                        <Alert>
+                            <Briefcase className="h-4 w-4" />
+                            <AlertTitle>Turnover Tax (TOT)</AlertTitle>
+                            <AlertDescription>
+                                A 3% tax will be applied to the gross revenue as per KRA guidelines.
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
                     <FormField
                         control={form.control}
                         name="profitMargin"
                         render={({ field }) => (
-                        <FormItem>
+                        <FormItem className={businessType === 'sole_proprietor' ? 'md:col-start-2' : ''}>
                             <FormLabel>
                             Profit Margin (%) -{" "}
                             <span className="font-bold text-primary">
@@ -429,5 +478,3 @@ export function CostForm({ form }: CostFormProps) {
     </Card>
   );
 }
-
-    
