@@ -12,6 +12,7 @@ import type { Allocation } from "@/components/design/profit-allocator";
 import { CostBreakdown } from "@/components/design/cost-breakdown";
 import { ProjectQuote } from "@/components/design/project-quote";
 import { MaterialSuggester } from "@/components/design/material-suggester";
+import { AiQuoteAnalyst } from "@/components/design/ai-quote-analyst";
 
 export default function DesignCostProPage() {
   const [isClient, setIsClient] = useState(false);
@@ -86,10 +87,12 @@ export default function DesignCostProPage() {
       totalBaseCost,
       profit,
       subtotal,
-      tax,
       grandTotal,
+      tax,
       taxRate: effectiveTaxRate,
       taxType,
+      profitMargin: profitMargin || 0,
+      businessType,
     };
   }, [watchedValues]);
 
@@ -153,8 +156,9 @@ export default function DesignCostProPage() {
              />
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-8">
             <MaterialSuggester />
+            <AiQuoteAnalyst calculations={calculations} />
           </div>
         </div>
       </div>

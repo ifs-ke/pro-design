@@ -43,7 +43,7 @@ const materialSuggestionsPrompt = ai.definePrompt({
   prompt: `You are an expert in interior design materials, skilled at finding cost-effective alternatives.
 
   Based on the budget, material type, quantity, and location provided, suggest alternative materials.
-  Analyze price and availability in the specified location, and provide recommendations with clear pros and cons.
+  Analyze price and availability in the specified location, and provide a list of recommendations with clear pros and cons for each.
 
   Budget: {{{budget}}}
   Material Type: {{{materialType}}}
