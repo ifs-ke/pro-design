@@ -53,7 +53,7 @@ export default function QuoteDetailPage() {
         </div>
       </header>
       
-      <div className="grid md:grid-cols-2 gap-8 items-start">
+      <div className="grid md:grid-cols-1 gap-8 items-start">
         <CostBreakdown calculations={quote.calculations} allocations={quote.allocations} />
       </div>
 

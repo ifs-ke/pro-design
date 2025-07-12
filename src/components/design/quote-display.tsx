@@ -54,6 +54,7 @@ export function CostBreakdown({ calculations, allocations }: CostBreakdownProps)
     profit,
     subtotal,
     tax,
+    grandTotal,
     taxRate,
     taxType,
   } = calculations;
@@ -64,9 +65,9 @@ export function CostBreakdown({ calculations, allocations }: CostBreakdownProps)
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle>Cost Breakdown</CardTitle>
+        <CardTitle>Quote Breakdown</CardTitle>
         <CardDescription>
-          A detailed breakdown of the project costs.
+          A detailed breakdown of the project costs and totals.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 flex-grow">
@@ -103,9 +104,14 @@ export function CostBreakdown({ calculations, allocations }: CostBreakdownProps)
                 </div>
             </div>
         </TooltipProvider>
+        <Separator />
+        <div className="flex justify-between font-bold text-base bg-primary/10 p-2 rounded-md">
+            <p>Grand Total</p>
+            <p>{formatCurrency(grandTotal)}</p>
+        </div>
 
       </CardContent>
-       <CardFooter className="bg-primary/5 mt-4 p-4 rounded-b-lg flex-col items-start gap-2">
+       <CardFooter className="bg-muted/10 mt-4 p-4 rounded-b-lg flex-col items-start gap-2 border-t">
             <h4 className="font-medium mb-2 text-sm">Profit Allocation Details</h4>
             <div className="space-y-2 text-sm w-full">
                 {Object.entries(allocations).map(([key, value]) => {
