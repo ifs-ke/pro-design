@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useStore } from "@/store/cost-store";
 import {
   Card,
@@ -35,68 +35,70 @@ export function ProjectQuote() {
     formValues: state.formValues,
   }));
 
+  // Local state for the final quote input. Default to the globally calculated total.
   const [finalQuote, setFinalQuote] = useState<number | string>(globalCalculations.grandTotal);
-  const [localBreakdown, setLocalBreakdown] = useState<QuoteBreakdown>(globalCalculations);
   
+  // Effect to update the local finalQuote ONLY when the global grandTotal changes.
+  // This syncs the input when the form is updated, but preserves manual edits otherwise.
   useEffect(() => {
-    // When the global calculations change (e.g., from the CostForm),
-    // update both the final quote input and the local breakdown display.
     setFinalQuote(globalCalculations.grandTotal);
-    setLocalBreakdown(globalCalculations);
-  }, [globalCalculations]);
+  }, [globalCalculations.grandTotal]);
+
+  const localBreakdown = useMemo((): QuoteBreakdown => {
+    const numericQuote = typeof finalQuote === 'string' ? parseFloat(finalQuote) : finalQuote;
+
+    // If the input is not a valid number or is less than the base cost, show the global calculations.
+    if (isNaN(numericQuote) || numericQuote < globalCalculations.totalBaseCost) {
+        return globalCalculations;
+    }
+
+    // Recalculate the breakdown locally based on the new final quote.
+    const { totalBaseCost } = globalCalculations;
+    const { businessType, taxRate: vatRate } = formValues;
+
+    let newSubtotal: number;
+    let newTax: number;
+    let newTaxType = 'VAT';
+    let newTaxRate = vatRate || 0;
+
+    if (businessType === 'vat_registered') {
+        newSubtotal = numericQuote / (1 + (newTaxRate / 100));
+        newTax = numericQuote - newSubtotal;
+    } else { // sole_proprietor
+        taxType = 'TOT';
+        newTaxRate = 3;
+        // The final quote is the gross revenue. TOT is 3% of this.
+        // Net = Gross * (1 - 0.03)
+        newSubtotal = numericQuote * (1 - (newTaxRate / 100));
+        newTax = numericQuote - newSubtotal;
+    }
+    
+    const newProfit = newSubtotal - totalBaseCost;
+
+    return {
+        grandTotal: numericQuote,
+        totalBaseCost: totalBaseCost,
+        profit: newProfit,
+        subtotal: newSubtotal,
+        tax: newTax,
+        taxRate: newTaxRate,
+        taxType: newTaxType,
+    };
+  }, [finalQuote, globalCalculations, formValues]);
+
 
   const handleQuoteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setFinalQuote(value); // Keep input as string while typing for better UX
-
-    const numericValue = parseFloat(value);
-    if (!isNaN(numericValue) && numericValue >= globalCalculations.totalBaseCost) {
-        // Recalculate the breakdown locally based on the new final quote
-        const { totalBaseCost } = globalCalculations;
-        const { businessType, taxRate: vatRate } = formValues;
-
-        let newSubtotal: number;
-        let newTax: number;
-        let newTaxType = 'VAT';
-        let newTaxRate = vatRate || 0;
-
-        if (businessType === 'vat_registered') {
-            newSubtotal = numericValue / (1 + (newTaxRate / 100));
-            newTax = numericValue - newSubtotal;
-        } else { // sole_proprietor
-            newTaxType = 'TOT';
-            newTaxRate = 3;
-            // grandTotal = subtotal / (1 - totRate) -> subtotal = grandTotal * (1 - totRate)
-            newSubtotal = numericValue * (1 - (newTaxRate / 100));
-            newTax = numericValue - newSubtotal;
-        }
-        
-        const newProfit = newSubtotal - totalBaseCost;
-
-        setLocalBreakdown({
-            grandTotal: numericValue,
-            totalBaseCost: totalBaseCost,
-            profit: newProfit,
-            subtotal: newSubtotal,
-            tax: newTax,
-            taxRate: newTaxRate,
-            taxType: newTaxType,
-        });
-
-    } else {
-        // If input is invalid or less than base cost, revert to global state
-        setLocalBreakdown(globalCalculations);
-    }
+    // Keep input as string while typing for better UX (e.g., allowing trailing decimals)
+    setFinalQuote(e.target.value); 
   };
 
   const handleBlur = () => {
-    // On blur, format the number or reset to the last valid state
+    // On blur, format the number or reset to the last valid state if invalid.
     const numericValue = parseFloat(finalQuote as string);
      if (!isNaN(numericValue) && numericValue >= globalCalculations.totalBaseCost) {
         setFinalQuote(numericValue);
      } else {
         setFinalQuote(globalCalculations.grandTotal);
-        setLocalBreakdown(globalCalculations);
      }
   }
 
@@ -170,7 +172,7 @@ export function ProjectQuote() {
                     <p className="font-semibold">{formatCurrency(localBreakdown.subtotal)}</p>
                 </div>
                  <div className="flex justify-between">
-                    <p className="text-muted-foreground">{localBreakdown.taxType} ({localBreakdown.taxRate}%)</p>
+                    <p className="text-muted-foreground">{localBreakdown.taxType} ({localBreakdown.taxRate.toFixed(2)}%)</p>
                     <p className="font-semibold">{formatCurrency(localBreakdown.tax)}</p>
                 </div>
                 <Separator className="my-2"/>
@@ -190,3 +192,4 @@ export function ProjectQuote() {
     </Card>
   );
 }
+
