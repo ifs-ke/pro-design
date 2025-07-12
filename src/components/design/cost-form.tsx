@@ -113,7 +113,7 @@ export function CostForm() {
     defaultValues: formValues,
   });
 
-  const [showDescription, setShowDescription] = useState<{ [index: number]: boolean; }>({});
+  const [showDescription, setShowDescription] = useState<{ [index: number]: boolean, }>({});
 
   const {
     fields: materialFields,
@@ -193,7 +193,11 @@ export function CostForm() {
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
                   <div className="space-y-4">
-                    {materialFields.map((field, index) => (
+                    {materialFields.map((field, index) => {
+                      const descriptionValue = form.watch(`materials.${index}.description`);
+                      const isDescriptionVisible = showDescription[index] || !!descriptionValue;
+
+                      return (
                       <div
                         key={field.id}
                         className="p-4 border rounded-md space-y-4 bg-muted/20 relative"
@@ -244,7 +248,7 @@ export function CostForm() {
                             />
                         </div>
 
-                        {showDescription[index] ? (
+                        {isDescriptionVisible ? (
                             <FormField
                                 control={form.control}
                                 name={`materials.${index}.description`}
@@ -281,7 +285,7 @@ export function CostForm() {
                           <Trash2 className="size-4" />
                         </Button>
                       </div>
-                    ))}
+                    )})}
                     <Button
                       type="button"
                       variant="outline"
@@ -772,3 +776,4 @@ export function CostForm() {
     </Card>
   );
 }
+
