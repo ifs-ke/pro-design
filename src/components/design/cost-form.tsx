@@ -4,7 +4,7 @@
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "@/store/cost-store";
 import {
   FormControl,
@@ -42,7 +42,8 @@ import {
   Handshake,
   Milestone,
   SlidersHorizontal,
-  Users
+  Users,
+  MessageSquarePlus
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
@@ -111,6 +112,8 @@ export function CostForm() {
     resolver: zodResolver(formSchema),
     defaultValues: formValues,
   });
+
+  const [showDescription, setShowDescription] = useState<{ [index: number]: boolean }>({});
 
   const {
     fields: materialFields,
@@ -234,19 +237,34 @@ export function CostForm() {
                                 )}
                             />
                         </div>
-                        <FormField
-                            control={form.control}
-                            name={`materials.${index}.description`}
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Description</FormLabel>
-                                <FormControl>
-                                    <Textarea placeholder="Add a short description..." {...field} className="h-16"/>
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+
+                        {showDescription[index] ? (
+                            <FormField
+                                control={form.control}
+                                name={`materials.${index}.description`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Description</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Add a short description..." {...field} className="h-16"/>
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        ) : (
+                            <Button 
+                                type="button" 
+                                variant="link" 
+                                size="sm"
+                                className="p-0 h-auto text-muted-foreground"
+                                onClick={() => setShowDescription(prev => ({...prev, [index]: true}))}
+                            >
+                                <MessageSquarePlus className="mr-2"/>
+                                Add Description
+                            </Button>
+                        )}
+
                         <Button
                           type="button"
                           variant="ghost"
@@ -748,3 +766,5 @@ export function CostForm() {
     </Card>
   );
 }
+
+    
