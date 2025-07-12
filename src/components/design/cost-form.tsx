@@ -148,7 +148,7 @@ export function CostForm({ form }: CostFormProps) {
                         name={`materials.${index}.cost`}
                         render={({ field }) => (
                           <FormItem>
-                             <FormLabel className={index !== 0 ? 'sr-only' : ''}>Cost ($)</FormLabel>
+                             <FormLabel className={index !== 0 ? 'sr-only' : ''}>Cost (Ksh)</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
@@ -231,7 +231,7 @@ export function CostForm({ form }: CostFormProps) {
                         name={`labor.${index}.rate`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className={index !== 0 ? 'sr-only' : ''}>Rate ($/hr)</FormLabel>
+                            <FormLabel className={index !== 0 ? 'sr-only' : ''}>Rate (Ksh/hr)</FormLabel>
                             <FormControl>
                                 <Input type="number" placeholder="60" {...field} className="w-24" />
                             </FormControl>
@@ -296,7 +296,7 @@ export function CostForm({ form }: CostFormProps) {
                         name={`operations.${index}.cost`}
                         render={({ field }) => (
                           <FormItem>
-                             <FormLabel className={index !== 0 ? 'sr-only' : ''}>Cost ($)</FormLabel>
+                             <FormLabel className={index !== 0 ? 'sr-only' : ''}>Cost (Ksh)</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"

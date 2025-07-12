@@ -35,6 +35,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Wand2, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
+import { formatCurrency } from "@/lib/utils";
 
 const suggesterSchema = z.object({
   budget: z.coerce.number().positive("Budget must be a positive number."),
@@ -101,7 +102,7 @@ export function MaterialSuggester() {
               name="budget"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Budget ($)</FormLabel>
+                  <FormLabel>Budget (Ksh)</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="5000" {...field} />
                   </FormControl>
@@ -188,7 +189,7 @@ export function MaterialSuggester() {
                             <div>
                                 <h4 className="font-semibold">{item.materialName}</h4>
                                 <p className="text-sm text-muted-foreground">
-                                    Price: ${item.price.toFixed(2)} | Availability: {item.availability}
+                                    Price: {formatCurrency(item.price)} | Availability: {item.availability}
                                 </p>
                             </div>
                         </div>
