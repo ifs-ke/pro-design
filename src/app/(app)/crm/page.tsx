@@ -21,7 +21,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -215,7 +214,7 @@ function ClientCard({ client }: { client: Client }) {
                     <Badge variant={statusVariant[client.status]}>{client.status}</Badge>
                     <Badge variant={responsivenessVariant[client.responsiveness]}>{client.responsiveness}</Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-4 flex-grow">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
                     <div>
                         <h4 className="font-semibold text-sm flex items-center gap-2"><Building className="text-primary"/> Projects ({clientProjects.length})</h4>
                          {clientProjects.length > 0 ? (
@@ -240,8 +239,9 @@ function ClientCard({ client }: { client: Client }) {
                          ) : <p className="text-sm text-muted-foreground mt-2">No quotes yet.</p>}
                     </div>
                 </div>
-                <Separator />
-                <FollowUpTracker client={client} />
+                <div className="mt-auto pt-4 border-t">
+                    <FollowUpTracker client={client} />
+                </div>
             </CardContent>
         </Card>
     )
@@ -292,3 +292,5 @@ export default function CrmPage() {
         </div>
     );
 }
+
+    
