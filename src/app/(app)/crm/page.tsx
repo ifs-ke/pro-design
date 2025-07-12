@@ -217,17 +217,17 @@ function ClientCard({ client }: { client: Client }) {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
                     <div>
-                        <h4 className="font-semibold text-sm flex items-center gap-2"><Building className="text-primary"/> Projects ({clientProjects.length})</h4>
+                        <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><Building className="text-primary"/> Projects ({clientProjects.length})</h4>
                          {clientProjects.length > 0 ? (
-                            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                            <ul className="space-y-1 text-sm text-muted-foreground">
                                 {clientProjects.map(p => <li key={p.id}>{p.name}</li>)}
                             </ul>
-                        ) : <p className="text-sm text-muted-foreground mt-2">No projects yet.</p>}
+                        ) : <p className="text-sm text-muted-foreground">No projects yet.</p>}
                     </div>
                      <div>
-                        <h4 className="font-semibold text-sm flex items-center gap-2"><FileText className="text-primary"/> Quotes ({clientQuotes.length})</h4>
+                        <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><FileText className="text-primary"/> Quotes ({clientQuotes.length})</h4>
                          {clientQuotes.length > 0 ? (
-                             <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                             <ul className="space-y-1 text-sm text-muted-foreground">
                                 {clientQuotes.map(q => (
                                     <li key={q.id}>
                                         <Link href={`/quotes/${q.id}`} className="hover:underline flex justify-between">
@@ -237,7 +237,7 @@ function ClientCard({ client }: { client: Client }) {
                                     </li>
                                 ))}
                             </ul>
-                         ) : <p className="text-sm text-muted-foreground mt-2">No quotes yet.</p>}
+                         ) : <p className="text-sm text-muted-foreground">No quotes yet.</p>}
                     </div>
                 </div>
                 <div className="mt-auto pt-4 border-t">
@@ -284,7 +284,7 @@ export default function CrmPage() {
                     <p className="text-muted-foreground">Click "Create New Client" to get started.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {clients.sort((a,b) => b.createdAt - a.createdAt).map(client => (
                         <ClientCard key={client.id} client={client} />
                     ))}
