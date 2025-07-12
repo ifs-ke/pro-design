@@ -210,7 +210,7 @@ function ClientCard({ client }: { client: Client }) {
                     </AlertDialogContent>
                 </AlertDialog>
             </CardHeader>
-            <CardContent className="space-y-4 flex-grow">
+            <CardContent className="flex flex-col flex-grow gap-4">
                 <div className="flex gap-2">
                     <Badge variant={statusVariant[client.status]}>{client.status}</Badge>
                     <Badge variant={responsivenessVariant[client.responsiveness]}>{client.responsiveness}</Badge>
@@ -240,7 +240,7 @@ function ClientCard({ client }: { client: Client }) {
                          ) : <p className="text-sm text-muted-foreground mt-2">No quotes yet.</p>}
                     </div>
                 </div>
-                 <Separator />
+                <Separator />
                 <FollowUpTracker client={client} />
             </CardContent>
         </Card>
