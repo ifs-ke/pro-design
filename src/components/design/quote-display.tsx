@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -11,7 +12,14 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { Allocation } from "./profit-allocator";
 import { formatCurrency } from "@/lib/utils";
-import { Users, PiggyBank, Lightbulb, Heart } from "lucide-react";
+import { Users, PiggyBank, Lightbulb, Heart, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 interface QuoteDisplayProps {
   calculations: {
@@ -49,6 +57,10 @@ export function QuoteDisplay({ calculations, allocations }: QuoteDisplayProps) {
     grandTotal,
   } = calculations;
 
+  // For clarity:
+  const netRevenue = subtotal; // Revenue before tax
+  const grossRevenue = grandTotal; // Total amount from client
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -70,10 +82,29 @@ export function QuoteDisplay({ calculations, allocations }: QuoteDisplayProps) {
             <div className="flex justify-between"><p className="text-muted-foreground">Profit</p><p className="font-medium">{formatCurrency(profit)}</p></div>
         </div>
         <Separator />
-        <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><p className="text-muted-foreground">Subtotal</p><p className="font-semibold">{formatCurrency(subtotal)}</p></div>
-            <div className="flex justify-between"><p className="text-muted-foreground">Tax</p><p className="font-semibold">{formatCurrency(tax)}</p></div>
-        </div>
+        <TooltipProvider>
+            <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                    <p className="text-muted-foreground flex items-center">
+                        Net Revenue
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="size-3 ml-1.5" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Total before tax (Base Cost + Profit)</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </p>
+                    <p className="font-semibold">{formatCurrency(netRevenue)}</p>
+                </div>
+                <div className="flex justify-between">
+                    <p className="text-muted-foreground">Tax</p>
+                    <p className="font-semibold">{formatCurrency(tax)}</p>
+                </div>
+            </div>
+        </TooltipProvider>
+
         <Separator />
         <div>
             <h4 className="font-medium mb-2 text-sm">Profit Allocation Details</h4>
@@ -93,8 +124,20 @@ export function QuoteDisplay({ calculations, allocations }: QuoteDisplayProps) {
       </CardContent>
       <CardFooter className="bg-primary/10 mt-4 p-4 rounded-b-lg">
         <div className="w-full flex justify-between items-center">
-          <CardTitle className="text-lg">Grand Total</CardTitle>
-          <p className="text-2xl font-bold text-primary">{formatCurrency(grandTotal)}</p>
+          <CardTitle className="text-lg flex items-center">
+            Gross Revenue
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Info className="size-4 ml-2" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>The total amount paid by the client.</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+          </CardTitle>
+          <p className="text-2xl font-bold text-primary">{formatCurrency(grossRevenue)}</p>
         </div>
       </CardFooter>
     </Card>
