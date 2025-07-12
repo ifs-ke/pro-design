@@ -68,7 +68,16 @@ const affiliateItemSchema = z.object({
   rateType: z.enum(['hourly', 'daily', 'percentage']),
   units: z.coerce.number().min(0, "Units cannot be negative.").optional(),
   rate: z.coerce.number().min(0, "Rate cannot be negative."),
+}).refine(data => {
+    if (data.rateType === 'hourly' || data.rateType === 'daily') {
+        return data.units !== undefined && data.units !== null;
+    }
+    return true;
+}, {
+    message: "Units are required for hourly or daily rates.",
+    path: ['units'],
 });
+
 
 export const formSchema = z.object({
   materials: z.array(materialItemSchema).optional(),
@@ -492,7 +501,7 @@ export function CostForm() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => appendAffiliate({ name: "", rateType: 'percentage', rate: 10 })}
+                    onClick={() => appendAffiliate({ name: "", rateType: 'percentage', rate: 10, units: 0 })}
                   >
                     <PlusCircle className="mr-2" /> Add Partner
                   </Button>
@@ -609,3 +618,5 @@ export function CostForm() {
     </Card>
   );
 }
+
+    
