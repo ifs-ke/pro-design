@@ -93,7 +93,8 @@ const performCalculations = (formValues: FormValues): Calculations => {
         return acc + ((Number(item.units) || 0) * (Number(item.rate) || 0));
     }, 0) ?? 0;
 
-    const fixedBaseCost = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost;
+    // This is the sum of all costs that are NOT percentage-based.
+    const baseForPercentages = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost;
 
     const totalAffiliatePercentage = affiliates?.reduce((acc, item) => {
         if (item.rateType === 'percentage') {
@@ -106,46 +107,71 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const profitMarginDecimal = (profitMargin || 0) / 100;
     
     let grandTotal = 0;
-    let subtotal = 0;
+    let subtotal = 0; // Net Revenue
     let tax = 0;
     let taxType = "VAT";
     let effectiveTaxRate = taxRate || 0;
 
-    // This is the core logic. We solve for subtotal.
-    // subtotal = fixedBaseCost + subtotal * miscDecimal + subtotal * totalAffiliatePercentage + subtotal * profitMarginDecimal
-    // subtotal * (1 - miscDecimal - totalAffiliatePercentage - profitMarginDecimal) = fixedBaseCost
-    const denominator = 1 - miscDecimal - totalAffiliatePercentage - profitMarginDecimal;
-    if (denominator > 0) {
-        subtotal = fixedBaseCost / denominator;
-    } else {
-        subtotal = 0;
-    }
+    // The grandTotal includes percentage costs for affiliates and misc.
+    // grandTotal = subtotal + tax
+    // subtotal = baseForPercentages + profit
+    // profit = subtotal * profitMarginDecimal
+    // New logic: affiliate and misc costs are calculated from grandTotal.
+    // subtotal = baseForPercentages + profit
+    // grandTotal * (1 - affiliate% - misc%) = subtotal + tax
+    // And subtotal is also dependent on profit margin, which depends on subtotal.
+    // This gets complicated. Let's redefine based on what the user wants.
+    // Let's assume profit margin is on net revenue (subtotal).
+    // And affiliate/misc percentages are on the final quote (grandTotal).
     
+    // grandTotal = baseForPercentages + fixedAffiliateCost + percentageAffiliateCost + miscCost + profit + tax
+    // Let grandTotal = G, subtotal = S
+    // S = baseForPercentages + profit
+    // profit = S * profitMarginDecimal
+    // S = baseForPercentages + S * profitMarginDecimal => S * (1 - profitMarginDecimal) = baseForPercentages => S = baseForPercentages / (1 - profitMarginDecimal)
+    if ((1 - profitMarginDecimal) > 0) {
+      subtotal = baseForPercentages / (1 - profitMarginDecimal);
+    } else {
+      subtotal = 0;
+    }
+
+    // Now calculate grandTotal based on this subtotal, adding tax and percentage costs.
+    // G = S + tax + G * totalAffiliatePercentage + G * miscDecimal
+    // G * (1 - totalAffiliatePercentage - miscDecimal) = S + tax
+    let taxDecimal = 0;
     if (businessType === 'vat_registered') {
         taxType = "VAT";
-        grandTotal = subtotal * (1 + (effectiveTaxRate / 100));
-        tax = grandTotal - subtotal;
+        taxDecimal = (effectiveTaxRate / 100);
+        // tax = S * taxDecimal
+        // G * (1 - totalAffiliatePercentage - miscDecimal) = S + S * taxDecimal = S * (1 + taxDecimal)
+        const denominator = 1 - totalAffiliatePercentage - miscDecimal;
+        if (denominator > 0) {
+            grandTotal = (subtotal * (1 + taxDecimal)) / denominator;
+        }
     } else { // sole_proprietor with Turnover Tax
         taxType = "TOT";
         effectiveTaxRate = 3;
-        // For TOT, the grandTotal is the base upon which tax is calculated.
-        // grandTotal = subtotal + tax = subtotal + grandTotal * (effectiveTaxRate / 100)
-        // grandTotal * (1 - effectiveTaxRate / 100) = subtotal
-        if ((1 - (effectiveTaxRate/100)) > 0) {
-          grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
-          tax = grandTotal - subtotal;
+        taxDecimal = effectiveTaxRate / 100;
+        // tax = G * taxDecimal
+        // G * (1 - totalAffiliatePercentage - miscDecimal) = S + G * taxDecimal
+        // G * (1 - totalAffiliatePercentage - miscDecimal - taxDecimal) = S
+        const denominator = 1 - totalAffiliatePercentage - miscDecimal - taxDecimal;
+         if (denominator > 0) {
+            grandTotal = subtotal / denominator;
         }
     }
-    
+
     if (grandTotal < 0 || !isFinite(grandTotal)) grandTotal = 0;
     if (subtotal < 0 || !isFinite(subtotal)) subtotal = 0;
+    
+    tax = businessType === 'vat_registered' ? subtotal * taxDecimal : grandTotal * taxDecimal;
+    const miscCost = grandTotal * miscDecimal;
+    const percentageAffiliateCost = grandTotal * totalAffiliatePercentage;
 
-    const miscCost = subtotal * miscDecimal;
-    const percentageAffiliateCost = subtotal * totalAffiliatePercentage;
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
     const operationalCost = fixedOperationalCost + miscCost;
-    const totalBaseCost = fixedBaseCost + percentageAffiliateCost + miscCost;
-    const profit = subtotal - totalBaseCost;
+    const totalBaseCost = materialCost + laborCost + operationalCost + affiliateCost;
+    const profit = subtotal - baseForPercentages;
     
     return {
       materialCost,
