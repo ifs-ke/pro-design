@@ -2,11 +2,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStore, type Project, type ProjectDataInput, type Client } from "@/store/cost-store";
+import { useStore, type Project, type ProjectDataInput, type Client, type ProjectStatus } from "@/store/cost-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PlusCircle, Building, FileText, MoreHorizontal, Edit, Trash2, User, Calendar, ClipboardList, Home, Settings, BedDouble, Square } from "lucide-react";
+import { PlusCircle, Building, FileText, MoreHorizontal, Edit, Trash2, User, Calendar, ClipboardList, Home, Settings, BedDouble, Square, Activity } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,6 +41,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { motion } from "framer-motion";
 
+const statusVariant: { [key in ProjectStatus]: "default" | "secondary" | "outline" | "success" | "destructive" } = {
+  "Planning": "secondary",
+  "In Progress": "default",
+  "Completed": "success",
+  "On Hold": "outline",
+  "Cancelled": "destructive",
+};
+
 function ProjectFormDialog({ project, clients, onSave, children }: { project?: Project, clients: Client[], onSave: (data: ProjectDataInput) => void, children: React.ReactNode }) {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState("");
@@ -51,6 +59,7 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
     const [services, setServices] = useState("");
     const [roomCount, setRoomCount] = useState<number | string>("");
     const [otherSpaces, setOtherSpaces] = useState("");
+    const [status, setStatus] = useState<ProjectStatus>('Planning');
 
     useEffect(() => {
         if (open) {
@@ -62,6 +71,7 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
             setServices(project?.services || "");
             setRoomCount(project?.roomCount || "");
             setOtherSpaces(project?.otherSpaces || "");
+            setStatus(project?.status || 'Planning');
         }
     }, [open, project]);
 
@@ -76,6 +86,7 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
             services,
             roomCount: Number(roomCount) || undefined,
             otherSpaces,
+            status
         });
         setOpen(false);
     }
@@ -108,19 +119,36 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="project-type">Project Type</Label>
-                        <Select onValueChange={(v: Project['projectType']) => setProjectType(v)} defaultValue={projectType}>
-                            <SelectTrigger id="project-type">
-                                <SelectValue placeholder="Select a type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Residential">Residential</SelectItem>
-                                <SelectItem value="Commercial">Commercial</SelectItem>
-                                <SelectItem value="Hospitality">Hospitality</SelectItem>
-                                <SelectItem value="Other">Other</SelectItem>
-                            </SelectContent>
-                        </Select>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="project-type">Project Type</Label>
+                            <Select onValueChange={(v: Project['projectType']) => setProjectType(v)} defaultValue={projectType}>
+                                <SelectTrigger id="project-type">
+                                    <SelectValue placeholder="Select a type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Residential">Residential</SelectItem>
+                                    <SelectItem value="Commercial">Commercial</SelectItem>
+                                    <SelectItem value="Hospitality">Hospitality</SelectItem>
+                                    <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="project-status">Status</Label>
+                            <Select onValueChange={(v: ProjectStatus) => setStatus(v)} defaultValue={status}>
+                                <SelectTrigger id="project-status">
+                                    <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Planning">Planning</SelectItem>
+                                    <SelectItem value="In Progress">In Progress</SelectItem>
+                                    <SelectItem value="Completed">Completed</SelectItem>
+                                    <SelectItem value="On Hold">On Hold</SelectItem>
+                                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="project-services">Services</Label>
@@ -239,6 +267,9 @@ function ProjectCard({ project }: { project: Project }) {
             </CardHeader>
             <CardContent className="space-y-4 flex-grow flex flex-col">
                 <div className="space-y-4 flex-grow">
+                    <div className="flex items-center gap-2">
+                         <Badge variant={statusVariant[project.status]}>{project.status}</Badge>
+                    </div>
                     <div>
                         <h4 className="font-semibold text-sm text-muted-foreground mb-2">Approved Value</h4>
                         <p className="text-2xl font-bold">{formatCurrency(totalApprovedValue)}</p>

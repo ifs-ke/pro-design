@@ -64,6 +64,8 @@ export type PublishedQuote = {
     projectId?: string;
 }
 
+export type ProjectStatus = 'Planning' | 'In Progress' | 'Completed' | 'On Hold' | 'Cancelled';
+
 export type Project = {
     id: string;
     name: string;
@@ -75,6 +77,7 @@ export type Project = {
     services?: string;
     roomCount?: number;
     otherSpaces?: string;
+    status: ProjectStatus;
 }
 
 type ClientDataInput = Partial<Omit<Client, 'id' | 'createdAt' | 'interactions'>> & Pick<Client, 'name'>;
@@ -376,6 +379,7 @@ export const useStore = create<CostState>()(
                         services: projectData.services,
                         roomCount: projectData.roomCount,
                         otherSpaces: projectData.otherSpaces,
+                        status: projectData.status || 'Planning',
                     };
                     set({ projects: [...projects, newProject] });
                     return newProject;

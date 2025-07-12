@@ -52,8 +52,13 @@ export default function DashboardPage() {
         acc[quote.status] = (acc[quote.status] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
-
     const quoteStatusData = Object.entries(quoteStatusCounts).map(([name, value]) => ({ name, value, fill: `hsl(var(--chart-${Object.keys(quoteStatusCounts).indexOf(name) + 1}))` }));
+
+    const projectStatusCounts = projects.reduce((acc, project) => {
+        acc[project.status] = (acc[project.status] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+    const projectStatusData = Object.entries(projectStatusCounts).map(([name, value]) => ({ name, value, fill: `hsl(var(--chart-${Object.keys(projectStatusCounts).indexOf(name) + 1}))` }));
 
 
     return {
@@ -63,6 +68,7 @@ export default function DashboardPage() {
       approvalRate,
       clientStatusData,
       quoteStatusData,
+      projectStatusData,
     };
   }, [publishedQuotes, projects, clients]);
 
@@ -129,11 +135,11 @@ export default function DashboardPage() {
         <CarouselNext className="hidden sm:flex" />
       </Carousel>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card>
               <CardHeader>
                   <CardTitle>Client Status</CardTitle>
-                  <CardDescription>Distribution of clients by their current status.</CardDescription>
+                  <CardDescription>Distribution of clients by current status.</CardDescription>
               </CardHeader>
               <CardContent>
                   <ChartContainer config={{}} className="h-48 w-full">
@@ -148,6 +154,35 @@ export default function DashboardPage() {
                                   ))}
                               </Bar>
                          </BarChart>
+                      </ResponsiveContainer>
+                  </ChartContainer>
+              </CardContent>
+          </Card>
+           <Card>
+              <CardHeader>
+                  <CardTitle>Projects by Status</CardTitle>
+                  <CardDescription>Overview of all projects by their current status.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <ChartContainer config={{}} className="h-48 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                               <ChartTooltip
+                                  content={<ChartTooltipContent hideLabel />}
+                              />
+                              <Pie
+                                  data={dashboardMetrics.projectStatusData}
+                                  dataKey="value"
+                                  nameKey="name"
+                                  cx="50%"
+                                  cy="50%"
+                                  outerRadius={80}
+                                  innerRadius={50}
+                                  paddingAngle={5}
+                                  labelLine={false}
+                              />
+                               <ChartLegend content={<ChartLegendContent />} />
+                          </PieChart>
                       </ResponsiveContainer>
                   </ChartContainer>
               </CardContent>
