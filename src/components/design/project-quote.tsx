@@ -41,6 +41,8 @@ export function ProjectQuote() {
   // Effect to update the local finalQuote ONLY when the global grandTotal changes.
   // This syncs the input when the form is updated, but preserves manual edits otherwise.
   useEffect(() => {
+    // Only reset the local quote if the base costs have changed.
+    // This preserves manual adjustments if only profit margin or tax rates change.
     setFinalQuote(globalCalculations.grandTotal);
   }, [globalCalculations.grandTotal]);
 
@@ -58,14 +60,15 @@ export function ProjectQuote() {
 
     let newSubtotal: number;
     let newTax: number;
-    let newTaxType = 'VAT';
+    let newTaxType: string;
     let newTaxRate = vatRate || 0;
 
     if (businessType === 'vat_registered') {
+        newTaxType = 'VAT';
         newSubtotal = numericQuote / (1 + (newTaxRate / 100));
         newTax = numericQuote - newSubtotal;
     } else { // sole_proprietor
-        taxType = 'TOT';
+        newTaxType = 'TOT';
         newTaxRate = 3;
         // The final quote is the gross revenue. TOT is 3% of this.
         // Net = Gross * (1 - 0.03)
@@ -192,4 +195,3 @@ export function ProjectQuote() {
     </Card>
   );
 }
-
