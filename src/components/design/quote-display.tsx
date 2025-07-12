@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { Allocation } from "./profit-allocator";
+import type { Allocation } from "@/store/cost-store";
 import { formatCurrency } from "@/lib/utils";
 import { Users, PiggyBank, Lightbulb, Heart, Info, TrendingUp, ReceiptText } from "lucide-react";
 import {
@@ -27,7 +27,6 @@ interface CostBreakdownProps {
     materialCost: number;
     laborCost: number;
     operationalCost: number;
-    miscellaneousCost: number;
     totalBaseCost: number;
     profit: number;
     subtotal: number;
@@ -52,7 +51,6 @@ export function CostBreakdown({ calculations, allocations }: CostBreakdownProps)
     materialCost,
     laborCost,
     operationalCost,
-    miscellaneousCost,
     totalBaseCost,
     profit,
     subtotal,
@@ -77,7 +75,6 @@ export function CostBreakdown({ calculations, allocations }: CostBreakdownProps)
             <div className="flex justify-between"><p className="text-muted-foreground">Material Cost</p><p>{formatCurrency(materialCost)}</p></div>
             <div className="flex justify-between"><p className="text-muted-foreground">Labor Cost</p><p>{formatCurrency(laborCost)}</p></div>
             <div className="flex justify-between"><p className="text-muted-foreground">Operational Cost</p><p>{formatCurrency(operationalCost)}</p></div>
-            <div className="flex justify-between"><p className="text-muted-foreground">Miscellaneous (10%)</p><p>{formatCurrency(miscellaneousCost)}</p></div>
         </div>
         <Separator />
          <div className="space-y-2 text-sm">

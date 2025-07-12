@@ -127,7 +127,8 @@ export function CostForm() {
 
   useEffect(() => {
     const subscription = form.watch((value) => {
-      setFormValues(value as z.infer<typeof formSchema>);
+      // Use a deep copy to ensure state updates correctly for nested array changes
+      setFormValues(JSON.parse(JSON.stringify(value)) as z.infer<typeof formSchema>);
     });
     return () => subscription.unsubscribe();
   }, [form, setFormValues]);
