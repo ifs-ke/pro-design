@@ -1,6 +1,9 @@
+
 "use client";
 
 import { useMemo } from "react";
+import { useStore } from "@/store/cost-store";
+import type { Allocation } from "@/store/cost-store";
 import {
   Card,
   CardContent,
@@ -13,14 +16,6 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Users, PiggyBank, Lightbulb, Heart, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-
-
-export type Allocation = {
-  salaries: number;
-  savings: number;
-  futureDev: number;
-  csr: number;
-};
 
 interface AllocationItem {
   id: keyof Allocation;
@@ -35,24 +30,20 @@ const allocationItems: AllocationItem[] = [
     { id: 'csr', label: 'CSR', icon: Heart },
 ];
 
-interface ProfitAllocatorProps {
-  allocations: Allocation;
-  setAllocations: React.Dispatch<React.SetStateAction<Allocation>>;
-  profit: number;
-}
+export function ProfitAllocator() {
+  const { allocations, setAllocations, profit } = useStore(state => ({
+    allocations: state.allocations,
+    setAllocations: state.setAllocations,
+    profit: state.calculations.profit,
+  }));
 
-export function ProfitAllocator({
-  allocations,
-  setAllocations,
-  profit,
-}: ProfitAllocatorProps) {
   const totalAllocation = useMemo(
     () => Object.values(allocations).reduce((sum, val) => sum + val, 0),
     [allocations]
   );
   
   const handleSliderChange = (key: keyof Allocation, value: number) => {
-    setAllocations(prev => ({ ...prev, [key]: value }));
+    setAllocations({ ...allocations, [key]: value });
   };
 
   return (

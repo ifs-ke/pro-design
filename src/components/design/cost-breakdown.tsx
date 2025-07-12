@@ -2,16 +2,16 @@
 "use client";
 
 import React from "react";
+import { useStore } from "@/store/cost-store";
+import type { Allocation } from "@/store/cost-store";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { Allocation } from "./profit-allocator";
 import { formatCurrency } from "@/lib/utils";
 import { Users, PiggyBank, Lightbulb, Heart, Info } from "lucide-react";
 import {
@@ -21,24 +21,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-
-interface CostBreakdownProps {
-  calculations: {
-    materialCost: number;
-    laborCost: number;
-    operationalCost: number;
-    miscellaneousCost: number;
-    totalBaseCost: number;
-    profit: number;
-    subtotal: number;
-    tax: number;
-    grandTotal: number;
-    taxRate: number;
-    taxType: string;
-  };
-  allocations: Allocation;
-}
-
 const allocationMeta = {
   salaries: { icon: Users, label: "Salaries" },
   savings: { icon: PiggyBank, label: "Savings" },
@@ -46,8 +28,12 @@ const allocationMeta = {
   csr: { icon: Heart, label: "CSR" },
 };
 
+export function CostBreakdown() {
+  const { calculations, allocations } = useStore(state => ({
+    calculations: state.calculations,
+    allocations: state.allocations,
+  }));
 
-export function CostBreakdown({ calculations, allocations }: CostBreakdownProps) {
   const {
     materialCost,
     laborCost,

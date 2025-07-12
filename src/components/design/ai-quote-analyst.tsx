@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useStore } from "@/store/cost-store";
 import {
   Card,
   CardContent,
@@ -15,17 +16,9 @@ import { Loader2, Lightbulb, BarChart, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getQuoteInsights, type QuoteInsightsInput, type QuoteInsightsOutput } from "@/ai/flows/quote-insights-flow";
 
-interface AiQuoteAnalystProps {
-  calculations: {
-    totalBaseCost: number;
-    profit: number;
-    profitMargin: number;
-    grandTotal: number;
-    businessType: string;
-  };
-}
+export function AiQuoteAnalyst() {
+  const calculations = useStore(state => state.calculations);
 
-export function AiQuoteAnalyst({ calculations }: AiQuoteAnalystProps) {
   const [analysis, setAnalysis] = useState<QuoteInsightsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

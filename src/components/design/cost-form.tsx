@@ -1,10 +1,12 @@
 
 "use client";
 
-import { useFieldArray, type UseFormReturn } from "react-hook-form";
+import { useForm, useFieldArray, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useEffect } from "react";
+import { useStore } from "@/store/cost-store";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -32,7 +34,6 @@ import {
   HardHat,
   Cog,
   ReceiptText,
-  TrendingUp,
   AlertTriangle,
   Trash2,
   PlusCircle,
@@ -68,11 +69,18 @@ export const formSchema = z.object({
   profitMargin: z.coerce.number().min(0, "Profit margin cannot be negative."),
 });
 
-interface CostFormProps {
-  form: UseFormReturn<z.infer<typeof formSchema>>;
-}
+export function CostForm() {
+  const { formValues, setFormValues, calculations } = useStore(state => ({
+    formValues: state.formValues,
+    setFormValues: state.setFormValues,
+    calculations: state.calculations,
+  }));
 
-export function CostForm({ form }: CostFormProps) {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: formValues,
+  });
+
   const {
     fields: materialFields,
     append: appendMaterial,
@@ -90,22 +98,21 @@ export function CostForm({ form }: CostFormProps) {
   } = useFieldArray({ control: form.control, name: "operations" });
 
   const watchedValues = form.watch();
+
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      setFormValues(value as z.infer<typeof formSchema>);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, setFormValues]);
+
+  useEffect(() => {
+    form.reset(formValues);
+  }, [formValues, form]);
+
+
   const profitMargin = watchedValues.profitMargin;
   const businessType = watchedValues.businessType;
-
-  const totalMaterialCost =
-    watchedValues.materials?.reduce((acc, item) => acc + (item.cost || 0), 0) ??
-    0;
-  const totalLaborCost =
-    watchedValues.labor?.reduce(
-      (acc, item) => acc + (item.units || 0) * (item.rate || 0),
-      0
-    ) ?? 0;
-  const totalOperationCost =
-    watchedValues.operations?.reduce(
-      (acc, item) => acc + (item.cost || 0),
-      0
-    ) ?? 0;
 
   return (
     <Card>
@@ -116,7 +123,7 @@ export function CostForm({ form }: CostFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
+        <FormProvider {...form}>
           <form className="space-y-4">
             <Accordion type="multiple" defaultValue={["materials", "labor", "operations"]} className="w-full">
               {/* Materials Section */}
@@ -126,7 +133,7 @@ export function CostForm({ form }: CostFormProps) {
                     <Package className="size-5 text-primary" />
                     <div className="flex flex-col items-start">
                         <span className="font-semibold">Materials</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(totalMaterialCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.materialCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -196,7 +203,7 @@ export function CostForm({ form }: CostFormProps) {
                     <HardHat className="size-5 text-primary" />
                      <div className="flex flex-col items-start">
                         <span className="font-semibold">Labor / Vendors</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(totalLaborCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.laborCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -305,7 +312,7 @@ export function CostForm({ form }: CostFormProps) {
                     <Cog className="size-5 text-primary" />
                     <div className="flex flex-col items-start">
                         <span className="font-semibold">Operations</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(totalOperationCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.operationalCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -473,7 +480,7 @@ export function CostForm({ form }: CostFormProps) {
                 )}
             </div>
           </form>
-        </Form>
+        </FormProvider>
       </CardContent>
     </Card>
   );

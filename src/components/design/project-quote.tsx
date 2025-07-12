@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useStore } from "@/store/cost-store";
 import {
   Card,
   CardContent,
@@ -17,20 +18,12 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
-interface ProjectQuoteProps {
-  calculations: {
-    grandTotal: number;
-    totalBaseCost: number;
-    profit: number;
-    subtotal: number;
-    tax: number;
-    taxRate: number;
-    taxType: string;
-  };
-  onFinalQuoteChange: (finalQuote: number) => void;
-}
+export function ProjectQuote() {
+  const { calculations, updateProfitMarginFromFinalQuote } = useStore(state => ({
+    calculations: state.calculations,
+    updateProfitMarginFromFinalQuote: state.updateProfitMarginFromFinalQuote
+  }));
 
-export function ProjectQuote({ calculations, onFinalQuoteChange }: ProjectQuoteProps) {
   const { grandTotal, totalBaseCost, profit, subtotal, tax, taxRate, taxType } = calculations;
 
   const [finalQuote, setFinalQuote] = useState<number | string>(grandTotal);
@@ -50,7 +43,7 @@ export function ProjectQuote({ calculations, onFinalQuoteChange }: ProjectQuoteP
     const numericValue = parseFloat(finalQuote as string);
     if (!isNaN(numericValue) && numericValue > 0) {
       setFinalQuote(numericValue);
-      onFinalQuoteChange(numericValue);
+      updateProfitMarginFromFinalQuote(numericValue);
     } else {
       // Reset to the last valid calculation if input is invalid
       setFinalQuote(grandTotal);
