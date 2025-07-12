@@ -70,12 +70,13 @@ function AddInteractionDialog({ clientId, children }: { clientId: string, childr
 
 
 export function FollowUpTracker({ client }: { client: Client }) {
-    const sortedInteractions = [...client.interactions].sort((a,b) => b.timestamp - a.timestamp);
+    const interactions = client.interactions || [];
+    const sortedInteractions = [...interactions].sort((a,b) => b.timestamp - a.timestamp);
 
     return (
         <div className="space-y-2">
             <div className="flex justify-between items-center">
-                <h4 className="font-semibold text-sm">Follow-up History ({client.interactions.length})</h4>
+                <h4 className="font-semibold text-sm">Follow-up History ({interactions.length})</h4>
                 <AddInteractionDialog clientId={client.id}>
                     <Button variant="ghost" size="sm">
                         <PlusCircle className="mr-2 size-4" />
