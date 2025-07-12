@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AiQuoteAnalyst } from "@/components/design/ai-quote-analyst";
+import { QuoteVariance } from "@/components/design/quote-variance";
 
 interface QuoteBreakdown {
     grandTotal: number;
@@ -65,8 +66,7 @@ export function ProjectQuote() {
         } else { // sole_proprietor
             newTaxType = 'TOT';
             newTaxRate = 3;
-            // TOT is 3% of the gross amount (grand total).
-            // grandTotal = netRevenue / (1 - 0.03)
+            // grandTotal = netRevenue / (1 - totRate) -> netRevenue = grandTotal * (1 - totRate)
             newSubtotal = numericValue * (1 - (newTaxRate / 100));
             newTax = numericValue - newSubtotal;
         }
@@ -141,6 +141,11 @@ export function ProjectQuote() {
             </div>
         </div>
         
+        <QuoteVariance
+            suggested={globalCalculations}
+            final={localBreakdown}
+        />
+
         <Separator />
         
         <div className="space-y-4">
