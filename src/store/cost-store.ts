@@ -18,6 +18,7 @@ type Calculations = {
   operationalCost: number;
   affiliateCost: number;
   miscCost: number;
+  salaryCost: number;
   totalBaseCost: number;
   profit: number;
   subtotal: number; // Net Revenue (Base Cost + Profit)
@@ -57,12 +58,12 @@ const defaultFormValues: FormValues = {
   materials: [],
   labor: [],
   operations: [],
-  salaries: [],
   affiliates: [],
   businessType: "vat_registered",
   taxRate: 16,
   profitMargin: 25,
   miscPercentage: 0,
+  salaryPercentage: 0,
 };
 
 const defaultAllocations: Allocation = {
@@ -76,77 +77,79 @@ const performCalculations = (formValues: FormValues): Calculations => {
       materials,
       labor,
       operations,
-      salaries,
       affiliates,
       taxRate,
       profitMargin,
       businessType,
       miscPercentage,
+      salaryPercentage,
     } = formValues;
 
     const materialCost = materials?.reduce((acc, item) => acc + (Number(item.cost) || 0), 0) ?? 0;
     const laborCost = labor?.reduce((acc, item) => acc + ((Number(item.units) || 0) * (Number(item.rate) || 0)), 0) ?? 0;
     const fixedOperationalCost = operations?.reduce((acc, item) => acc + (Number(item.cost) || 0), 0) ?? 0;
-    const salaryCost = salaries?.reduce((acc, item) => acc + (Number(item.cost) || 0), 0) ?? 0;
     
     const fixedAffiliateCost = affiliates?.reduce((acc, item) => {
         if (!item.rate || item.rateType === 'percentage') return acc;
         return acc + ((Number(item.units) || 0) * (Number(item.rate) || 0));
     }, 0) ?? 0;
-
-    const baseForPercentages = materialCost + laborCost + fixedOperationalCost + salaryCost + fixedAffiliateCost;
-
-    const totalAffiliatePercentage = affiliates?.reduce((acc, item) => {
+    
+    const percentageAffiliateRate = affiliates?.reduce((acc, item) => {
         if (item.rateType === 'percentage') {
             return acc + ((Number(item.rate) || 0) / 100);
         }
         return acc;
     }, 0) ?? 0;
-    
-    const miscDecimal = (miscPercentage || 0) / 100;
-    const profitMarginDecimal = (profitMargin || 0) / 100;
+
+    const miscRate = (miscPercentage || 0) / 100;
+    const salaryRate = (salaryPercentage || 0) / 100;
+    const profitMarginRate = (profitMargin || 0) / 100;
+
+    const fixedCosts = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost;
     
     let grandTotal = 0;
-    let subtotal = 0; // Net Revenue
+    let subtotal = 0;
     let tax = 0;
     let taxType = "VAT";
     let effectiveTaxRate = taxRate || 0;
+    let taxRateDecimal = 0;
 
-    if ((1 - profitMarginDecimal) > 0) {
-      subtotal = baseForPercentages / (1 - profitMarginDecimal);
+    const profit = fixedCosts * (profitMarginRate / (1 - profitMarginRate));
+    
+    if (!isFinite(profit) || profit < 0) {
+        subtotal = fixedCosts;
     } else {
-      subtotal = 0;
+        subtotal = fixedCosts + profit;
     }
 
-    let taxDecimal = 0;
     if (businessType === 'vat_registered') {
         taxType = "VAT";
-        taxDecimal = (effectiveTaxRate / 100);
-        const denominator = 1 - totalAffiliatePercentage - miscDecimal;
+        taxRateDecimal = (effectiveTaxRate / 100);
+        const denominator = 1 - percentageAffiliateRate - miscRate - salaryRate;
         if (denominator > 0) {
-            grandTotal = (subtotal * (1 + taxDecimal)) / denominator;
+            grandTotal = (subtotal * (1 + taxRateDecimal)) / denominator;
         }
     } else { // sole_proprietor with Turnover Tax
         taxType = "TOT";
         effectiveTaxRate = 3;
-        taxDecimal = effectiveTaxRate / 100;
-        const denominator = 1 - totalAffiliatePercentage - miscDecimal - taxDecimal;
+        taxRateDecimal = effectiveTaxRate / 100;
+        const denominator = 1 - percentageAffiliateRate - miscRate - salaryRate - taxRateDecimal;
          if (denominator > 0) {
             grandTotal = subtotal / denominator;
         }
     }
 
     if (grandTotal < 0 || !isFinite(grandTotal)) grandTotal = 0;
-    if (subtotal < 0 || !isFinite(subtotal)) subtotal = 0;
-    
-    tax = businessType === 'vat_registered' ? subtotal * taxDecimal : grandTotal * taxDecimal;
-    const miscCost = grandTotal * miscDecimal;
-    const percentageAffiliateCost = grandTotal * totalAffiliatePercentage;
+
+    tax = businessType === 'vat_registered' ? subtotal * taxRateDecimal : grandTotal * taxRateDecimal;
+    const miscCost = grandTotal * miscRate;
+    const salaryCost = grandTotal * salaryRate;
+    const percentageAffiliateCost = grandTotal * percentageAffiliateRate;
 
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
     const operationalCost = fixedOperationalCost + miscCost + salaryCost;
     const totalBaseCost = materialCost + laborCost + operationalCost + affiliateCost;
-    const profit = subtotal - baseForPercentages;
+    const finalProfit = subtotal - fixedCosts;
     
     return {
       materialCost,
@@ -154,14 +157,15 @@ const performCalculations = (formValues: FormValues): Calculations => {
       operationalCost,
       affiliateCost,
       miscCost,
+      salaryCost,
       totalBaseCost,
-      profit: profit > 0 ? profit : 0,
+      profit: finalProfit > 0 ? finalProfit : 0,
       subtotal,
       grandTotal,
       tax,
       taxRate: effectiveTaxRate,
       taxType,
-      profitMargin: profit > 0 && subtotal > 0 ? (profit / subtotal) * 100 : 0,
+      profitMargin: finalProfit > 0 && subtotal > 0 ? (finalProfit / subtotal) * 100 : 0,
       businessType: formValues.businessType,
     };
 }
