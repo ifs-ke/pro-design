@@ -131,8 +131,8 @@ export default function DashboardPage() {
               </Card>
            </CarouselItem>
         </CarouselContent>
-        <CarouselPrevious className="hidden sm:flex" />
-        <CarouselNext className="hidden sm:flex" />
+        <CarouselPrevious className="sm:flex -left-4" />
+        <CarouselNext className="sm:flex -right-4" />
       </Carousel>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
