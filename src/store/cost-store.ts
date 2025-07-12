@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import type * as z from 'zod';
 import type { formSchema } from '@/components/design/cost-form';
-import { devtools } from 'zustand/middleware'
+import { devtools, persist, createJSONStorage } from 'zustand/middleware'
 
 export type FormValues = z.infer<typeof formSchema>;
 
@@ -30,7 +30,6 @@ type Calculations = {
 };
 
 interface CostState {
-  _hydrated: boolean;
   formValues: FormValues;
   allocations: Allocation;
   calculations: Calculations;
@@ -105,62 +104,75 @@ const performCalculations = (formValues: FormValues): Calculations => {
       taxRate: effectiveTaxRate,
       taxType,
       profitMargin: profitMargin || 0,
-      businessType,
+      businessType: formValues.businessType,
     };
 }
 
 
-export const useStore = create<CostState>()(devtools((set, get) => ({
-  _hydrated: false,
-  formValues: defaultFormValues,
-  allocations: defaultAllocations,
-  calculations: performCalculations(defaultFormValues),
+export const useStore = create<CostState>()(
+    devtools(
+        persist(
+            (set, get) => ({
+                formValues: defaultFormValues,
+                allocations: defaultAllocations,
+                calculations: performCalculations(defaultFormValues),
 
-  setFormValues: (values) => {
-    set({
-      formValues: values,
-      calculations: performCalculations(values),
-    });
-  },
+                setFormValues: (values) => {
+                    set({
+                        formValues: values,
+                        calculations: performCalculations(values),
+                    });
+                },
 
-  setAllocations: (allocations) => {
-    set({ allocations });
-  },
+                setAllocations: (allocations) => {
+                    set({ allocations });
+                },
 
-  updateProfitMarginFromFinalQuote: (finalQuote) => {
-    const { calculations, formValues } = get();
-    const { totalBaseCost, businessType } = calculations;
+                updateProfitMarginFromFinalQuote: (finalQuote) => {
+                    const { calculations, formValues } = get();
+                    const { totalBaseCost, businessType } = calculations;
 
-    let subtotal;
-    if (businessType === 'vat_registered') {
-      const taxRate = formValues.taxRate || 0;
-      subtotal = finalQuote / (1 + (taxRate / 100));
-    } else { // sole_proprietor
-      const effectiveTaxRate = 3;
-      subtotal = finalQuote * (1 - (effectiveTaxRate / 100));
-    }
+                    let subtotal;
+                    if (businessType === 'vat_registered') {
+                    const taxRate = formValues.taxRate || 0;
+                    subtotal = finalQuote / (1 + (taxRate / 100));
+                    } else { // sole_proprietor
+                    const effectiveTaxRate = 3;
+                    subtotal = finalQuote * (1 - (effectiveTaxRate / 100));
+                    }
 
-    const newProfit = subtotal - totalBaseCost;
-    
-    let newProfitMargin = 0;
-    if (totalBaseCost > 0) {
-      newProfitMargin = (newProfit / totalBaseCost) * 100;
-    }
+                    const newProfit = subtotal - totalBaseCost;
+                    
+                    let newProfitMargin = 0;
+                    if (totalBaseCost > 0) {
+                    newProfitMargin = (newProfit / totalBaseCost) * 100;
+                    }
 
-    if (newProfitMargin >= 0) {
-        const newFormValues = {
-            ...formValues,
-            profitMargin: parseFloat(newProfitMargin.toFixed(2)),
-        };
-        set({
-            formValues: newFormValues,
-            calculations: performCalculations(newFormValues),
-        });
-    }
-  },
-  
-}), { name: "CostStore" }));
+                    if (newProfitMargin >= 0) {
+                        const newFormValues = {
+                            ...formValues,
+                            profitMargin: parseFloat(newProfitMargin.toFixed(2)),
+                        };
+                        set({
+                            formValues: newFormValues,
+                            calculations: performCalculations(newFormValues),
+                        });
+                    }
+                },
+            }),
+            {
+                name: "cost-store-storage",
+                storage: createJSONStorage(() => localStorage), 
+                // Only persist formValues and allocations
+                partialize: (state) => ({ formValues: state.formValues, allocations: state.allocations }),
+            }
+        ),
+        { name: "CostStore" }
+    )
+);
 
-// This is a bit of a hack to ensure the store is hydrated on the client
-// before we render the UI, to avoid hydration mismatches.
-useStore.setState({ _hydrated: true });
+// We need to handle hydration manually to avoid mismatches between server and client.
+// On page load, we'll call rehydrate() to get the latest persisted state.
+if (typeof window !== 'undefined') {
+  useStore.persist.rehydrate();
+}

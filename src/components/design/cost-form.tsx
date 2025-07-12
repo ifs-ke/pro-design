@@ -101,14 +101,19 @@ export function CostForm() {
 
   useEffect(() => {
     const subscription = form.watch((value) => {
-      setFormValues(value as z.infer<typeof formSchema>);
+      // This is a workaround to prevent stale values from being set
+      // It ensures that only the latest value is set to the store
+      const latestValues = form.getValues();
+      setFormValues(latestValues as z.infer<typeof formSchema>);
     });
     return () => subscription.unsubscribe();
   }, [form, setFormValues]);
 
+  // When the profit margin is updated from the ProjectQuote component,
+  // we need to update the form's profit margin slider.
   useEffect(() => {
-    form.reset(formValues);
-  }, [formValues, form]);
+    form.setValue('profitMargin', formValues.profitMargin);
+  }, [formValues.profitMargin, form]);
 
 
   const profitMargin = watchedValues.profitMargin;
@@ -451,7 +456,7 @@ export function CostForm() {
                             <FormLabel>
                             Profit Margin (%) -{" "}
                             <span className="font-bold text-primary">
-                                {field.value}%
+                                {field.value?.toFixed(2) ?? 0}%
                             </span>
                             </FormLabel>
                             <FormControl>

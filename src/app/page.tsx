@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import { useStore } from "@/store/cost-store";
 
 import { CostForm } from "@/components/design/cost-form";
@@ -11,7 +12,13 @@ import { MaterialSuggester } from "@/components/design/material-suggester";
 import { AiQuoteAnalyst } from "@/components/design/ai-quote-analyst";
 
 export default function DesignCostProPage() {
-  const isHydrated = useStore(state => state._hydrated);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    // Manually trigger hydration check on mount
+    useStore.persist.rehydrate();
+    setIsHydrated(true);
+  }, []);
 
   if (!isHydrated) {
     return null; // or a loading skeleton
