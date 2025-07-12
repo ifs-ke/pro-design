@@ -13,9 +13,10 @@ import { Separator } from "@/components/ui/separator";
 export default function QuoteDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { publishedQuotes } = useStore();
+  const { publishedQuotes, clients } = useStore();
 
   const quote = publishedQuotes.find(q => q.id === params.id);
+  const client = quote ? clients.find(c => c.id === quote.clientId) : null;
 
   if (!quote) {
     return (
@@ -28,6 +29,7 @@ export default function QuoteDetailPage() {
   }
 
   const materials = quote.formValues.materials || [];
+  const clientName = client ? client.name : "Unknown Client";
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -39,7 +41,7 @@ export default function QuoteDetailPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
                 <p className="text-muted-foreground">Quote ID: {quote.id}</p>
-                <h1 className="text-4xl font-bold tracking-tight">{quote.clientName}</h1>
+                <h1 className="text-4xl font-bold tracking-tight">{clientName}</h1>
                 <p className="text-muted-foreground mt-1">
                     Published on {new Date(quote.timestamp).toLocaleDateString()}
                 </p>

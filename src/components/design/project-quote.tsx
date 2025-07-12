@@ -23,10 +23,11 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 export function ProjectQuote() {
-  const { calculations: globalCalculations, formValues, publishQuote } = useStore(state => ({
+  const { calculations: globalCalculations, formValues, publishQuote, clients } = useStore(state => ({
     calculations: state.calculations,
     formValues: state.formValues,
     publishQuote: state.publishQuote,
+    clients: state.clients,
   }));
   const { toast } = useToast();
 
@@ -111,11 +112,11 @@ export function ProjectQuote() {
   }
 
   const handlePublish = () => {
-    if (!formValues.clientName) {
+    if (!formValues.clientId) {
         toast({
             variant: "destructive",
-            title: "Client Name Required",
-            description: "Please enter a client name before publishing.",
+            title: "Client Required",
+            description: "Please select a client before publishing.",
         });
         return;
     }

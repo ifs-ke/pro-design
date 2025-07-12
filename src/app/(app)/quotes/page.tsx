@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStore, type PublishedQuote, type Project } from "@/store/cost-store";
+import { useStore, type PublishedQuote, type Project, type Client } from "@/store/cost-store";
 import Link from 'next/link';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -133,7 +133,7 @@ function AssignProjectDialog({ quote, projects, createProject, assignQuoteToProj
 
 export default function QuotesPage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const { publishedQuotes, deleteQuote, updateQuoteStatus, loadQuoteIntoForm, projects, createProject, assignQuoteToProject } = useStore();
+  const { publishedQuotes, deleteQuote, updateQuoteStatus, loadQuoteIntoForm, projects, clients, createProject, assignQuoteToProject } = useStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -152,6 +152,10 @@ export default function QuotesPage() {
             <div className="text-lg">Loading Quotes...</div>
         </div>
     );
+  }
+
+  const getClientName = (clientId: string) => {
+    return clients.find(c => c.id === clientId)?.name || "Unknown Client";
   }
 
   const getProjectName = (projectId?: string) => {
@@ -200,7 +204,7 @@ export default function QuotesPage() {
                   publishedQuotes.map((quote) => (
                     <TableRow key={quote.id}>
                       <TableCell className="font-medium">{quote.id}</TableCell>
-                      <TableCell>{quote.clientName}</TableCell>
+                      <TableCell>{getClientName(quote.clientId)}</TableCell>
                       <TableCell>{new Date(quote.timestamp).toLocaleDateString()}</TableCell>
                       <TableCell>{getProjectName(quote.projectId)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(quote.calculations.grandTotal)}</TableCell>
@@ -261,7 +265,7 @@ export default function QuotesPage() {
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     This action cannot be undone. This will permanently delete the quote
-                                    for <span className="font-semibold">{quote.clientName}</span> (ID: {quote.id}).
+                                    for <span className="font-semibold">{getClientName(quote.clientId)}</span> (ID: {quote.id}).
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

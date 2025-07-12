@@ -5,7 +5,7 @@ import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect, useState } from "react";
-import { useStore } from "@/store/cost-store";
+import { useStore, type Client } from "@/store/cost-store";
 import {
   FormControl,
   FormField,
@@ -43,7 +43,8 @@ import {
   Milestone,
   SlidersHorizontal,
   Users,
-  MessageSquarePlus
+  MessageSquarePlus,
+  UserPlus
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
@@ -52,6 +53,15 @@ import { MaterialSuggester } from "@/components/design/material-suggester";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 const materialItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -89,7 +99,7 @@ const affiliateItemSchema = z.object({
 
 
 export const formSchema = z.object({
-  clientName: z.string().optional(),
+  clientId: z.string().min(1, "Please select a client."),
   materials: z.array(materialItemSchema).optional(),
   labor: z.array(laborItemSchema).optional(),
   operations: z.array(operationItemSchema).optional(),
@@ -101,11 +111,64 @@ export const formSchema = z.object({
   salaryPercentage: z.coerce.number().min(0, "Salary percentage cannot be negative."),
 });
 
+function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) => void }) {
+    const [open, setOpen] = useState(false);
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
+    const { addClient } = useStore();
+
+    const handleAddClient = () => {
+        if (!name) return;
+        const newClient = addClient({ name, email, phone });
+        onClientAdded(newClient);
+        setName("");
+        setEmail("");
+        setPhone("");
+        setOpen(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                    <UserPlus className="size-4" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add New Client</DialogTitle>
+                    <DialogDescription>Create a new client record. You can add more details later in the CRM.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="client-name">Client Name *</Label>
+                        <Input id="client-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., John Doe" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="client-email">Email</Label>
+                        <Input id="client-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g., john.doe@example.com" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="client-phone">Phone</Label>
+                        <Input id="client-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g., +254 712 345 678" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button onClick={handleAddClient} disabled={!name}>Add Client</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export function CostForm() {
-  const { formValues, setFormValues, calculations } = useStore(state => ({
+  const { formValues, setFormValues, calculations, clients } = useStore(state => ({
     formValues: state.formValues,
     setFormValues: state.setFormValues,
     calculations: state.calculations,
+    clients: state.clients,
   }));
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -113,7 +176,7 @@ export function CostForm() {
     defaultValues: formValues,
   });
 
-  const [showDescription, setShowDescription] = useState<{ [index: number]: boolean; }>({});
+  const [showDescription, setShowDescription] = useState<{ [index: number]: boolean, } | undefined>({});
 
   const {
     fields: materialFields,
@@ -151,8 +214,6 @@ export function CostForm() {
   
   const handleAddMaterial = () => {
     appendMaterial({ name: "", quantity: 1, cost: 0, description: "" }, { shouldFocus: false });
-    // Ensure new material description is hidden
-    setShowDescription(prev => ({...prev, [materialFields.length]: false}));
   };
 
   return (
@@ -168,13 +229,27 @@ export function CostForm() {
           <form className="space-y-4">
              <FormField
                 control={form.control}
-                name="clientName"
+                name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Client Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter client's name" {...field} />
-                    </FormControl>
+                    <FormLabel>Client</FormLabel>
+                     <div className="flex items-center gap-2">
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a client" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {clients.map(client => (
+                                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <AddClientDialog onClientAdded={(client) => {
+                            form.setValue('clientId', client.id);
+                        }} />
+                     </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -195,7 +270,7 @@ export function CostForm() {
                   <div className="space-y-4">
                     {materialFields.map((field, index) => {
                       const descriptionValue = form.watch(`materials.${index}.description`);
-                      const isDescriptionVisible = showDescription[index] || !!descriptionValue;
+                      const isDescriptionVisible = showDescription?.[index] || !!descriptionValue;
 
                       return (
                       <div

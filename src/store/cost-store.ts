@@ -30,10 +30,18 @@ export type Calculations = {
   businessType: string;
 };
 
+export type Client = {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    createdAt: number;
+}
+
 export type PublishedQuote = {
     id: string;
     timestamp: number;
-    clientName: string;
+    clientId: string;
     status: 'Draft' | 'Sent' | 'Approved' | 'Declined';
     formValues: FormValues;
     allocations: Allocation;
@@ -52,10 +60,14 @@ interface CostState {
   formValues: FormValues;
   allocations: Allocation;
   calculations: Calculations;
+  clients: Client[];
   publishedQuotes: PublishedQuote[];
   projects: Project[];
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
+  addClient: (clientData: Omit<Client, 'id' | 'createdAt'>) => Client;
+  updateClient: (id: string, clientData: Partial<Omit<Client, 'id' | 'createdAt'>>) => void;
+  deleteClient: (id: string) => void;
   publishQuote: (finalCalculations: Calculations, suggestedCalculations: Calculations) => string; // Returns the new quote ID
   updateQuoteStatus: (id: string, status: PublishedQuote['status']) => void;
   deleteQuote: (id: string) => void;
@@ -65,7 +77,7 @@ interface CostState {
 }
 
 const defaultFormValues: FormValues = {
-  clientName: '',
+  clientId: '',
   materials: [],
   labor: [],
   operations: [],
@@ -200,6 +212,7 @@ export const useStore = create<CostState>()(
                 formValues: defaultFormValues,
                 allocations: defaultAllocations,
                 calculations: performCalculations(defaultFormValues),
+                clients: [],
                 publishedQuotes: [],
                 projects: [],
 
@@ -214,9 +227,33 @@ export const useStore = create<CostState>()(
                     set({ allocations });
                 },
 
+                addClient: (clientData) => {
+                    const newClient: Client = {
+                        ...clientData,
+                        id: `CLT-${Date.now().toString()}`,
+                        createdAt: Date.now(),
+                    };
+                    set(state => ({ clients: [...state.clients, newClient] }));
+                    return newClient;
+                },
+
+                updateClient: (id, clientData) => {
+                    set(state => ({
+                        clients: state.clients.map(c => c.id === id ? { ...c, ...clientData } : c)
+                    }));
+                },
+
+                deleteClient: (id) => {
+                    set(state => ({
+                        clients: state.clients.filter(c => c.id !== id),
+                        // Optional: Also delete associated quotes and projects, or handle orphan data.
+                        // For now, we'll leave them, but they may become inaccessible without the client.
+                    }));
+                },
+
                 publishQuote: (finalCalculations, suggestedCalculations) => {
-                    const { formValues, allocations, publishedQuotes } = get();
-                    const existingQuoteIndex = publishedQuotes.findIndex(q => q.id === formValues.clientName?.replace(/\s+/g, '-'));
+                    const { formValues, allocations, publishedQuotes, clients } = get();
+                    const existingQuoteIndex = publishedQuotes.findIndex(q => q.id === formValues.clientId?.replace(/\s+/g, '-'));
 
                     if (existingQuoteIndex !== -1) {
                          set(state => ({
@@ -232,14 +269,14 @@ export const useStore = create<CostState>()(
                                 : q
                             ),
                         }));
-                        return formValues.clientName!.replace(/\s+/g, '-');
+                        return formValues.clientId!.replace(/\s+/g, '-');
                     }
                     
                     const nextId = `QT-${(publishedQuotes.length + 1).toString().padStart(3, '0')}`;
                     const newQuote: PublishedQuote = {
                         id: nextId,
                         timestamp: Date.now(),
-                        clientName: formValues.clientName || 'Unnamed Client',
+                        clientId: formValues.clientId || '',
                         status: 'Draft',
                         formValues: JSON.parse(JSON.stringify(formValues)),
                         allocations: JSON.parse(JSON.stringify(allocations)),
@@ -296,6 +333,7 @@ export const useStore = create<CostState>()(
                 partialize: (state) => ({ 
                     formValues: state.formValues, 
                     allocations: state.allocations,
+                    clients: state.clients,
                     publishedQuotes: state.publishedQuotes,
                     projects: state.projects
                 }),
