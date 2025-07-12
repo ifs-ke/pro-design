@@ -69,7 +69,8 @@ export type Project = {
     createdAt: number;
 }
 
-type ClientDataInput = Omit<Client, 'id' | 'createdAt' | 'interactions'>;
+type ClientDataInput = Partial<Omit<Client, 'id' | 'createdAt' | 'interactions'>> & Pick<Client, 'name'>;
+
 
 interface CostState {
   formValues: FormValues;
@@ -80,7 +81,7 @@ interface CostState {
   projects: Project[];
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
-  addClient: (clientData: Omit<ClientDataInput, 'status' | 'responsiveness'> & Partial<Pick<ClientDataInput, 'status' | 'responsiveness'>>) => Client;
+  addClient: (clientData: ClientDataInput) => Client;
   updateClient: (id: string, clientData: Partial<ClientDataInput>) => void;
   deleteClient: (id: string) => void;
   addInteraction: (clientId: string, interaction: Omit<Interaction, 'id' | 'timestamp'>) => void;
@@ -89,6 +90,8 @@ interface CostState {
   deleteQuote: (id: string) => void;
   loadQuoteIntoForm: (id: string) => void;
   createProject: (name: string) => Project;
+  updateProject: (id: string, name: string) => void;
+  deleteProject: (id: string) => void;
   assignQuoteToProject: (quoteId: string, projectId: string) => void;
 }
 
@@ -346,12 +349,24 @@ export const useStore = create<CostState>()(
                 createProject: (name) => {
                     const { projects } = get();
                     const newProject: Project = {
-                        id: `PROJ-${(projects.length + 1).toString().padStart(3, '0')}`,
+                        id: `PROJ-${Date.now()}`,
                         name,
                         createdAt: Date.now(),
                     };
                     set({ projects: [...projects, newProject] });
                     return newProject;
+                },
+                updateProject: (id, name) => {
+                    set(state => ({
+                        projects: state.projects.map(p => p.id === id ? { ...p, name } : p)
+                    }));
+                },
+                deleteProject: (id) => {
+                    set(state => ({
+                        projects: state.projects.filter(p => p.id !== id),
+                        // Unassign from quotes
+                        publishedQuotes: state.publishedQuotes.map(q => q.projectId === id ? { ...q, projectId: undefined } : q)
+                    }));
                 },
                 assignQuoteToProject: (quoteId, projectId) => {
                     set(state => ({
@@ -365,12 +380,16 @@ export const useStore = create<CostState>()(
                 name: "cost-store-storage",
                 storage: createJSONStorage(() => localStorage), 
                 partialize: (state) => ({ 
-                    formValues: state.formValues, 
-                    allocations: state.allocations,
                     clients: state.clients,
                     publishedQuotes: state.publishedQuotes,
                     projects: state.projects
                 }),
+                onRehydrateStorage: () => (state) => {
+                    if (state) {
+                        state.formValues = defaultFormValues;
+                        state.allocations = defaultAllocations;
+                    }
+                }
             }
         ),
         { name: "CostStore" }
