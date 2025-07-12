@@ -89,7 +89,7 @@ interface CostState {
   updateClient: (id: string, clientData: Partial<ClientDataInput>) => void;
   deleteClient: (id: string) => void;
   addInteraction: (clientId: string, interaction: Omit<Interaction, 'id' | 'timestamp'>) => void;
-  publishQuote: (finalCalculations: Calculations, suggestedCalculations: Calculations) => string; // Returns the new quote ID
+  publishQuote: (finalCalculations: Calculations, suggestedCalculations: Calculations) => { quoteId: string, wasExisting: boolean }; // Returns the new quote ID and if it was an update
   updateQuoteStatus: (id: string, status: PublishedQuote['status']) => void;
   deleteQuote: (id: string) => void;
   loadQuoteIntoForm: (id: string) => void;
@@ -295,9 +295,10 @@ export const useStore = create<CostState>()(
 
                 publishQuote: (finalCalculations, suggestedCalculations) => {
                     const { formValues, allocations, publishedQuotes } = get();
-                    const existingQuoteIndex = publishedQuotes.findIndex(q => q.id === formValues.clientId?.replace(/\s+/g, '-'));
+                    const existingQuoteIndex = publishedQuotes.findIndex(q => q.formValues.clientId === formValues.clientId && q.id.startsWith('QT-')); // A simple check if we are editing
 
-                    if (existingQuoteIndex !== -1) {
+                    if (existingQuoteIndex !== -1 && formValues.clientId) {
+                        const existingQuote = publishedQuotes[existingQuoteIndex];
                          set(state => ({
                             publishedQuotes: state.publishedQuotes.map((q, index) =>
                                 index === existingQuoteIndex
@@ -311,7 +312,7 @@ export const useStore = create<CostState>()(
                                 : q
                             ),
                         }));
-                        return formValues.clientId!.replace(/\s+/g, '-');
+                        return { quoteId: existingQuote.id, wasExisting: true };
                     }
                     
                     const nextId = `QT-${(publishedQuotes.length + 1).toString().padStart(3, '0')}`;
@@ -326,7 +327,7 @@ export const useStore = create<CostState>()(
                         suggestedCalculations: JSON.parse(JSON.stringify(suggestedCalculations)),
                     };
                     set({ publishedQuotes: [...publishedQuotes, newQuote] });
-                    return nextId;
+                    return { quoteId: nextId, wasExisting: false };
                 },
                 updateQuoteStatus: (id, status) => {
                     set(state => ({

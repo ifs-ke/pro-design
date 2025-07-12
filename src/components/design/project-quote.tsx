@@ -23,11 +23,20 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 export function ProjectQuote() {
-  const { calculations: globalCalculations, formValues, publishQuote, clients } = useStore(state => ({
+  const { 
+    calculations: globalCalculations, 
+    formValues, 
+    publishQuote, 
+    clients,
+    createProject,
+    assignQuoteToProject
+  } = useStore(state => ({
     calculations: state.calculations,
     formValues: state.formValues,
     publishQuote: state.publishQuote,
     clients: state.clients,
+    createProject: state.createProject,
+    assignQuoteToProject: state.assignQuoteToProject,
   }));
   const { toast } = useToast();
 
@@ -120,10 +129,18 @@ export function ProjectQuote() {
         });
         return;
     }
-    const newQuoteId = publishQuote(localBreakdown, globalCalculations);
+    const { quoteId, wasExisting } = publishQuote(localBreakdown, globalCalculations);
+    
+    // If it's a new quote, create and assign a project
+    if (!wasExisting) {
+        const clientName = clients.find(c => c.id === formValues.clientId)?.name || "New Client";
+        const newProject = createProject({ name: `Project for ${clientName}`, clientId: formValues.clientId });
+        assignQuoteToProject(quoteId, newProject.id);
+    }
+    
     toast({
         title: "Quote Published!",
-        description: `Quote ID ${newQuoteId} has been saved.`,
+        description: `Quote ID ${quoteId} has been saved.`,
     });
   }
 
