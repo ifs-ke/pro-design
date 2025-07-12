@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFieldArray, type UseFormReturn } from "react-hook-form";
@@ -38,6 +39,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const materialItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -46,8 +48,9 @@ const materialItemSchema = z.object({
 
 const laborItemSchema = z.object({
   vendor: z.string().min(1, "Vendor is required."),
-  hours: z.coerce.number().min(0, "Hours cannot be negative."),
+  units: z.coerce.number().min(0, "Units cannot be negative."),
   rate: z.coerce.number().min(0, "Rate cannot be negative."),
+  rateType: z.enum(['hourly', 'daily']),
 });
 
 const operationItemSchema = z.object({
@@ -92,7 +95,7 @@ export function CostForm({ form }: CostFormProps) {
     0;
   const totalLaborCost =
     watchedValues.labor?.reduce(
-      (acc, item) => acc + (item.hours || 0) * (item.rate || 0),
+      (acc, item) => acc + (item.units || 0) * (item.rate || 0),
       0
     ) ?? 0;
   const totalOperationCost =
@@ -195,66 +198,97 @@ export function CostForm({ form }: CostFormProps) {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
-                  {laborFields.map((field, index) => (
-                    <div
-                      key={field.id}
-                      className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-end"
-                    >
-                      <FormField
-                        control={form.control}
-                        name={`labor.${index}.vendor`}
-                        render={({ field }) => (
-                           <FormItem>
-                            <FormLabel className={index !== 0 ? 'sr-only' : ''}>Vendor</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Electrician" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`labor.${index}.hours`}
-                        render={({ field }) => (
-                           <FormItem>
-                            <FormLabel className={index !== 0 ? 'sr-only' : ''}>Hours</FormLabel>
-                            <FormControl>
-                                <Input type="number" placeholder="8" {...field} className="w-24" />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`labor.${index}.rate`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={index !== 0 ? 'sr-only' : ''}>Rate (Ksh/hr)</FormLabel>
-                            <FormControl>
-                                <Input type="number" placeholder="60" {...field} className="w-24" />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  {laborFields.map((field, index) => {
+                    const rateType = form.watch(`labor.${index}.rateType`);
+                    return (
+                    <div key={field.id} className="p-4 border rounded-md space-y-4 bg-muted/20 relative">
+                        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-end">
+                            <FormField
+                                control={form.control}
+                                name={`labor.${index}.vendor`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Vendor</FormLabel>
+                                    <FormControl>
+                                    <Input placeholder="e.g., Electrician" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`labor.${index}.units`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{rateType === 'hourly' ? 'Hours' : 'Days'}</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="8" {...field} className="w-24" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`labor.${index}.rate`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{`Rate (Ksh/${rateType === 'hourly' ? 'hr' : 'day'})`}</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="60" {...field} className="w-24" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name={`labor.${index}.rateType`}
+                            render={({ field }) => (
+                                <FormItem className="space-y-2">
+                                <FormLabel>Rate Type</FormLabel>
+                                <FormControl>
+                                    <RadioGroup
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    className="flex items-center gap-4"
+                                    >
+                                    <FormItem className="flex items-center space-x-2">
+                                        <FormControl>
+                                            <RadioGroupItem value="hourly" id={`hourly-${field.id}`} />
+                                        </FormControl>
+                                        <FormLabel htmlFor={`hourly-${field.id}`} className="font-normal">Hourly</FormLabel>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-2">
+                                        <FormControl>
+                                            <RadioGroupItem value="daily" id={`daily-${field.id}`} />
+                                        </FormControl>
+                                        <FormLabel htmlFor={`daily-${field.id}`} className="font-normal">Daily</FormLabel>
+                                    </FormItem>
+                                    </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         onClick={() => removeLabor(index)}
-                        className="text-muted-foreground hover:text-destructive"
+                        className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="size-4" />
                       </Button>
                     </div>
-                  ))}
+                  )})}
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => appendLabor({ vendor: "", hours: 0, rate: 0 })}
+                    onClick={() => appendLabor({ vendor: "", units: 0, rate: 0, rateType: 'hourly' })}
                   >
                     <PlusCircle className="mr-2" /> Add Labor
                   </Button>
@@ -395,3 +429,5 @@ export function CostForm({ form }: CostFormProps) {
     </Card>
   );
 }
+
+    

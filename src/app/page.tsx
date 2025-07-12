@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,7 +22,7 @@ export default function DesignCostProPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       materials: [{ name: "Initial Material", cost: 10000 }],
-      labor: [{ vendor: "Main Vendor", hours: 80, rate: 50 }],
+      labor: [{ vendor: "Main Vendor", units: 80, rate: 50, rateType: 'hourly' }],
       operations: [{ name: "Initial Operation Cost", cost: 2000 }],
       taxRate: 15,
       profitMargin: 25,
@@ -47,7 +48,7 @@ export default function DesignCostProPage() {
     } = watchedValues;
 
     const materialCost = materials?.reduce((acc, item) => acc + (item.cost || 0), 0) ?? 0;
-    const laborCost = labor?.reduce((acc, item) => acc + ((item.hours || 0) * (item.rate || 0)), 0) ?? 0;
+    const laborCost = labor?.reduce((acc, item) => acc + ((item.units || 0) * (item.rate || 0)), 0) ?? 0;
     const operationalCost = operations?.reduce((acc, item) => acc + (item.cost || 0), 0) ?? 0;
     
     const baseCost = materialCost + laborCost + operationalCost;
@@ -111,3 +112,5 @@ export default function DesignCostProPage() {
     </main>
   );
 }
+
+    
