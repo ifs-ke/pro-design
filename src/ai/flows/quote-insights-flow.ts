@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -34,12 +35,12 @@ const quoteInsightsPrompt = ai.definePrompt({
   name: 'quoteInsightsPrompt',
   input: {schema: QuoteInsightsInputSchema},
   output: {schema: QuoteInsightsOutputSchema},
-  prompt: `You are a world-class business consultant for interior design studios.
+  prompt: `You are a world-class business consultant for interior design studios in Kenya.
   Analyze the following project quote data and provide:
   1. A concise insight into the health and structure of the quote.
   2. Actionable business strategies or next moves based on the final quote.
 
-  Keep the tone professional, encouraging, and strategic.
+  Keep the tone professional, encouraging, and strategic. Your analysis should be aware of the business context in Kenya.
 
   Project Data:
   - Total Base Cost: KES {z.number().parse(totalBaseCost)}

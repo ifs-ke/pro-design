@@ -113,19 +113,24 @@ const performCalculations = (formValues: FormValues): Calculations => {
 
     if (businessType === 'vat_registered') {
         taxType = "VAT";
-        const denominator = 1 - miscDecimal - totalAffiliatePercentage - (profitMarginDecimal * (1 + miscDecimal + totalAffiliatePercentage));
+        // The denominator accounts for all percentages that are subtracted from the subtotal.
+        // It solves for `subtotal = totalFixedCosts + subtotal * (miscDecimal + totalAffiliatePercentage + profitMarginDecimal)`
+        // Which simplifies to `subtotal * (1 - miscDecimal - totalAffiliatePercentage - profitMarginDecimal) = totalFixedCosts`
+        const denominator = 1 - miscDecimal - totalAffiliatePercentage - profitMarginDecimal;
         if (denominator > 0) {
-            grandTotal = (totalFixedCosts / denominator) * (1 + (effectiveTaxRate / 100));
-            subtotal = grandTotal / (1 + (effectiveTaxRate / 100));
+            subtotal = totalFixedCosts / denominator;
+            grandTotal = subtotal * (1 + (effectiveTaxRate / 100));
             tax = grandTotal - subtotal;
         }
 
-    } else { // sole_proprietor
+    } else { // sole_proprietor with Turnover Tax
         taxType = "TOT";
         effectiveTaxRate = 3;
-        const denominator = 1 - miscDecimal - totalAffiliatePercentage - (profitMarginDecimal * (1 + miscDecimal + totalAffiliatePercentage));
-        if (denominator > 0) {
+        // Same logic for subtotal, but tax is applied differently to get the grandTotal
+        const denominator = 1 - miscDecimal - totalAffiliatePercentage - profitMarginDecimal;
+         if (denominator > 0) {
             subtotal = totalFixedCosts / denominator;
+            // grandTotal = subtotal / (1 - (TOT_rate / 100))
             grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
             tax = grandTotal - subtotal;
         }
@@ -134,8 +139,8 @@ const performCalculations = (formValues: FormValues): Calculations => {
     if (grandTotal < 0 || !isFinite(grandTotal)) grandTotal = 0;
     if (subtotal < 0 || !isFinite(subtotal)) subtotal = 0;
 
-    const miscCost = grandTotal * miscDecimal;
-    const percentageAffiliateCost = grandTotal * totalAffiliatePercentage;
+    const miscCost = subtotal * miscDecimal;
+    const percentageAffiliateCost = subtotal * totalAffiliatePercentage;
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
     const operationalCost = fixedOperationalCost + miscCost;
     const totalBaseCost = totalFixedCosts + percentageAffiliateCost + miscCost;

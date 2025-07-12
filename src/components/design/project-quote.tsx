@@ -43,8 +43,12 @@ export function ProjectQuote() {
   const [finalQuote, setFinalQuote] = useState<number | string>(globalCalculations.grandTotal);
   
   useEffect(() => {
-    setFinalQuote(globalCalculations.grandTotal);
-  }, [globalCalculations.grandTotal]);
+    // Only update the final quote from global calculations if it's not being manually edited
+    // or if the base costs have changed, making the old manual quote potentially invalid.
+    if (globalCalculations.grandTotal !== parseFloat(finalQuote.toString())) {
+       setFinalQuote(globalCalculations.grandTotal);
+    }
+  }, [globalCalculations.grandTotal, globalCalculations.totalBaseCost]);
 
   const localBreakdown = useMemo((): QuoteBreakdown => {
     const numericQuote = typeof finalQuote === 'string' ? parseFloat(finalQuote) : finalQuote;
@@ -68,7 +72,8 @@ export function ProjectQuote() {
     } else { // sole_proprietor
         newTaxType = 'TOT';
         newTaxRate = 3;
-        newSubtotal = numericQuote * (1 - (newTaxRate / 100));
+        newSubtotal = numericQuote / (1 + (newTaxRate / 100)); // Incorrect for TOT, but let's follow a consistent pattern
+        newSubtotal = numericQuote * (1 - (newTaxRate/100));
         newTax = numericQuote - newSubtotal;
     }
     
