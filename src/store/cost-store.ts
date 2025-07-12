@@ -37,9 +37,9 @@ interface CostState {
 }
 
 const defaultFormValues: FormValues = {
-  materials: [{ name: "Initial Material", cost: 10000 }],
-  labor: [{ vendor: "Main Vendor", units: 80, rate: 50, rateType: 'hourly' }],
-  operations: [{ name: "Initial Operation Cost", cost: 2000 }],
+  materials: [],
+  labor: [],
+  operations: [],
   businessType: "vat_registered",
   taxRate: 16,
   profitMargin: 25,
@@ -83,12 +83,17 @@ const performCalculations = (formValues: FormValues): Calculations => {
         effectiveTaxRate = 3;
         // TOT is 3% of the gross amount (grand total).
         // Let G = Grand Total, S = Subtotal, R = Tax Rate (0.03)
-        // G = S + (G * R)
-        // G - (G * R) = S
-        // G * (1 - R) = S
-        // G = S / (1 - R)
-        grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
-        tax = grandTotal - subtotal;
+        // G = S + (G * R) -> This is wrong
+        // Correct logic: TOT is applied on gross revenue (G).
+        // So, Net Revenue (subtotal) = G * (1 - R)
+        // Therefore, G = subtotal / (1 - R)
+        if (subtotal > 0) {
+            grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
+            tax = grandTotal - subtotal;
+        } else {
+            grandTotal = 0;
+            tax = 0;
+        }
     }
     
     return {
