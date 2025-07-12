@@ -92,6 +92,30 @@ export default function DesignCostProPage() {
     };
   }, [watchedValues]);
 
+  const handleFinalQuoteChange = (finalQuote: number) => {
+    const { totalBaseCost, taxRate, businessType } = calculations;
+
+    let subtotal;
+    if (businessType === 'vat_registered') {
+      subtotal = finalQuote / (1 + (taxRate / 100));
+    } else { // sole_proprietor
+      const effectiveTaxRate = 3;
+      subtotal = finalQuote * (1 - (effectiveTaxRate / 100));
+    }
+
+    const newProfit = subtotal - totalBaseCost;
+    
+    let newProfitMargin = 0;
+    if (totalBaseCost > 0) {
+      newProfitMargin = (newProfit / totalBaseCost) * 100;
+    }
+
+    if (newProfitMargin >= 0) {
+      form.setValue('profitMargin', parseFloat(newProfitMargin.toFixed(2)), { shouldValidate: true });
+    }
+  };
+
+
   if (!isClient) {
     return null; // or a loading skeleton
   }
@@ -120,6 +144,7 @@ export default function DesignCostProPage() {
               <QuoteDisplay
                 calculations={calculations}
                 allocations={allocations}
+                onFinalQuoteChange={handleFinalQuoteChange}
               />
             </div>
           </div>
