@@ -39,6 +39,13 @@ export type PublishedQuote = {
     allocations: Allocation;
     calculations: Calculations; // This is the FINAL calculation
     suggestedCalculations: Calculations; // This is the originally suggested calculation
+    projectId?: string;
+}
+
+export type Project = {
+    id: string;
+    name: string;
+    createdAt: number;
 }
 
 interface CostState {
@@ -46,12 +53,15 @@ interface CostState {
   allocations: Allocation;
   calculations: Calculations;
   publishedQuotes: PublishedQuote[];
+  projects: Project[];
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
   publishQuote: (finalCalculations: Calculations, suggestedCalculations: Calculations) => string; // Returns the new quote ID
   updateQuoteStatus: (id: string, status: PublishedQuote['status']) => void;
   deleteQuote: (id: string) => void;
   loadQuoteIntoForm: (id: string) => void;
+  createProject: (name: string) => Project;
+  assignQuoteToProject: (quoteId: string, projectId: string) => void;
 }
 
 const defaultFormValues: FormValues = {
@@ -104,49 +114,88 @@ const performCalculations = (formValues: FormValues): Calculations => {
 
     const miscRate = (miscPercentage || 0) / 100;
     const salaryRate = (salaryPercentage || 0) / 100;
-    const profitMarginRate = (profitMargin || 0) / 100;
-
+    
     const fixedCosts = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost;
     
     let grandTotal = 0;
-    let subtotal = 0;
     let tax = 0;
     let taxType = "VAT";
     let effectiveTaxRate = taxRate || 0;
+    
+    // Formula derivation:
+    // grandTotal = baseForPercentages / (1 - miscRate - salaryRate - percentageAffiliateRate - taxRateDecimal)
+    // where baseForPercentages = fixedCosts + profit
+    // and profit = profitMarginRate * subtotal = profitMarginRate * (grandTotal - tax)
+    // This gets complex. Let's simplify. Let's assume percentages are of grandTotal.
+
+    const profitMarginRate = (profitMargin || 0) / 100;
+
+    const baseForPercentages = fixedCosts; // Base cost before any percentages or profit.
+
+    // Let R be the Net Revenue (Subtotal)
+    // R = totalBaseCost + profit
+    // totalBaseCost = fixedCosts + miscCost + salaryCost + affiliateCost
+    // profit = profitMarginRate * R
+    // R = (fixedCosts + miscCost + salaryCost + affiliateCost) + profitMarginRate * R
+    // R * (1 - profitMarginRate) = fixedCosts + miscCost + salaryCost + affiliateCost
+    // Let's assume misc, salary, and affiliate % are based on Grand Total.
+    
     let taxRateDecimal = 0;
-    let profit = 0;
-
-    const denominatorForProfit = 1 - profitMarginRate;
-    if (denominatorForProfit > 0) {
-      profit = (fixedCosts * profitMarginRate) / denominatorForProfit;
-    }
-
-    const baseForPercentages = fixedCosts + profit;
 
     if (businessType === 'vat_registered') {
         taxType = "VAT";
         taxRateDecimal = (effectiveTaxRate / 100);
-
-        const denominator = 1 - miscRate - salaryRate - percentageAffiliateRate;
-        if (denominator > 0) {
-            const netRevenue = baseForPercentages / denominator;
-            grandTotal = netRevenue * (1 + taxRateDecimal);
-            tax = netRevenue * taxRateDecimal;
-        }
-
-    } else { // sole_proprietor with Turnover Tax
+    } else {
         taxType = "TOT";
         effectiveTaxRate = 3;
         taxRateDecimal = effectiveTaxRate / 100;
+    }
+    
+    // Let GT = Grand Total
+    // GT = Subtotal + Tax
+    // Subtotal = totalBaseCost + profit
+    // totalBaseCost = fixedCosts + (GT * miscRate) + (GT * salaryRate) + (GT * percentageAffiliateRate)
+    // profit = profitMarginRate * Subtotal
+    // Subtotal = fixedCosts + GT * (miscRate + salaryRate + percentageAffiliateRate) + profitMarginRate * Subtotal
+    // Subtotal * (1 - profitMarginRate) = fixedCosts + GT * (miscRate + salaryRate + percentageAffiliateRate)
+    // Subtotal = (fixedCosts + GT * (miscRate + salaryRate + percentageAffiliateRate)) / (1 - profitMarginRate)
 
-        const denominator = 1 - miscRate - salaryRate - percentageAffiliateRate - taxRateDecimal;
-        if (denominator > 0) {
-            grandTotal = baseForPercentages / denominator;
-            tax = grandTotal * taxRateDecimal;
-        }
+    // For VAT: Subtotal = GT / (1 + taxRateDecimal)
+    // GT / (1 + taxRateDecimal) = (fixedCosts + GT*(...rates)) / (1-profitMarginRate)
+    // GT * (1-profitMarginRate) = (1+taxRateDecimal) * (fixedCosts + GT*(...rates))
+    // GT * (1-profitMarginRate) = (1+taxRateDecimal)*fixedCosts + (1+taxRateDecimal)*GT*(...rates)
+    // GT * [(1-profitMarginRate) - (1+taxRateDecimal)*(...rates)] = (1+taxRateDecimal)*fixedCosts
+    // GT = (1+taxRateDecimal)*fixedCosts / [(1-profitMarginRate) - (1+taxRateDecimal)*(miscRate + salaryRate + percentageAffiliateRate)]
+
+    // For TOT: Tax = GT * taxRateDecimal, so Subtotal = GT - Tax = GT * (1-taxRateDecimal)
+    // GT * (1-taxRateDecimal) = (fixedCosts + GT*(...rates)) / (1-profitMarginRate)
+    // GT * (1-taxRateDecimal) * (1-profitMarginRate) = fixedCosts + GT*(...rates)
+    // GT * [(1-taxRateDecimal)*(1-profitMarginRate) - (...rates)] = fixedCosts
+    // GT = fixedCosts / [(1-taxRateDecimal)*(1-profitMarginRate) - (miscRate + salaryRate + percentageAffiliateRate)]
+
+    let denominator = 1;
+    let numerator = fixedCosts;
+
+    if (businessType === 'vat_registered') {
+        const percentageRates = miscRate + salaryRate + percentageAffiliateRate;
+        numerator = (1 + taxRateDecimal) * fixedCosts;
+        denominator = (1 - profitMarginRate) - ((1 + taxRateDecimal) * percentageRates);
+    } else { // sole_proprietor
+        const percentageRates = miscRate + salaryRate + percentageAffiliateRate;
+        numerator = fixedCosts;
+        denominator = ((1 - taxRateDecimal) * (1 - profitMarginRate)) - percentageRates;
+    }
+
+    if (denominator > 0) {
+        grandTotal = numerator / denominator;
+    } else {
+        grandTotal = 0;
     }
 
     if (grandTotal < 0 || !isFinite(grandTotal)) grandTotal = 0;
+    
+    const subtotal = businessType === 'vat_registered' ? grandTotal / (1 + taxRateDecimal) : grandTotal * (1 - taxRateDecimal);
+    tax = grandTotal - subtotal;
 
     const miscCost = grandTotal * miscRate;
     const salaryCost = grandTotal * salaryRate;
@@ -156,8 +205,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const operationalCost = fixedOperationalCost + miscCost + salaryCost;
     const totalBaseCost = materialCost + laborCost + operationalCost + affiliateCost;
     
-    const finalSubtotal = grandTotal - tax;
-    const finalProfit = finalSubtotal - totalBaseCost;
+    const finalProfit = subtotal - totalBaseCost;
     
     return {
       materialCost,
@@ -168,12 +216,12 @@ const performCalculations = (formValues: FormValues): Calculations => {
       salaryCost,
       totalBaseCost,
       profit: finalProfit > 0 ? finalProfit : 0,
-      subtotal: finalSubtotal,
+      subtotal: subtotal,
       grandTotal,
       tax,
       taxRate: effectiveTaxRate,
       taxType,
-      profitMargin: finalProfit > 0 && finalSubtotal > 0 ? (finalProfit / finalSubtotal) * 100 : 0,
+      profitMargin: finalProfit > 0 && subtotal > 0 ? (finalProfit / subtotal) * 100 : 0,
       businessType: formValues.businessType,
     };
 }
@@ -187,6 +235,7 @@ export const useStore = create<CostState>()(
                 allocations: defaultAllocations,
                 calculations: performCalculations(defaultFormValues),
                 publishedQuotes: [],
+                projects: [],
 
                 setFormValues: (values) => {
                     set({
@@ -256,6 +305,23 @@ export const useStore = create<CostState>()(
                             calculations: quoteToLoad.calculations,
                         });
                     }
+                },
+                createProject: (name) => {
+                    const { projects } = get();
+                    const newProject: Project = {
+                        id: `PROJ-${(projects.length + 1).toString().padStart(3, '0')}`,
+                        name,
+                        createdAt: Date.now(),
+                    };
+                    set({ projects: [...projects, newProject] });
+                    return newProject;
+                },
+                assignQuoteToProject: (quoteId, projectId) => {
+                    set(state => ({
+                        publishedQuotes: state.publishedQuotes.map(q =>
+                            q.id === quoteId ? { ...q, projectId } : q
+                        ),
+                    }));
                 }
             }),
             {
@@ -264,7 +330,8 @@ export const useStore = create<CostState>()(
                 partialize: (state) => ({ 
                     formValues: state.formValues, 
                     allocations: state.allocations,
-                    publishedQuotes: state.publishedQuotes 
+                    publishedQuotes: state.publishedQuotes,
+                    projects: state.projects
                 }),
             }
         ),

@@ -2,11 +2,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStore, type PublishedQuote } from "@/store/cost-store";
+import { useStore, type PublishedQuote, type Project } from "@/store/cost-store";
 import Link from 'next/link';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, FileText, MoreHorizontal, Trash2, Edit, CheckCircle } from "lucide-react";
+import { PlusCircle, FileText, MoreHorizontal, Trash2, Edit, CheckCircle, Briefcase } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -33,6 +33,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" | "success" } = {
   "Sent": "secondary",
@@ -41,9 +53,87 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | 
   "Declined": "destructive",
 }
 
+function AssignProjectDialog({ quote, projects, createProject, assignQuoteToProject }: { quote: PublishedQuote, projects: Project[], createProject: (name: string) => Project, assignQuoteToProject: (quoteId: string, projectId: string) => void }) {
+    const [open, setOpen] = useState(false);
+    const [selectedProject, setSelectedProject] = useState<string | undefined>(quote.projectId);
+    const [newProjectName, setNewProjectName] = useState("");
+    const [isCreating, setIsCreating] = useState(false);
+
+    const handleAssign = () => {
+        if (selectedProject) {
+            assignQuoteToProject(quote.id, selectedProject);
+            setOpen(false);
+        }
+    }
+
+    const handleCreateAndAssign = () => {
+        if (newProjectName) {
+            const newProject = createProject(newProjectName);
+            assignQuoteToProject(quote.id, newProject.id);
+            setNewProjectName("");
+            setIsCreating(false);
+            setOpen(false);
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <Briefcase className="mr-2" /> Assign to Project
+                </DropdownMenuItem>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Assign Quote to Project</DialogTitle>
+                    <DialogDescription>
+                        Link this quote ({quote.id}) to an existing project or create a new one.
+                    </DialogDescription>
+                </DialogHeader>
+
+                {isCreating ? (
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                           <Label htmlFor="new-project-name">New Project Name</Label>
+                           <Input id="new-project-name" value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} placeholder="e.g., Westlands Office Fit-out" />
+                        </div>
+                        <Button onClick={() => setIsCreating(false)} variant="link" className="p-0">Cancel</Button>
+                    </div>
+                ) : (
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Select Project</Label>
+                            <Select onValueChange={setSelectedProject} defaultValue={selectedProject}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Choose a project" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {projects.map(p => (
+                                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button onClick={() => setIsCreating(true)} variant="link" className="p-0">Or, create a new project</Button>
+                    </div>
+                )}
+                
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                    {isCreating ? (
+                        <Button onClick={handleCreateAndAssign} disabled={!newProjectName}>Create & Assign</Button>
+                    ) : (
+                        <Button onClick={handleAssign} disabled={!selectedProject}>Assign Project</Button>
+                    )}
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 export default function QuotesPage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const { publishedQuotes, deleteQuote, updateQuoteStatus, loadQuoteIntoForm } = useStore();
+  const { publishedQuotes, deleteQuote, updateQuoteStatus, loadQuoteIntoForm, projects, createProject, assignQuoteToProject } = useStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -62,6 +152,11 @@ export default function QuotesPage() {
             <div className="text-lg">Loading Quotes...</div>
         </div>
     );
+  }
+
+  const getProjectName = (projectId?: string) => {
+    if (!projectId) return "N/A";
+    return projects.find(p => p.id === projectId)?.name || "Unknown Project";
   }
 
   return (
@@ -88,6 +183,7 @@ export default function QuotesPage() {
                   <TableHead>Quote ID</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Project</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -96,7 +192,7 @@ export default function QuotesPage() {
               <TableBody>
                 {publishedQuotes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                       No quotes published yet.
                     </TableCell>
                   </TableRow>
@@ -106,6 +202,7 @@ export default function QuotesPage() {
                       <TableCell className="font-medium">{quote.id}</TableCell>
                       <TableCell>{quote.clientName}</TableCell>
                       <TableCell>{new Date(quote.timestamp).toLocaleDateString()}</TableCell>
+                      <TableCell>{getProjectName(quote.projectId)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(quote.calculations.grandTotal)}</TableCell>
                       <TableCell className="text-center">
                         <Badge variant={statusVariant[quote.status] || "secondary"} className="capitalize">{quote.status.toLowerCase()}</Badge>
@@ -126,6 +223,12 @@ export default function QuotesPage() {
                                 <DropdownMenuItem onClick={() => handleEdit(quote.id)}>
                                   <Edit className="mr-2" /> Edit Quote
                                 </DropdownMenuItem>
+                                <AssignProjectDialog 
+                                    quote={quote} 
+                                    projects={projects} 
+                                    createProject={createProject}
+                                    assignQuoteToProject={assignQuoteToProject}
+                                />
                                 <DropdownMenuSub>
                                   <DropdownMenuSubTrigger>
                                     <CheckCircle className="mr-2" />
