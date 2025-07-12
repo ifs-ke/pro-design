@@ -45,7 +45,7 @@ export function ProjectQuote() {
   useEffect(() => {
     // Only update the final quote from global calculations if it's not being manually edited
     // or if the base costs have changed, making the old manual quote potentially invalid.
-    if (globalCalculations.grandTotal !== parseFloat(finalQuote.toString())) {
+    if (globalCalculations.grandTotal !== parseFloat(finalQuote.toString()) || globalCalculations.totalBaseCost > parseFloat(finalQuote.toString())) {
        setFinalQuote(globalCalculations.grandTotal);
     }
   }, [globalCalculations.grandTotal, globalCalculations.totalBaseCost]);
@@ -63,18 +63,20 @@ export function ProjectQuote() {
     let newSubtotal: number;
     let newTax: number;
     let newTaxType: string;
-    let newTaxRate = vatRate || 0;
+    let newTaxRate: number;
 
     if (businessType === 'vat_registered') {
         newTaxType = 'VAT';
+        newTaxRate = vatRate || 0;
         newSubtotal = numericQuote / (1 + (newTaxRate / 100));
         newTax = numericQuote - newSubtotal;
     } else { // sole_proprietor
         newTaxType = 'TOT';
         newTaxRate = 3;
-        newSubtotal = numericQuote / (1 + (newTaxRate / 100)); // Incorrect for TOT, but let's follow a consistent pattern
-        newSubtotal = numericQuote * (1 - (newTaxRate/100));
-        newTax = numericQuote - newSubtotal;
+        // The final quote is the gross revenue. TOT is 3% of this.
+        // Net = Gross * (1 - 0.03)
+        newTax = numericQuote * (newTaxRate / 100);
+        newSubtotal = numericQuote - newTax;
     }
     
     const newProfit = newSubtotal - totalBaseCost;
@@ -190,7 +192,7 @@ export function ProjectQuote() {
                     <p className="font-semibold">{formatCurrency(localBreakdown.subtotal)}</p>
                 </div>
                  <div className="flex justify-between">
-                    <p className="text-muted-foreground">{localBreakdown.taxType} ({localBreakdown.taxRate.toFixed(2)}%)</p>
+                    <p className="text-muted-foreground">{localBreakdown.taxType} ({(localBreakdown.taxRate || 0).toFixed(2)}%)</p>
                     <p className="font-semibold">{formatCurrency(localBreakdown.tax)}</p>
                 </div>
                 <Separator className="my-2"/>
