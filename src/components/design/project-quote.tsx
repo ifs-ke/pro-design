@@ -66,7 +66,7 @@ export function ProjectQuote() {
         } else { // sole_proprietor
             newTaxType = 'TOT';
             newTaxRate = 3;
-            // grandTotal = netRevenue / (1 - totRate) -> netRevenue = grandTotal * (1 - totRate)
+            // grandTotal = subtotal / (1 - totRate) -> subtotal = grandTotal * (1 - totRate)
             newSubtotal = numericValue * (1 - (newTaxRate / 100));
             newTax = numericValue - newSubtotal;
         }

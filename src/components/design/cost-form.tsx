@@ -411,7 +411,7 @@ export function CostForm() {
                   )}
                 />
 
-                <div className="grid md:grid-cols-2 gap-6 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     {businessType === 'vat_registered' && (
                         <FormField
                             control={form.control}
@@ -433,7 +433,7 @@ export function CostForm() {
                         />
                     )}
                      {businessType === 'sole_proprietor' && (
-                        <Alert>
+                        <Alert className="md:col-span-2">
                             <Briefcase className="h-4 w-4" />
                             <AlertTitle>Turnover Tax (TOT)</AlertTitle>
                             <AlertDescription>

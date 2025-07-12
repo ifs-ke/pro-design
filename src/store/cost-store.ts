@@ -82,10 +82,11 @@ const performCalculations = (formValues: FormValues): Calculations => {
         taxType = "TOT";
         effectiveTaxRate = 3;
         // TOT is 3% of the gross amount (grand total).
-        // grandTotal = subtotal + (grandTotal * 0.03)
-        // grandTotal - (grandTotal * 0.03) = subtotal
-        // grandTotal * (1 - 0.03) = subtotal
-        // grandTotal = subtotal / 0.97
+        // Let G = Grand Total, S = Subtotal, R = Tax Rate (0.03)
+        // G = S + (G * R)
+        // G - (G * R) = S
+        // G * (1 - R) = S
+        // G = S / (1 - R)
         grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
         tax = grandTotal - subtotal;
     }
