@@ -20,10 +20,9 @@ export default function DesignCostProPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      materialCost: 10000,
-      laborHours: 80,
-      laborRate: 50,
-      operationalCost: 2000,
+      materials: [{ name: "Initial Material", cost: 10000 }],
+      labor: [{ vendor: "Main Vendor", hours: 80, rate: 50 }],
+      operations: [{ name: "Initial Operation Cost", cost: 2000 }],
       taxRate: 15,
       profitMargin: 25,
     },
@@ -40,25 +39,27 @@ export default function DesignCostProPage() {
 
   const calculations = useMemo(() => {
     const {
-      materialCost,
-      laborHours,
-      laborRate,
-      operationalCost,
+      materials,
+      labor,
+      operations,
       taxRate,
       profitMargin,
     } = watchedValues;
-    const laborCost = (laborHours || 0) * (laborRate || 0);
-    const totalBaseCost =
-      (materialCost || 0) + laborCost + (operationalCost || 0);
+
+    const materialCost = materials?.reduce((acc, item) => acc + (item.cost || 0), 0) ?? 0;
+    const laborCost = labor?.reduce((acc, item) => acc + ((item.hours || 0) * (item.rate || 0)), 0) ?? 0;
+    const operationalCost = operations?.reduce((acc, item) => acc + (item.cost || 0), 0) ?? 0;
+    
+    const totalBaseCost = materialCost + laborCost + operationalCost;
     const profit = totalBaseCost * ((profitMargin || 0) / 100);
     const subtotal = totalBaseCost + profit;
     const tax = subtotal * ((taxRate || 0) / 100);
     const grandTotal = subtotal + tax;
 
     return {
-      materialCost: materialCost || 0,
+      materialCost,
       laborCost,
-      operationalCost: operationalCost || 0,
+      operationalCost,
       totalBaseCost,
       profit,
       subtotal,
