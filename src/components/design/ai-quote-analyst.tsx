@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Lightbulb, BarChart, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getQuoteInsights, type QuoteInsightsInput, type QuoteInsightsOutput } from "@/ai/flows/quote-insights-flow";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function AiQuoteAnalyst() {
   const calculations = useStore(state => state.calculations);
@@ -57,28 +58,46 @@ export function AiQuoteAnalyst() {
           Analyze My Quote
         </Button>
 
-        <div className="mt-4">
-          {isLoading && (
-            <div className="flex flex-col items-center justify-center text-muted-foreground p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p>Consulting with the business expert...</p>
-            </div>
-          )}
-          {error && <Alert variant="destructive">{error}</Alert>}
-          {analysis && (
-            <div className="space-y-4">
-                <Alert>
-                    <BarChart className="h-4 w-4" />
-                    <AlertTitle>Quote Insight</AlertTitle>
-                    <AlertDescription>{analysis.quoteInsight}</AlertDescription>
-                </Alert>
-                <Alert>
-                    <Lightbulb className="h-4 w-4" />
-                    <AlertTitle>Business Strategy</AlertTitle>
-                    <AlertDescription>{analysis.businessStrategy}</AlertDescription>
-                </Alert>
-            </div>
-          )}
+        <div className="mt-4 min-h-[180px]">
+           <AnimatePresence mode="wait">
+              {isLoading && (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center justify-center text-muted-foreground p-8"
+                >
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                  <p>Consulting with the business expert...</p>
+                </motion.div>
+              )}
+              {error && (
+                <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <Alert variant="destructive">{error}</Alert>
+                </motion.div>
+              )}
+              {analysis && (
+                <motion.div 
+                    key="analysis" 
+                    initial={{ opacity: 0, y: 10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-4"
+                >
+                    <Alert>
+                        <BarChart className="h-4 w-4" />
+                        <AlertTitle>Quote Insight</AlertTitle>
+                        <AlertDescription>{analysis.quoteInsight}</AlertDescription>
+                    </Alert>
+                    <Alert>
+                        <Lightbulb className="h-4 w-4" />
+                        <AlertTitle>Business Strategy</AlertTitle>
+                        <AlertDescription>{analysis.businessStrategy}</AlertDescription>
+                    </Alert>
+                </motion.div>
+              )}
+           </AnimatePresence>
         </div>
     </div>
   );

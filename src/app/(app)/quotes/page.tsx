@@ -44,7 +44,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { motion } from "framer-motion";
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" | "success" } = {
   "Sent": "secondary",
@@ -135,6 +136,18 @@ function AssignProjectDialog({ quote, projects, createProject, assignQuoteToProj
     )
 }
 
+const MotionRow = motion(TableRow);
+
+const listVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 },
+};
+
 export default function QuotesPage() {
   const [isHydrated, setIsHydrated] = useState(false);
   const { publishedQuotes, deleteQuote, updateQuoteStatus, loadQuoteIntoForm, projects, clients, createProject, assignQuoteToProject } = useStore();
@@ -197,7 +210,7 @@ export default function QuotesPage() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <motion.tbody variants={listVariants} initial="hidden" animate="visible">
                 {publishedQuotes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">
@@ -206,7 +219,7 @@ export default function QuotesPage() {
                   </TableRow>
                 ) : (
                   publishedQuotes.map((quote) => (
-                    <TableRow key={quote.id}>
+                    <MotionRow key={quote.id} variants={itemVariants}>
                       <TableCell className="font-medium">{quote.id}</TableCell>
                       <TableCell>{getClientName(quote.clientId)}</TableCell>
                       <TableCell>{new Date(quote.timestamp).toLocaleDateString()}</TableCell>
@@ -282,10 +295,10 @@ export default function QuotesPage() {
                             </AlertDialogContent>
                         </AlertDialog>
                       </TableCell>
-                    </TableRow>
+                    </MotionRow>
                   ))
                 )}
-              </TableBody>
+              </motion.tbody>
             </Table>
           </div>
         </CardContent>

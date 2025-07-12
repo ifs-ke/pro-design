@@ -228,9 +228,9 @@ export function ProjectQuote() {
         
         <Separator />
         
-        <div className="space-y-2">
+        <div className="space-y-4">
           <AiQuoteAnalyst />
-          <Button onClick={handlePublish} className="w-full">
+          <Button onClick={handlePublish} className="w-full" disabled={!formValues.clientId}>
             <Send className="mr-2" />
             Publish Quote
           </Button>
