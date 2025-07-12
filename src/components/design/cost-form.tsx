@@ -41,12 +41,14 @@ import {
   Briefcase,
   Handshake,
   Milestone,
+  SlidersHorizontal
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MaterialSuggester } from "@/components/design/material-suggester";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 const materialItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -89,6 +91,7 @@ export const formSchema = z.object({
   businessType: z.enum(['vat_registered', 'sole_proprietor']),
   taxRate: z.coerce.number().min(0, "Tax rate cannot be negative.").max(100),
   profitMargin: z.coerce.number().min(0, "Profit margin cannot be negative."),
+  miscPercentage: z.coerce.number().min(0, "Misc. percentage cannot be negative."),
 });
 
 export function CostForm() {
@@ -135,6 +138,7 @@ export function CostForm() {
 
 
   const profitMargin = form.watch('profitMargin');
+  const miscPercentage = form.watch('miscPercentage');
   const businessType = form.watch('businessType');
 
   return (
@@ -400,6 +404,38 @@ export function CostForm() {
                   >
                     <PlusCircle className="mr-2" /> Add Operation
                   </Button>
+                  <Separator />
+                   <FormField
+                        control={form.control}
+                        name="miscPercentage"
+                        render={({ field }) => (
+                        <FormItem>
+                            <div className="flex justify-between items-center">
+                                <FormLabel className="flex items-center gap-2">
+                                  <SlidersHorizontal className="size-4" />
+                                  Miscellaneous Costs
+                                </FormLabel>
+                                <span className="font-bold text-primary">
+                                    {field.value?.toFixed(2) ?? 0}%
+                                </span>
+                            </div>
+                            <FormControl>
+                            <Slider
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={[field.value || 0]}
+                                onValueChange={(value) => field.onChange(value[0])}
+                                className="py-2"
+                            />
+                            </FormControl>
+                            <div className="text-right text-sm text-muted-foreground">
+                              Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.miscCost)}</span>
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
                 </AccordionContent>
               </AccordionItem>
               
