@@ -211,7 +211,7 @@ function ClientCard({ client }: { client: Client }) {
                 </AlertDialog>
             </CardHeader>
             <CardContent className="flex flex-col flex-grow gap-4">
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                     <Badge variant={statusVariant[client.status]}>{client.status}</Badge>
                     <Badge variant={responsivenessVariant[client.responsiveness]}>{client.responsiveness}</Badge>
                 </div>
@@ -284,7 +284,7 @@ export default function CrmPage() {
                     <p className="text-muted-foreground">Click "Create New Client" to get started.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {clients.sort((a,b) => b.createdAt - a.createdAt).map(client => (
                         <ClientCard key={client.id} client={client} />
                     ))}
