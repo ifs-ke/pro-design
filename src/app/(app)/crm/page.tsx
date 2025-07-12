@@ -273,7 +273,7 @@ export default function CrmPage() {
                     <p className="text-muted-foreground mt-1">A central hub for all your client information and history.</p>
                 </div>
                  <ClientFormDialog onSave={addClient}>
-                    <Button><PlusCircle className="mr-2"/> Create New Client</Button>
+                    <Button size="sm"><PlusCircle className="mr-2"/> Create New Client</Button>
                 </ClientFormDialog>
             </header>
 
