@@ -67,9 +67,13 @@ export type Project = {
     id: string;
     name: string;
     createdAt: number;
+    clientId?: string;
+    scope?: string;
+    timeline?: string;
 }
 
 type ClientDataInput = Partial<Omit<Client, 'id' | 'createdAt' | 'interactions'>> & Pick<Client, 'name'>;
+export type ProjectDataInput = Partial<Omit<Project, 'id' | 'createdAt'>> & Pick<Project, 'name'>;
 
 
 interface CostState {
@@ -89,8 +93,8 @@ interface CostState {
   updateQuoteStatus: (id: string, status: PublishedQuote['status']) => void;
   deleteQuote: (id: string) => void;
   loadQuoteIntoForm: (id: string) => void;
-  createProject: (name: string) => Project;
-  updateProject: (id: string, name: string) => void;
+  createProject: (projectData: ProjectDataInput) => Project;
+  updateProject: (id: string, projectData: ProjectDataInput) => void;
   deleteProject: (id: string) => void;
   assignQuoteToProject: (quoteId: string, projectId: string) => void;
 }
@@ -270,6 +274,7 @@ export const useStore = create<CostState>()(
                 deleteClient: (id) => {
                     set(state => ({
                         clients: state.clients.filter(c => c.id !== id),
+                        projects: state.projects.map(p => p.clientId === id ? { ...p, clientId: undefined } : p)
                     }));
                 },
                 
@@ -346,19 +351,22 @@ export const useStore = create<CostState>()(
                         });
                     }
                 },
-                createProject: (name) => {
+                createProject: (projectData) => {
                     const { projects } = get();
                     const newProject: Project = {
                         id: `PROJ-${Date.now()}`,
-                        name,
                         createdAt: Date.now(),
+                        name: projectData.name,
+                        clientId: projectData.clientId,
+                        scope: projectData.scope,
+                        timeline: projectData.timeline,
                     };
                     set({ projects: [...projects, newProject] });
                     return newProject;
                 },
-                updateProject: (id, name) => {
+                updateProject: (id, projectData) => {
                     set(state => ({
-                        projects: state.projects.map(p => p.id === id ? { ...p, name } : p)
+                        projects: state.projects.map(p => p.id === id ? { ...p, ...projectData } : p)
                     }));
                 },
                 deleteProject: (id) => {

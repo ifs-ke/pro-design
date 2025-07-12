@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStore, type PublishedQuote, type Project, type Client } from "@/store/cost-store";
+import { useStore, type PublishedQuote, type Project, type Client, type ProjectDataInput } from "@/store/cost-store";
 import Link from 'next/link';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
   Dialog,
@@ -53,11 +52,12 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | 
   "Declined": "destructive",
 }
 
-function AssignProjectDialog({ quote, projects, createProject, assignQuoteToProject }: { quote: PublishedQuote, projects: Project[], createProject: (name: string) => Project, assignQuoteToProject: (quoteId: string, projectId: string) => void }) {
+function AssignProjectDialog({ quote, projects, createProject, assignQuoteToProject, clients }: { quote: PublishedQuote, projects: Project[], createProject: (data: ProjectDataInput) => Project, assignQuoteToProject: (quoteId: string, projectId: string) => void, clients: Client[] }) {
     const [open, setOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<string | undefined>(quote.projectId);
     const [newProjectName, setNewProjectName] = useState("");
     const [isCreating, setIsCreating] = useState(false);
+    const clientForQuote = clients.find(c => c.id === quote.clientId);
 
     const handleAssign = () => {
         if (selectedProject) {
@@ -68,7 +68,7 @@ function AssignProjectDialog({ quote, projects, createProject, assignQuoteToProj
 
     const handleCreateAndAssign = () => {
         if (newProjectName) {
-            const newProject = createProject(newProjectName);
+            const newProject = createProject({ name: newProjectName, clientId: quote.clientId });
             assignQuoteToProject(quote.id, newProject.id);
             setNewProjectName("");
             setIsCreating(false);
@@ -97,6 +97,9 @@ function AssignProjectDialog({ quote, projects, createProject, assignQuoteToProj
                            <Label htmlFor="new-project-name">New Project Name</Label>
                            <Input id="new-project-name" value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} placeholder="e.g., Westlands Office Fit-out" />
                         </div>
+                        <p className="text-sm text-muted-foreground">
+                            This new project will be automatically linked to the client: <span className="font-semibold">{clientForQuote?.name || 'Unknown'}</span>.
+                        </p>
                         <Button onClick={() => setIsCreating(false)} variant="link" className="p-0">Cancel</Button>
                     </div>
                 ) : (
@@ -232,6 +235,7 @@ export default function QuotesPage() {
                                     projects={projects} 
                                     createProject={createProject}
                                     assignQuoteToProject={assignQuoteToProject}
+                                    clients={clients}
                                 />
                                 <DropdownMenuSub>
                                   <DropdownMenuSubTrigger>

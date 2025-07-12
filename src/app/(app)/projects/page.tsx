@@ -2,11 +2,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStore, type Project } from "@/store/cost-store";
+import { useStore, type Project, type ProjectDataInput, type Client } from "@/store/cost-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PlusCircle, Building, FileText, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Building, FileText, MoreHorizontal, Edit, Trash2, User, Calendar, ClipboardList } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -37,20 +37,28 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
-function ProjectFormDialog({ project, onSave, children }: { project?: Project, onSave: (name: string) => void, children: React.ReactNode }) {
+function ProjectFormDialog({ project, clients, onSave, children }: { project?: Project, clients: Client[], onSave: (data: ProjectDataInput) => void, children: React.ReactNode }) {
     const [open, setOpen] = useState(false);
-    const [name, setName] = useState(project?.name || "");
+    const [name, setName] = useState("");
+    const [clientId, setClientId] = useState<string | undefined>("");
+    const [scope, setScope] = useState("");
+    const [timeline, setTimeline] = useState("");
 
     useEffect(() => {
         if (open) {
             setName(project?.name || "");
+            setClientId(project?.clientId || "");
+            setScope(project?.scope || "");
+            setTimeline(project?.timeline || "");
         }
     }, [open, project]);
 
     const handleSave = () => {
         if (!name) return;
-        onSave(name);
+        onSave({ name, clientId, scope, timeline });
         setOpen(false);
     }
 
@@ -61,13 +69,34 @@ function ProjectFormDialog({ project, onSave, children }: { project?: Project, o
                 <DialogHeader>
                     <DialogTitle>{project ? "Edit Project" : "Create New Project"}</DialogTitle>
                     <DialogDescription>
-                        {project ? "Update the name for this project." : "Enter a name for the new project."}
+                        {project ? "Update the details for this project." : "Enter the details for the new project."}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
                         <Label htmlFor="project-name">Project Name *</Label>
                         <Input id="project-name" value={name} onChange={(e) => setName(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="project-client">Client</Label>
+                        <Select onValueChange={setClientId} defaultValue={clientId}>
+                            <SelectTrigger id="project-client">
+                                <SelectValue placeholder="Select a client" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {clients.map(c => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="project-scope">Scope of Work</Label>
+                        <Textarea id="project-scope" value={scope} onChange={(e) => setScope(e.target.value)} placeholder="e.g., Full interior design for a 3-bedroom apartment..."/>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="project-timeline">Timeline</Label>
+                        <Input id="project-timeline" value={timeline} onChange={(e) => setTimeline(e.target.value)} placeholder="e.g., 3-4 Weeks" />
                     </div>
                 </div>
                 <DialogFooter>
@@ -80,15 +109,16 @@ function ProjectFormDialog({ project, onSave, children }: { project?: Project, o
 }
 
 function ProjectCard({ project }: { project: Project }) {
-    const { publishedQuotes, updateProject, deleteProject } = useStore();
+    const { publishedQuotes, updateProject, deleteProject, clients } = useStore();
     const [showAlert, setShowAlert] = useState(false);
 
     const projectQuotes = publishedQuotes.filter(q => q.projectId === project.id);
     const approvedQuotes = projectQuotes.filter(q => q.status === 'Approved');
     const totalApprovedValue = approvedQuotes.reduce((acc, q) => acc + q.calculations.grandTotal, 0);
+    const client = clients.find(c => c.id === project.clientId);
 
-    const handleUpdate = (name: string) => {
-        updateProject(project.id, name);
+    const handleUpdate = (data: ProjectDataInput) => {
+        updateProject(project.id, data);
     };
 
     const handleDelete = () => {
@@ -97,17 +127,19 @@ function ProjectCard({ project }: { project: Project }) {
     };
 
     return (
-        <Card>
+        <Card className="flex flex-col">
             <CardHeader>
                 <div className="flex justify-between items-start">
-                    <div className="flex-grow">
-                        <CardTitle className="flex items-center gap-2">
-                            <Building className="text-primary"/>
-                            {project.name}
+                    <div className="flex-grow pr-4">
+                        <CardTitle className="flex items-start gap-3">
+                            <Building className="text-primary mt-1 flex-shrink-0"/>
+                            <span>{project.name}</span>
                         </CardTitle>
-                        <CardDescription>
-                            Created on {new Date(project.createdAt).toLocaleDateString()}
-                        </CardDescription>
+                        {client && (
+                             <CardDescription className="flex items-center gap-2 mt-2">
+                                <User className="size-4"/> {client.name}
+                            </CardDescription>
+                        )}
                     </div>
                     <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
                         <DropdownMenu>
@@ -115,7 +147,7 @@ function ProjectCard({ project }: { project: Project }) {
                                 <Button variant="ghost" size="icon"><MoreHorizontal /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <ProjectFormDialog project={project} onSave={handleUpdate}>
+                                <ProjectFormDialog project={project} clients={clients} onSave={handleUpdate}>
                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                         <Edit className="mr-2"/> Edit Project
                                     </DropdownMenuItem>
@@ -141,10 +173,33 @@ function ProjectCard({ project }: { project: Project }) {
                     </AlertDialog>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div>
-                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">Approved Value</h4>
-                    <p className="text-2xl font-bold">{formatCurrency(totalApprovedValue)}</p>
+            <CardContent className="space-y-4 flex-grow">
+                <div className="space-y-4">
+                    <div>
+                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Approved Value</h4>
+                        <p className="text-2xl font-bold">{formatCurrency(totalApprovedValue)}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        {project.timeline && (
+                            <div className="flex items-start gap-2">
+                                <Calendar className="size-4 mt-0.5 text-primary" />
+                                <div>
+                                    <p className="font-semibold">Timeline</p>
+                                    <p className="text-muted-foreground">{project.timeline}</p>
+                                </div>
+                            </div>
+                        )}
+                         {project.scope && (
+                            <div className="flex items-start gap-2 col-span-2">
+                                <ClipboardList className="size-4 mt-0.5 text-primary" />
+                                <div>
+                                    <p className="font-semibold">Scope</p>
+                                    <p className="text-muted-foreground whitespace-pre-wrap">{project.scope}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div>
                     <h4 className="text-sm font-semibold text-muted-foreground mb-2">Linked Quotes ({projectQuotes.length})</h4>
@@ -171,7 +226,7 @@ function ProjectCard({ project }: { project: Project }) {
 
 export default function ProjectsPage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const { projects, createProject } = useStore();
+  const { projects, clients, createProject } = useStore();
 
   useEffect(() => {
     useStore.persist.rehydrate();
@@ -186,6 +241,10 @@ export default function ProjectsPage() {
     );
   }
 
+  const handleCreate = (data: ProjectDataInput) => {
+    createProject(data);
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -193,7 +252,7 @@ export default function ProjectsPage() {
           <h1 className="text-4xl font-bold tracking-tight">Projects</h1>
           <p className="text-muted-foreground mt-1">Manage all your ongoing and completed projects.</p>
         </div>
-        <ProjectFormDialog onSave={createProject}>
+        <ProjectFormDialog onSave={handleCreate} clients={clients}>
           <Button>
             <PlusCircle className="mr-2" />
             Create Project
@@ -210,7 +269,7 @@ export default function ProjectsPage() {
             </CardHeader>
             <CardContent>
               <div className="flex gap-4 justify-center">
-                <ProjectFormDialog onSave={createProject}>
+                <ProjectFormDialog onSave={handleCreate} clients={clients}>
                     <Button>Create Project</Button>
                 </ProjectFormDialog>
                 <Button variant="secondary" asChild>
