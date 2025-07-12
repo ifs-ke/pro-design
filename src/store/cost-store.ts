@@ -37,7 +37,8 @@ export type PublishedQuote = {
     status: 'Draft' | 'Sent' | 'Approved' | 'Declined';
     formValues: FormValues;
     allocations: Allocation;
-    calculations: Calculations;
+    calculations: Calculations; // This is the FINAL calculation
+    suggestedCalculations: Calculations; // This is the originally suggested calculation
 }
 
 interface CostState {
@@ -47,7 +48,7 @@ interface CostState {
   publishedQuotes: PublishedQuote[];
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
-  publishQuote: (finalCalculations: Calculations) => string; // Returns the new quote ID
+  publishQuote: (finalCalculations: Calculations, suggestedCalculations: Calculations) => string; // Returns the new quote ID
   updateQuoteStatus: (id: string, status: PublishedQuote['status']) => void;
   deleteQuote: (id: string) => void;
   loadQuoteIntoForm: (id: string) => void;
@@ -115,31 +116,20 @@ const performCalculations = (formValues: FormValues): Calculations => {
     let taxRateDecimal = 0;
     let profit = 0;
 
-    // A = B + C*A + D*A + E*A + F*A
-    // A - C*A - D*A - E*A - F*A = B
-    // A * (1 - C - D - E - F) = B
-    // A = B / (1 - C - D - E - F)
-    // where:
-    // A = grandTotal
-    // B = fixedCosts + profit
-    // C = tax (if TOT)
-    // D = miscRate
-    // E = salaryRate
-    // F = percentageAffiliateRate
+    const denominatorForProfit = 1 - profitMarginRate;
+    if (denominatorForProfit > 0) {
+      profit = (fixedCosts * profitMarginRate) / denominatorForProfit;
+    }
+
+    const baseForPercentages = fixedCosts + profit;
 
     if (businessType === 'vat_registered') {
         taxType = "VAT";
         taxRateDecimal = (effectiveTaxRate / 100);
 
-        const baseForProfit = fixedCosts;
-        profit = profitMarginRate > 0 ? baseForProfit * (profitMarginRate / (1 - profitMarginRate)) : 0;
-        if (!isFinite(profit)) profit = 0;
-
-        subtotal = fixedCosts + profit;
-        
         const denominator = 1 - miscRate - salaryRate - percentageAffiliateRate;
         if (denominator > 0) {
-            const netRevenue = subtotal / denominator;
+            const netRevenue = baseForPercentages / denominator;
             grandTotal = netRevenue * (1 + taxRateDecimal);
             tax = netRevenue * taxRateDecimal;
         }
@@ -149,15 +139,9 @@ const performCalculations = (formValues: FormValues): Calculations => {
         effectiveTaxRate = 3;
         taxRateDecimal = effectiveTaxRate / 100;
 
-        const baseForProfit = fixedCosts;
-        profit = profitMarginRate > 0 ? baseForProfit * (profitMarginRate / (1 - profitMarginRate)) : 0;
-        if (!isFinite(profit)) profit = 0;
-
-        subtotal = fixedCosts + profit;
-
         const denominator = 1 - miscRate - salaryRate - percentageAffiliateRate - taxRateDecimal;
         if (denominator > 0) {
-            grandTotal = subtotal / denominator;
+            grandTotal = baseForPercentages / denominator;
             tax = grandTotal * taxRateDecimal;
         }
     }
@@ -215,7 +199,7 @@ export const useStore = create<CostState>()(
                     set({ allocations });
                 },
 
-                publishQuote: (finalCalculations) => {
+                publishQuote: (finalCalculations, suggestedCalculations) => {
                     const { formValues, allocations, publishedQuotes } = get();
                     const existingQuoteIndex = publishedQuotes.findIndex(q => q.id === formValues.clientName?.replace(/\s+/g, '-'));
 
@@ -228,6 +212,7 @@ export const useStore = create<CostState>()(
                                     formValues: JSON.parse(JSON.stringify(formValues)),
                                     allocations: JSON.parse(JSON.stringify(allocations)),
                                     calculations: JSON.parse(JSON.stringify(finalCalculations)),
+                                    suggestedCalculations: JSON.parse(JSON.stringify(suggestedCalculations)),
                                   }
                                 : q
                             ),
@@ -244,6 +229,7 @@ export const useStore = create<CostState>()(
                         formValues: JSON.parse(JSON.stringify(formValues)),
                         allocations: JSON.parse(JSON.stringify(allocations)),
                         calculations: JSON.parse(JSON.stringify(finalCalculations)),
+                        suggestedCalculations: JSON.parse(JSON.stringify(suggestedCalculations)),
                     };
                     set({ publishedQuotes: [...publishedQuotes, newQuote] });
                     return nextId;

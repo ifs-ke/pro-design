@@ -4,9 +4,11 @@
 import { useStore } from "@/store/cost-store";
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { CostBreakdown } from "@/components/design/quote-display";
 import { formatCurrency } from "@/lib/utils";
+import { QuoteVariance } from "@/components/design/quote-variance";
+import { Separator } from "@/components/ui/separator";
 
 export default function QuoteDetailPage() {
   const router = useRouter();
@@ -23,12 +25,6 @@ export default function QuoteDetailPage() {
         <Button onClick={() => router.push('/quotes')} className="mt-4">Go to Quotes</Button>
       </div>
     );
-  }
-
-  const handleEdit = () => {
-    // This is a placeholder for future edit functionality.
-    // A more complete implementation might load this quote back into the costing tool.
-    router.push('/costing');
   }
 
   return (
@@ -54,7 +50,11 @@ export default function QuoteDetailPage() {
       </header>
       
       <div className="grid md:grid-cols-1 gap-8 items-start">
-        <CostBreakdown calculations={quote.calculations} allocations={quote.allocations} />
+        <CostBreakdown 
+            calculations={quote.calculations} 
+            allocations={quote.allocations} 
+            suggestedCalculations={quote.suggestedCalculations}
+        />
       </div>
 
     </div>

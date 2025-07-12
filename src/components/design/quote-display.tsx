@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { Allocation } from "@/store/cost-store";
+import type { Allocation, Calculations } from "@/store/cost-store";
 import { formatCurrency } from "@/lib/utils";
 import { PiggyBank, Lightbulb, Heart, Info } from "lucide-react";
 import {
@@ -20,22 +20,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { QuoteVariance } from "./quote-variance";
 
 
 interface CostBreakdownProps {
-  calculations: {
-    materialCost: number;
-    laborCost: number;
-    operationalCost: number;
-    totalBaseCost: number;
-    profit: number;
-    subtotal: number;
-    tax: number;
-    grandTotal: number;
-    taxRate: number;
-    taxType: string;
-  };
+  calculations: Calculations;
   allocations: Allocation;
+  suggestedCalculations?: Calculations;
 }
 
 const allocationMeta = {
@@ -45,7 +36,7 @@ const allocationMeta = {
 };
 
 
-export function CostBreakdown({ calculations, allocations }: CostBreakdownProps) {
+export function CostBreakdown({ calculations, allocations, suggestedCalculations }: CostBreakdownProps) {
   const {
     materialCost,
     laborCost,
@@ -71,6 +62,12 @@ export function CostBreakdown({ calculations, allocations }: CostBreakdownProps)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 flex-grow">
+        {suggestedCalculations && (
+            <>
+                <QuoteVariance suggested={suggestedCalculations} final={calculations} />
+                <Separator />
+            </>
+        )}
         <div className="space-y-2 text-sm">
             <div className="flex justify-between"><p className="text-muted-foreground">Material Cost</p><p>{formatCurrency(materialCost)}</p></div>
             <div className="flex justify-between"><p className="text-muted-foreground">Labor Cost</p><p>{formatCurrency(laborCost)}</p></div>

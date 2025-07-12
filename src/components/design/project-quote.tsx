@@ -114,7 +114,7 @@ export function ProjectQuote() {
         });
         return;
     }
-    const newQuoteId = publishQuote(localBreakdown);
+    const newQuoteId = publishQuote(localBreakdown, globalCalculations);
     toast({
         title: "Quote Published!",
         description: `Quote ID ${newQuoteId} has been saved.`,
