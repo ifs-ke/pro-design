@@ -17,6 +17,7 @@ type Calculations = {
   materialCost: number;
   laborCost: number;
   operationalCost: number;
+  affiliateCost: number;
   totalBaseCost: number;
   profit: number;
   subtotal: number; // Net Revenue (Base Cost + Profit)
@@ -40,6 +41,7 @@ const defaultFormValues: FormValues = {
   materials: [],
   labor: [],
   operations: [],
+  affiliates: [],
   businessType: "vat_registered",
   taxRate: 16,
   profitMargin: 25,
@@ -57,6 +59,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
       materials,
       labor,
       operations,
+      affiliates,
       taxRate,
       profitMargin,
       businessType,
@@ -66,7 +69,20 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const laborCost = labor?.reduce((acc, item) => acc + ((item.units || 0) * (item.rate || 0)), 0) ?? 0;
     const operationalCost = operations?.reduce((acc, item) => acc + (item.cost || 0), 0) ?? 0;
     
-    const totalBaseCost = materialCost + laborCost + operationalCost;
+    const preAffiliateCost = materialCost + laborCost + operationalCost;
+
+    const affiliateCost = affiliates?.reduce((acc, item) => {
+        if (!item.rate) return acc;
+        if (item.rateType === 'percentage') {
+            return acc + (preAffiliateCost * (item.rate / 100));
+        }
+        if (item.rateType === 'hourly' || item.rateType === 'daily') {
+            return acc + ((item.units || 0) * item.rate);
+        }
+        return acc;
+    }, 0) ?? 0;
+    
+    const totalBaseCost = preAffiliateCost + affiliateCost;
     const profit = totalBaseCost * ((profitMargin || 0) / 100);
     const subtotal = totalBaseCost + profit; // This is Net Revenue
 
@@ -83,7 +99,6 @@ const performCalculations = (formValues: FormValues): Calculations => {
         effectiveTaxRate = 3;
         // TOT is 3% of the gross amount (grand total).
         // Let G = Grand Total, S = Subtotal, R = Tax Rate (0.03)
-        // G = S + (G * R) -> This is wrong
         // Correct logic: TOT is applied on gross revenue (G).
         // So, Net Revenue (subtotal) = G * (1 - R)
         // Therefore, G = subtotal / (1 - R)
@@ -100,6 +115,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
       materialCost,
       laborCost,
       operationalCost,
+      affiliateCost,
       totalBaseCost,
       profit,
       subtotal,

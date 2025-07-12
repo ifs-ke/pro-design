@@ -38,11 +38,13 @@ import {
   Trash2,
   PlusCircle,
   Briefcase,
+  Handshake,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MaterialSuggester } from "@/components/design/material-suggester";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const materialItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -61,10 +63,18 @@ const operationItemSchema = z.object({
   cost: z.coerce.number().min(0, "Cost cannot be negative."),
 });
 
+const affiliateItemSchema = z.object({
+  name: z.string().min(1, "Name is required."),
+  rateType: z.enum(['hourly', 'daily', 'percentage']),
+  units: z.coerce.number().min(0, "Units cannot be negative.").optional(),
+  rate: z.coerce.number().min(0, "Rate cannot be negative."),
+});
+
 export const formSchema = z.object({
   materials: z.array(materialItemSchema).optional(),
   labor: z.array(laborItemSchema).optional(),
   operations: z.array(operationItemSchema).optional(),
+  affiliates: z.array(affiliateItemSchema).optional(),
   businessType: z.enum(['vat_registered', 'sole_proprietor']),
   taxRate: z.coerce.number().min(0, "Tax rate cannot be negative.").max(100),
   profitMargin: z.coerce.number().min(0, "Profit margin cannot be negative."),
@@ -97,6 +107,11 @@ export function CostForm() {
     append: appendOperation,
     remove: removeOperation,
   } = useFieldArray({ control: form.control, name: "operations" });
+  const {
+    fields: affiliateFields,
+    append: appendAffiliate,
+    remove: removeAffiliate,
+  } = useFieldArray({ control: form.control, name: "affiliates" });
 
 
   useEffect(() => {
@@ -370,6 +385,116 @@ export function CostForm() {
                     onClick={() => appendOperation({ name: "", cost: 0 })}
                   >
                     <PlusCircle className="mr-2" /> Add Operation
+                  </Button>
+                </AccordionContent>
+              </AccordionItem>
+              
+              {/* Affiliates Section */}
+              <AccordionItem value="affiliates">
+                <AccordionTrigger>
+                  <div className="flex items-center gap-2">
+                    <Handshake className="size-5 text-primary" />
+                    <div className="flex flex-col items-start">
+                      <span className="font-semibold">Affiliates / Partners</span>
+                      <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.affiliateCost)}</span>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4 pt-2">
+                  {affiliateFields.map((field, index) => {
+                    const rateType = form.watch(`affiliates.${index}.rateType`);
+                    return (
+                      <div key={field.id} className="p-4 border rounded-md space-y-4 bg-muted/20 relative">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`affiliates.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Partner Name</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g., John Doe" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`affiliates.${index}.rateType`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Rate Type</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a rate type" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="hourly">Hourly</SelectItem>
+                                    <SelectItem value="daily">Daily</SelectItem>
+                                    <SelectItem value="percentage">Percentage</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {(rateType === 'hourly' || rateType === 'daily') && (
+                            <FormField
+                              control={form.control}
+                              name={`affiliates.${index}.units`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{rateType === 'hourly' ? 'Hours' : 'Days'}</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" placeholder="8" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
+                          <FormField
+                            control={form.control}
+                            name={`affiliates.${index}.rate`}
+                            render={({ field }) => (
+                              <FormItem className={rateType === 'percentage' ? 'md:col-span-2' : ''}>
+                                <FormLabel>{
+                                  rateType === 'hourly' ? 'Hourly Rate (Ksh/hr)' :
+                                  rateType === 'daily' ? 'Daily Rate (Ksh/day)' :
+                                  'Percentage Rate (%)'
+                                }</FormLabel>
+                                <FormControl>
+                                  <Input type="number" placeholder={rateType === 'percentage' ? '10' : '500'} {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeAffiliate(index)}
+                          className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    )
+                  })}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendAffiliate({ name: "", rateType: 'percentage', rate: 10 })}
+                  >
+                    <PlusCircle className="mr-2" /> Add Partner
                   </Button>
                 </AccordionContent>
               </AccordionItem>
