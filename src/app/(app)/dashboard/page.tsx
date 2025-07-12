@@ -15,7 +15,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { BarChart, PieChart, Pie, Cell, ResponsiveContainer, Bar } from "recharts";
+import { BarChart, PieChart, Pie, Cell, ResponsiveContainer, Bar, YAxis, XAxis } from "recharts";
 import {
   Carousel,
   CarouselContent,
@@ -95,8 +95,8 @@ export default function DashboardPage() {
         }}
         className="w-full"
       >
-        <CarouselContent>
-           <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+        <CarouselContent className="-ml-2 md:-ml-4">
+           <CarouselItem className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Approved Revenue</CardTitle>
@@ -108,7 +108,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
            </CarouselItem>
-           <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+           <CarouselItem className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Clients</CardTitle>
@@ -120,7 +120,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
            </CarouselItem>
-           <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+           <CarouselItem className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
                <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Quote Approval Rate</CardTitle>
@@ -133,8 +133,8 @@ export default function DashboardPage() {
               </Card>
            </CarouselItem>
         </CarouselContent>
-        <CarouselPrevious className="-left-4" />
-        <CarouselNext className="-right-4" />
+        <CarouselPrevious className="hidden sm:flex -left-4" />
+        <CarouselNext className="hidden sm:flex -right-4" />
         <CarouselDots className="mt-4" />
       </Carousel>
       
@@ -147,8 +147,11 @@ export default function DashboardPage() {
               <CardContent>
                   <ChartContainer config={{}} className="h-48 w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                         <BarChart data={dashboardMetrics.clientStatusData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                         <BarChart data={dashboardMetrics.clientStatusData} layout="vertical" margin={{ left: 0, right: 10, top: 10, bottom: 0 }}>
+                              <XAxis type="number" hide />
+                              <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} />
                               <ChartTooltip
+                                  cursor={false}
                                   content={<ChartTooltipContent hideLabel />}
                               />
                               <Bar dataKey="value" layout="vertical" radius={5}>
