@@ -215,7 +215,7 @@ function ClientCard({ client }: { client: Client }) {
                     <Badge variant={statusVariant[client.status]}>{client.status}</Badge>
                     <Badge variant={responsivenessVariant[client.responsiveness]}>{client.responsiveness}</Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 flex-grow">
                     <div>
                         <h4 className="font-semibold text-sm flex items-center gap-2"><Building className="text-primary"/> Projects ({clientProjects.length})</h4>
                          {clientProjects.length > 0 ? (
