@@ -192,7 +192,7 @@ export function ProjectQuote() {
                     <p className="font-semibold">{formatCurrency(localBreakdown.subtotal)}</p>
                 </div>
                  <div className="flex justify-between">
-                    <p className="text-muted-foreground">{localBreakdown.taxType} ({(localBreakdown.taxRate || 0).toFixed(2)}%)</p>
+                    <p className="text-muted-foreground">{localBreakdown.taxType} ({(Number(localBreakdown.taxRate) || 0).toFixed(2)}%)</p>
                     <p className="font-semibold">{formatCurrency(localBreakdown.tax)}</p>
                 </div>
                 <Separator className="my-2"/>
