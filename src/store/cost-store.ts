@@ -69,47 +69,87 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const laborCost = labor?.reduce((acc, item) => acc + ((item.units || 0) * (item.rate || 0)), 0) ?? 0;
     const operationalCost = operations?.reduce((acc, item) => acc + (item.cost || 0), 0) ?? 0;
     
-    const preAffiliateCost = materialCost + laborCost + operationalCost;
+    // Calculate fixed costs from affiliates (hourly/daily)
+    const fixedAffiliateCost = affiliates?.reduce((acc, item) => {
+        if (!item.rate || item.rateType === 'percentage') return acc;
+        return acc + ((item.units || 0) * item.rate);
+    }, 0) ?? 0;
 
-    const affiliateCost = affiliates?.reduce((acc, item) => {
-        if (!item.rate) return acc;
+    // Sum of all fixed costs
+    const totalFixedCosts = materialCost + laborCost + operationalCost + fixedAffiliateCost;
+
+    // Sum of all percentage rates from affiliates
+    const totalAffiliatePercentage = affiliates?.reduce((acc, item) => {
         if (item.rateType === 'percentage') {
-            return acc + (preAffiliateCost * (item.rate / 100));
-        }
-        if (item.rateType === 'hourly' || item.rateType === 'daily') {
-            return acc + ((item.units || 0) * item.rate);
+            return acc + (item.rate / 100);
         }
         return acc;
     }, 0) ?? 0;
     
-    const totalBaseCost = preAffiliateCost + affiliateCost;
-    const profit = totalBaseCost * ((profitMargin || 0) / 100);
-    const subtotal = totalBaseCost + profit; // This is Net Revenue
-
-    let tax = 0;
+    const profitMarginDecimal = (profitMargin || 0) / 100;
+    
     let grandTotal = 0;
-    let effectiveTaxRate = taxRate || 0;
+    let subtotal = 0;
+    let tax = 0;
     let taxType = "VAT";
+    let effectiveTaxRate = taxRate || 0;
 
     if (businessType === 'vat_registered') {
-        tax = subtotal * (effectiveTaxRate / 100);
-        grandTotal = subtotal + tax;
+        taxType = "VAT";
+        // Let G = grandTotal, F = totalFixedCosts, A = totalAffiliatePercentage, P = profitMarginDecimal, T = taxRate
+        // G = (F + G*A) * (1 + P) * (1 + T)
+        // G = (F + G*A) * (1 + P + T + P*T)
+        // G = F*(...) + G*A*(...)
+        // G - G*A*(...) = F*(...)
+        // G * (1 - A*(1+P)) = F*(1+P)
+        // grandTotal = F * (1+P) / (1 - A*(1+P))
+        // And for VAT, it's applied on the subtotal.
+        // Let S = subtotal. G = S * (1 + T). S = F/(1 - A*(1+P)). G = F/(1 - A*(1+P)) * (1+T) NO
+        // S = Base + Profit = (F + G*A) + (F + G*A)*P = (F+G*A)(1+P)
+        // G = S * (1+T) => S = G/(1+T)
+        // G/(1+T) = (F+G*A)(1+P)
+        // G = (1+T)(F(1+P) + G*A(1+P))
+        // G = F(1+T)(1+P) + G*A(1+T)(1+P)
+        // G(1 - A(1+T)(1+P)) = F(1+T)(1+P)
+        // G = F(1+T)(1+P) / (1 - A(1+T)(1+P)) --- THIS IS WRONG. Let's simplify.
+        // BaseCost = F + G*A. Profit = BaseCost*P. Subtotal = BaseCost*(1+P). G = Subtotal*(1+T).
+        // BaseCost = F + Subtotal*(1+T)*A
+        // Subtotal/(1+P) = F + Subtotal*(1+T)*A
+        // Subtotal/(1+P) - Subtotal*(1+T)*A = F
+        // Subtotal * (1/(1+P) - A(1+T)) = F
+        // Subtotal = F / (1/(1+P) - A(1+T))
+        
+        const denominator = (1 / (1 + profitMarginDecimal)) - (totalAffiliatePercentage * (1 + (effectiveTaxRate / 100)));
+        if (denominator > 0) {
+            subtotal = totalFixedCosts / denominator;
+            tax = subtotal * (effectiveTaxRate / 100);
+            grandTotal = subtotal + tax;
+        }
+
     } else { // sole_proprietor
         taxType = "TOT";
         effectiveTaxRate = 3;
-        // TOT is 3% of the gross amount (grand total).
-        // Let G = Grand Total, S = Subtotal, R = Tax Rate (0.03)
-        // Correct logic: TOT is applied on gross revenue (G).
-        // So, Net Revenue (subtotal) = G * (1 - R)
-        // Therefore, G = subtotal / (1 - R)
-        if (subtotal > 0) {
+        // Let G = grandTotal, F = totalFixedCosts, A = totalAffiliatePercentage, P = profitMarginDecimal, T_tot = 0.03
+        // BaseCost = F + G*A. Subtotal = BaseCost*(1+P). G = Subtotal / (1-T_tot).
+        // BaseCost = F + (Subtotal/(1-T_tot))*A.
+        // Subtotal/(1+P) = F + (Subtotal/(1-T_tot))*A.
+        // Subtotal/(1+P) - Subtotal*A/(1-T_tot) = F.
+        // Subtotal * (1/(1+P) - A/(1-T_tot)) = F.
+        // Subtotal = F / (1/(1+P) - A/(1-T_tot)).
+        const denominator = (1 / (1 + profitMarginDecimal)) - (totalAffiliatePercentage / (1 - (effectiveTaxRate / 100)));
+        if (denominator > 0) {
+            subtotal = totalFixedCosts / denominator;
             grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
             tax = grandTotal - subtotal;
-        } else {
-            grandTotal = 0;
-            tax = 0;
         }
     }
+    
+    if (grandTotal < 0) grandTotal = 0; // Prevent negative totals
+
+    const percentageAffiliateCost = grandTotal * totalAffiliatePercentage;
+    const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
+    const totalBaseCost = totalFixedCosts + percentageAffiliateCost;
+    const profit = subtotal - totalBaseCost;
     
     return {
       materialCost,
