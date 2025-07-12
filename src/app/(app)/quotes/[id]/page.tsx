@@ -6,8 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { CostBreakdown } from "@/components/design/quote-display";
+import { MaterialsList } from "@/components/design/materials-list";
 import { formatCurrency } from "@/lib/utils";
-import { QuoteVariance } from "@/components/design/quote-variance";
 import { Separator } from "@/components/ui/separator";
 
 export default function QuoteDetailPage() {
@@ -26,6 +26,8 @@ export default function QuoteDetailPage() {
       </div>
     );
   }
+
+  const materials = quote.formValues.materials || [];
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -55,6 +57,12 @@ export default function QuoteDetailPage() {
             allocations={quote.allocations} 
             suggestedCalculations={quote.suggestedCalculations}
         />
+        {materials.length > 0 && (
+          <>
+            <Separator />
+            <MaterialsList materials={materials} />
+          </>
+        )}
       </div>
 
     </div>
