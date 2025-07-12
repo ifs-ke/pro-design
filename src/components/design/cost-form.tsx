@@ -111,6 +111,7 @@ export const formSchema = z.object({
   profitMargin: z.coerce.number().min(0, "Profit margin cannot be negative."),
   miscPercentage: z.coerce.number().min(0, "Misc. percentage cannot be negative."),
   salaryPercentage: z.coerce.number().min(0, "Salary percentage cannot be negative."),
+  numberOfPeople: z.coerce.number().min(0, "Number of people cannot be negative.").optional(),
 });
 
 function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) => void }) {
@@ -635,37 +636,52 @@ export function CostForm() {
                   
                   <Separator />
 
-                  <FormField
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                    <FormField
+                          control={form.control}
+                          name="salaryPercentage"
+                          render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                              <div className="flex justify-between items-center">
+                                  <FormLabel className="flex items-center gap-2">
+                                    <Users className="size-4" />
+                                    Salaries
+                                  </FormLabel>
+                                  <span className="font-bold text-primary">
+                                      {field.value?.toFixed(2) ?? 0}%
+                                  </span>
+                              </div>
+                              <FormControl>
+                              <Slider
+                                  min={0}
+                                  max={100}
+                                  step={1}
+                                  value={[field.value || 0]}
+                                  onValueChange={(value) => field.onChange(value[0])}
+                                  className="py-2"
+                              />
+                              </FormControl>
+                              <div className="text-right text-sm text-muted-foreground">
+                                Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.salaryCost)}</span>
+                              </div>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                      <FormField
                         control={form.control}
-                        name="salaryPercentage"
+                        name="numberOfPeople"
                         render={({ field }) => (
-                        <FormItem>
-                            <div className="flex justify-between items-center">
-                                <FormLabel className="flex items-center gap-2">
-                                  <Users className="size-4" />
-                                  Salaries
-                                </FormLabel>
-                                <span className="font-bold text-primary">
-                                    {field.value?.toFixed(2) ?? 0}%
-                                </span>
-                            </div>
+                          <FormItem>
+                            <FormLabel>Number of People</FormLabel>
                             <FormControl>
-                            <Slider
-                                min={0}
-                                max={100}
-                                step={1}
-                                value={[field.value || 0]}
-                                onValueChange={(value) => field.onChange(value[0])}
-                                className="py-2"
-                            />
+                              <Input type="number" placeholder="2" {...field} />
                             </FormControl>
-                            <div className="text-right text-sm text-muted-foreground">
-                              Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.salaryCost)}</span>
-                            </div>
                             <FormMessage />
-                        </FormItem>
+                          </FormItem>
                         )}
-                    />
+                      />
+                  </div>
 
                   <Separator />
                    <FormField

@@ -13,7 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { Allocation, Calculations } from "@/store/cost-store";
 import { formatCurrency } from "@/lib/utils";
-import { PiggyBank, Lightbulb, Heart, Info } from "lucide-react";
+import { PiggyBank, Lightbulb, Heart, Info, Users } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -48,6 +48,8 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
     grandTotal,
     taxRate,
     taxType,
+    salaryCost,
+    numberOfPeople
   } = calculations;
 
   // For clarity:
@@ -72,6 +74,13 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
             <div className="flex justify-between"><p className="text-muted-foreground">Material Cost</p><p>{formatCurrency(materialCost)}</p></div>
             <div className="flex justify-between"><p className="text-muted-foreground">Labor Cost</p><p>{formatCurrency(laborCost)}</p></div>
             <div className="flex justify-between"><p className="text-muted-foreground">Operational Cost</p><p>{formatCurrency(operationalCost)}</p></div>
+             <div className="flex justify-between">
+                <p className="text-muted-foreground flex items-center">
+                    <Users className="size-3 mr-1.5" />
+                    Salaries {numberOfPeople ? `(for ${numberOfPeople})` : ''}
+                </p>
+                <p>{formatCurrency(salaryCost)}</p>
+            </div>
         </div>
         <Separator />
          <div className="space-y-2 text-sm">

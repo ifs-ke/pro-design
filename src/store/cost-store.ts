@@ -28,6 +28,7 @@ export type Calculations = {
   taxType: string;
   profitMargin: number;
   businessType: string;
+  numberOfPeople?: number;
 };
 
 export type Interaction = {
@@ -115,6 +116,7 @@ const defaultFormValues: FormValues = {
   profitMargin: 25,
   miscPercentage: 0,
   salaryPercentage: 0,
+  numberOfPeople: 1,
 };
 
 const defaultAllocations: Allocation = {
@@ -134,6 +136,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
       businessType,
       miscPercentage,
       salaryPercentage,
+      numberOfPeople
     } = formValues;
 
     const materialCost = materials?.reduce((acc, item) => acc + ((Number(item.quantity) || 0) * (Number(item.cost) || 0)), 0) ?? 0;
@@ -229,6 +232,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
       taxType,
       profitMargin: finalProfit > 0 && subtotal > 0 ? (finalProfit / subtotal) * 100 : 0,
       businessType: formValues.businessType,
+      numberOfPeople: numberOfPeople,
     };
 }
 

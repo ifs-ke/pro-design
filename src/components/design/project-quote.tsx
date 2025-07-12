@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { ReceiptText, Info, Milestone, Send } from "lucide-react";
+import { ReceiptText, Info, Milestone, Send, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -58,7 +58,7 @@ export function ProjectQuote() {
     }
 
     const { totalBaseCost, materialCost, laborCost, operationalCost, affiliateCost, miscCost, salaryCost } = globalCalculations;
-    const { businessType, taxRate: vatRate } = formValues;
+    const { businessType, taxRate: vatRate, numberOfPeople } = formValues;
 
     let newSubtotal: number;
     let newTax: number;
@@ -103,6 +103,7 @@ export function ProjectQuote() {
         miscCost,
         salaryCost,
         businessType: formValues.businessType,
+        numberOfPeople: numberOfPeople
     };
   }, [finalQuote, globalCalculations, formValues]);
 
@@ -217,6 +218,15 @@ export function ProjectQuote() {
                     <p className="text-muted-foreground">{localBreakdown.taxType} ({(Number(localBreakdown.taxRate) || 0).toFixed(2)}%)</p>
                     <p className="font-semibold">{formatCurrency(localBreakdown.tax)}</p>
                 </div>
+                {localBreakdown.numberOfPeople && (
+                    <div className="flex justify-between">
+                        <p className="text-muted-foreground flex items-center">
+                            <Users className="size-3 mr-1.5" />
+                            Number of People
+                        </p>
+                        <p className="font-semibold">{localBreakdown.numberOfPeople}</p>
+                    </div>
+                 )}
                 <Separator className="my-2"/>
                 <div className="flex justify-between font-bold text-base bg-primary/10 p-2 rounded-md">
                     <p>Grand Total</p>
