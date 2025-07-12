@@ -69,6 +69,7 @@ export default function DesignCostProPage() {
       subtotal,
       tax,
       grandTotal,
+      taxRate: taxRate || 0,
     };
   }, [watchedValues]);
 
