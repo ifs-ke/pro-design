@@ -84,3 +84,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .embla__dot {
+    @apply touch-manipulation inline-flex cursor-pointer items-center justify-center bg-transparent p-1 m-0;
+  }
+  .embla__dot:after {
+    @apply bg-muted-foreground w-2 h-2 rounded-full;
+    content: '';
+  }
+  .embla__dot--selected:after {
+    @apply bg-primary w-4;
+    transition: width 0.2s ease-in-out;
+  }
+}

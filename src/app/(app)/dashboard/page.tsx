@@ -22,6 +22,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  CarouselDots
 } from "@/components/ui/carousel";
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -90,6 +91,7 @@ export default function DashboardPage() {
       <Carousel
         opts={{
           align: "start",
+          loop: true,
         }}
         className="w-full"
       >
@@ -131,8 +133,9 @@ export default function DashboardPage() {
               </Card>
            </CarouselItem>
         </CarouselContent>
-        <CarouselPrevious className="sm:flex -left-4" />
-        <CarouselNext className="sm:flex -right-4" />
+        <CarouselPrevious className="sm:flex -left-4 hidden" />
+        <CarouselNext className="sm:flex -right-4 hidden" />
+        <CarouselDots className="mt-4" />
       </Carousel>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -180,7 +183,11 @@ export default function DashboardPage() {
                                   innerRadius={50}
                                   paddingAngle={5}
                                   labelLine={false}
-                              />
+                              >
+                                {dashboardMetrics.projectStatusData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
+                              </Pie>
                                <ChartLegend content={<ChartLegendContent />} />
                           </PieChart>
                       </ResponsiveContainer>
@@ -209,7 +216,11 @@ export default function DashboardPage() {
                                   innerRadius={50}
                                   paddingAngle={5}
                                   labelLine={false}
-                              />
+                              >
+                                {dashboardMetrics.quoteStatusData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
+                              </Pie>
                                <ChartLegend content={<ChartLegendContent />} />
                           </PieChart>
                       </ResponsiveContainer>
