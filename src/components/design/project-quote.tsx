@@ -131,8 +131,8 @@ export function ProjectQuote() {
     }
     const { quoteId, wasExisting } = publishQuote(localBreakdown, globalCalculations);
     
-    // If it's a new quote, create and assign a project
-    if (!wasExisting) {
+    // If it's a new quote and not assigned to a project, create and assign a project
+    if (!wasExisting && !formValues.projectId) {
         const clientName = clients.find(c => c.id === formValues.clientId)?.name || "New Client";
         const newProject = createProject({ name: `Project for ${clientName}`, clientId: formValues.clientId });
         assignQuoteToProject(quoteId, newProject.id);

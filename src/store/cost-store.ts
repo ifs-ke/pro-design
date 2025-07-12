@@ -101,6 +101,7 @@ interface CostState {
 
 const defaultFormValues: FormValues = {
   clientId: '',
+  projectId: '',
   materials: [],
   labor: [],
   operations: [],
@@ -308,6 +309,7 @@ export const useStore = create<CostState>()(
                                     allocations: JSON.parse(JSON.stringify(allocations)),
                                     calculations: JSON.parse(JSON.stringify(finalCalculations)),
                                     suggestedCalculations: JSON.parse(JSON.stringify(suggestedCalculations)),
+                                    projectId: formValues.projectId,
                                   }
                                 : q
                             ),
@@ -325,6 +327,7 @@ export const useStore = create<CostState>()(
                         allocations: JSON.parse(JSON.stringify(allocations)),
                         calculations: JSON.parse(JSON.stringify(finalCalculations)),
                         suggestedCalculations: JSON.parse(JSON.stringify(suggestedCalculations)),
+                        projectId: formValues.projectId
                     };
                     set({ publishedQuotes: [...publishedQuotes, newQuote] });
                     return { quoteId: nextId, wasExisting: false };

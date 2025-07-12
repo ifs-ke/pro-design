@@ -5,7 +5,7 @@ import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect, useState } from "react";
-import { useStore, type Client } from "@/store/cost-store";
+import { useStore, type Client, type Project } from "@/store/cost-store";
 import {
   FormControl,
   FormField,
@@ -44,7 +44,8 @@ import {
   SlidersHorizontal,
   Users,
   MessageSquarePlus,
-  UserPlus
+  UserPlus,
+  FolderPlus
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
@@ -100,6 +101,7 @@ const affiliateItemSchema = z.object({
 
 export const formSchema = z.object({
   clientId: z.string().min(1, "Please select a client."),
+  projectId: z.string().optional(),
   materials: z.array(materialItemSchema).optional(),
   labor: z.array(laborItemSchema).optional(),
   operations: z.array(operationItemSchema).optional(),
@@ -163,12 +165,54 @@ function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) =>
     );
 }
 
+function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onProjectAdded: (project: Project) => void }) {
+    const [open, setOpen] = useState(false);
+    const [name, setName] = useState("");
+    const { createProject } = useStore();
+
+    const handleAddProject = () => {
+        if (!name || !clientId) return;
+        const newProject = createProject({ name, clientId });
+        onProjectAdded(newProject);
+        setName("");
+        setOpen(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" disabled={!clientId}>
+                    <FolderPlus className="size-4" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add New Project</DialogTitle>
+                    <DialogDescription>Create a new project for this client.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="project-name">Project Name *</Label>
+                        <Input id="project-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Westlands Apartment Fit-out" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button onClick={handleAddProject} disabled={!name}>Add Project</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+
 export function CostForm() {
-  const { formValues, setFormValues, calculations, clients } = useStore(state => ({
+  const { formValues, setFormValues, calculations, clients, projects } = useStore(state => ({
     formValues: state.formValues,
     setFormValues: state.setFormValues,
     calculations: state.calculations,
     clients: state.clients,
+    projects: state.projects,
   }));
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -201,9 +245,12 @@ export function CostForm() {
 
 
   useEffect(() => {
-    const subscription = form.watch((value) => {
+    const subscription = form.watch((value, { name }) => {
       // Use a deep copy to ensure state updates correctly for nested array changes
       setFormValues(JSON.parse(JSON.stringify(value)) as z.infer<typeof formSchema>);
+      if (name === 'clientId') {
+        form.setValue('projectId', '');
+      }
     });
     return () => subscription.unsubscribe();
   }, [form, setFormValues]);
@@ -211,6 +258,9 @@ export function CostForm() {
 
   const miscPercentage = form.watch('miscPercentage');
   const businessType = form.watch('businessType');
+  const selectedClientId = form.watch('clientId');
+
+  const clientProjects = projects.filter(p => p.clientId === selectedClientId);
   
   const handleAddMaterial = () => {
     appendMaterial({ name: "", quantity: 1, cost: 0, description: "" }, { shouldFocus: false });
@@ -254,6 +304,35 @@ export function CostForm() {
                   </FormItem>
                 )}
               />
+              
+               <FormField
+                control={form.control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project</FormLabel>
+                     <div className="flex items-center gap-2">
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={!selectedClientId}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a project" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {clientProjects.map(project => (
+                                    <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <AddProjectDialog clientId={selectedClientId} onProjectAdded={(project) => {
+                            form.setValue('projectId', project.id);
+                        }} />
+                     </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
             <Accordion type="multiple" defaultValue={[]} className="w-full">
               {/* Materials Section */}
               <AccordionItem value="materials">
