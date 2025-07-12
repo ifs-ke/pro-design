@@ -133,8 +133,8 @@ export default function DashboardPage() {
               </Card>
            </CarouselItem>
         </CarouselContent>
-        <CarouselPrevious className="sm:flex -left-4 hidden" />
-        <CarouselNext className="sm:flex -right-4 hidden" />
+        <CarouselPrevious className="-left-12" />
+        <CarouselNext className="-right-12" />
         <CarouselDots className="mt-4" />
       </Carousel>
       
