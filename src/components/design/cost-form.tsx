@@ -42,6 +42,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { MaterialSuggester } from "@/components/design/material-suggester";
 
 const materialItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -97,14 +98,10 @@ export function CostForm() {
     remove: removeOperation,
   } = useFieldArray({ control: form.control, name: "operations" });
 
-  const watchedValues = form.watch();
 
   useEffect(() => {
     const subscription = form.watch((value) => {
-      // This is a workaround to prevent stale values from being set
-      // It ensures that only the latest value is set to the store
-      const latestValues = form.getValues();
-      setFormValues(latestValues as z.infer<typeof formSchema>);
+      setFormValues(value as z.infer<typeof formSchema>);
     });
     return () => subscription.unsubscribe();
   }, [form, setFormValues]);
@@ -116,8 +113,8 @@ export function CostForm() {
   }, [formValues.profitMargin, form]);
 
 
-  const profitMargin = watchedValues.profitMargin;
-  const businessType = watchedValues.businessType;
+  const profitMargin = form.watch('profitMargin');
+  const businessType = form.watch('businessType');
 
   return (
     <Card>
@@ -143,61 +140,64 @@ export function CostForm() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
-                  {materialFields.map((field, index) => (
-                    <div
-                      key={field.id}
-                      className="grid grid-cols-[1fr_auto_auto] gap-2 items-end"
-                    >
-                      <FormField
-                        control={form.control}
-                        name={`materials.${index}.name`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={index !== 0 ? 'sr-only' : ''}>Material Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Fabric" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`materials.${index}.cost`}
-                        render={({ field }) => (
-                          <FormItem>
-                             <FormLabel className={index !== 0 ? 'sr-only' : ''}>Cost (Ksh)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="500"
-                                {...field}
-                                className="w-28"
-                              />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeMaterial(index)}
-                        className="text-muted-foreground hover:text-destructive"
+                  <div className="space-y-4">
+                    {materialFields.map((field, index) => (
+                      <div
+                        key={field.id}
+                        className="grid grid-cols-[1fr_auto_auto] gap-2 items-end"
                       >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => appendMaterial({ name: "", cost: 0 })}
-                  >
-                    <PlusCircle className="mr-2" /> Add Material
-                  </Button>
+                        <FormField
+                          control={form.control}
+                          name={`materials.${index}.name`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className={index !== 0 ? 'sr-only' : ''}>Material Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., Fabric" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`materials.${index}.cost`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className={index !== 0 ? 'sr-only' : ''}>Cost (Ksh)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="500"
+                                  {...field}
+                                  className="w-28"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeMaterial(index)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => appendMaterial({ name: "", cost: 0 })}
+                    >
+                      <PlusCircle className="mr-2" /> Add Material
+                    </Button>
+                  </div>
+                  <MaterialSuggester />
                 </AccordionContent>
               </AccordionItem>
 
@@ -452,7 +452,7 @@ export function CostForm() {
                         control={form.control}
                         name="profitMargin"
                         render={({ field }) => (
-                        <FormItem className={businessType === 'sole_proprietor' ? 'md:col-start-2' : ''}>
+                        <FormItem className={businessType === 'sole_proprietor' ? 'md:col-span-2' : ''}>
                             <FormLabel>
                             Profit Margin (%) -{" "}
                             <span className="font-bold text-primary">

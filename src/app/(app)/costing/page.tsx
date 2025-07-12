@@ -6,21 +6,20 @@ import { useStore } from "@/store/cost-store";
 
 import { CostForm } from "@/components/design/cost-form";
 import { ProfitAllocator } from "@/components/design/profit-allocator";
-import { CostBreakdown } from "@/components/design/cost-breakdown";
 import { ProjectQuote } from "@/components/design/project-quote";
-import { MaterialSuggester } from "@/components/design/material-suggester";
-import { AiQuoteAnalyst } from "@/components/design/ai-quote-analyst";
 
 export default function CostingPage() {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    // Manually trigger hydration check on mount
+    // Zustand persistance hydration can cause a mismatch between the server and client render.
+    // This effect ensures that the component only renders on the client, after hydration is complete.
     useStore.persist.rehydrate();
     setIsHydrated(true);
   }, []);
 
   if (!isHydrated) {
+    // You can return a loading spinner or null here
     return (
         <div className="flex justify-center items-center h-screen">
             <div className="text-lg">Loading Costing Tool...</div>
@@ -39,19 +38,14 @@ export default function CostingPage() {
         </p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+        <div className="lg:col-span-3 space-y-8">
           <CostForm />
-          <div className="grid md:grid-cols-2 gap-8">
-            <CostBreakdown />
-            <ProfitAllocator />
-          </div>
-           <ProjectQuote />
         </div>
 
-        <div className="lg:col-span-1 space-y-8">
-          <MaterialSuggester />
-          <AiQuoteAnalyst />
+        <div className="lg:col-span-2 space-y-8 sticky top-8">
+          <ProfitAllocator />
+          <ProjectQuote />
         </div>
       </div>
     </>

@@ -11,11 +11,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { TrendingUp, ReceiptText, Info } from "lucide-react";
+import { TrendingUp, ReceiptText, Info, Wand2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AiQuoteAnalyst } from "@/components/design/ai-quote-analyst";
 
 
 export function ProjectQuote() {
@@ -50,45 +51,33 @@ export function ProjectQuote() {
     }
   };
 
-  // For clarity:
-  const grossRevenue = grandTotal; // Total amount from client
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Project Quote</CardTitle>
+        <CardTitle>Final Project Quote</CardTitle>
         <CardDescription>
           The final quote to be presented to the client. Adjusting this will impact the profit margin.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="w-full p-4 rounded-lg bg-primary/10 flex flex-col justify-center">
-              <div className="flex justify-between items-center">
-                  <p className="text-sm font-medium flex items-center">
-                      <TrendingUp className="mr-2 h-4 w-4" />
-                      Suggested Quote
-                  </p>
-                  <p className="text-lg font-semibold">{formatCurrency(grossRevenue)}</p>
-              </div>
-          </div>
-          <div className="w-full space-y-2">
-              <Label htmlFor="final-quote" className="flex items-center">
-                  <ReceiptText className="mr-2 h-4 w-4" />
-                  Final Client Quote (Ksh)
-              </Label>
-              <Input
-                  id="final-quote"
-                  type="number"
-                  placeholder="Enter final quote"
-                  value={typeof finalQuote === 'number' ? finalQuote.toFixed(0) : finalQuote}
-                  onChange={handleInputChange}
-                  onBlur={handleInputBlur}
-                  className="bg-background/80 text-lg font-bold text-primary"
-              />
-          </div>
+        <div className="w-full space-y-2">
+            <Label htmlFor="final-quote" className="flex items-center">
+                <ReceiptText className="mr-2 h-4 w-4" />
+                Final Client Quote (Ksh)
+            </Label>
+            <Input
+                id="final-quote"
+                type="number"
+                placeholder="Enter final quote"
+                value={typeof finalQuote === 'number' ? finalQuote.toFixed(0) : finalQuote}
+                onChange={handleInputChange}
+                onBlur={handleInputBlur}
+                className="bg-background/80 text-lg font-bold text-primary"
+            />
         </div>
+        
         <Separator />
+        
         <div className="space-y-4">
           <h4 className="font-medium text-center md:text-left">Quote Breakdown</h4>
           <TooltipProvider>
@@ -115,13 +104,18 @@ export function ProjectQuote() {
                     <p className="font-semibold">{formatCurrency(tax)}</p>
                 </div>
                 <Separator className="my-2"/>
-                <div className="flex justify-between font-bold text-base">
+                <div className="flex justify-between font-bold text-base bg-primary/10 p-2 rounded-md">
                     <p>Grand Total</p>
                     <p>{formatCurrency(grandTotal)}</p>
                 </div>
             </div>
           </TooltipProvider>
         </div>
+        
+        <Separator />
+
+        <AiQuoteAnalyst />
+
       </CardContent>
     </Card>
   );

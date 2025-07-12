@@ -3,13 +3,6 @@
 
 import { useState } from "react";
 import { useStore } from "@/store/cost-store";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Lightbulb, BarChart, Wand2 } from "lucide-react";
@@ -54,18 +47,8 @@ export function AiQuoteAnalyst() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wand2 className="text-primary" />
-          AI Quote Analyst
-        </CardTitle>
-        <CardDescription>
-          Get AI-powered insights and business strategies based on your final quote.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Button onClick={handleAnalyzeQuote} disabled={isLoading} className="w-full bg-accent hover:bg-accent/90">
+    <div className="space-y-4">
+        <Button onClick={handleAnalyzeQuote} disabled={isLoading || calculations.grandTotal === 0} className="w-full">
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -74,7 +57,7 @@ export function AiQuoteAnalyst() {
           Analyze My Quote
         </Button>
 
-        <div className="mt-6">
+        <div className="mt-4">
           {isLoading && (
             <div className="flex flex-col items-center justify-center text-muted-foreground p-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -84,7 +67,7 @@ export function AiQuoteAnalyst() {
           {error && <Alert variant="destructive">{error}</Alert>}
           {analysis && (
             <div className="space-y-4">
-               <Alert>
+                <Alert>
                     <BarChart className="h-4 w-4" />
                     <AlertTitle>Quote Insight</AlertTitle>
                     <AlertDescription>{analysis.quoteInsight}</AlertDescription>
@@ -97,7 +80,6 @@ export function AiQuoteAnalyst() {
             </div>
           )}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
