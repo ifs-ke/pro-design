@@ -7,7 +7,6 @@ import { devtools, persist, createJSONStorage } from 'zustand/middleware'
 export type FormValues = z.infer<typeof formSchema>;
 
 export type Allocation = {
-  salaries: number;
   savings: number;
   futureDev: number;
   csr: number;
@@ -58,6 +57,7 @@ const defaultFormValues: FormValues = {
   materials: [],
   labor: [],
   operations: [],
+  salaries: [],
   affiliates: [],
   businessType: "vat_registered",
   taxRate: 16,
@@ -66,10 +66,9 @@ const defaultFormValues: FormValues = {
 };
 
 const defaultAllocations: Allocation = {
-  salaries: 40,
-  savings: 20,
-  futureDev: 20,
-  csr: 20,
+  savings: 40,
+  futureDev: 30,
+  csr: 30,
 };
 
 const performCalculations = (formValues: FormValues): Calculations => {
@@ -77,6 +76,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
       materials,
       labor,
       operations,
+      salaries,
       affiliates,
       taxRate,
       profitMargin,
@@ -87,14 +87,14 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const materialCost = materials?.reduce((acc, item) => acc + (Number(item.cost) || 0), 0) ?? 0;
     const laborCost = labor?.reduce((acc, item) => acc + ((Number(item.units) || 0) * (Number(item.rate) || 0)), 0) ?? 0;
     const fixedOperationalCost = operations?.reduce((acc, item) => acc + (Number(item.cost) || 0), 0) ?? 0;
+    const salaryCost = salaries?.reduce((acc, item) => acc + (Number(item.cost) || 0), 0) ?? 0;
     
     const fixedAffiliateCost = affiliates?.reduce((acc, item) => {
         if (!item.rate || item.rateType === 'percentage') return acc;
         return acc + ((Number(item.units) || 0) * (Number(item.rate) || 0));
     }, 0) ?? 0;
 
-    // This is the sum of all costs that are NOT percentage-based.
-    const baseForPercentages = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost;
+    const baseForPercentages = materialCost + laborCost + fixedOperationalCost + salaryCost + fixedAffiliateCost;
 
     const totalAffiliatePercentage = affiliates?.reduce((acc, item) => {
         if (item.rateType === 'percentage') {
@@ -112,38 +112,16 @@ const performCalculations = (formValues: FormValues): Calculations => {
     let taxType = "VAT";
     let effectiveTaxRate = taxRate || 0;
 
-    // The grandTotal includes percentage costs for affiliates and misc.
-    // grandTotal = subtotal + tax
-    // subtotal = baseForPercentages + profit
-    // profit = subtotal * profitMarginDecimal
-    // New logic: affiliate and misc costs are calculated from grandTotal.
-    // subtotal = baseForPercentages + profit
-    // grandTotal * (1 - affiliate% - misc%) = subtotal + tax
-    // And subtotal is also dependent on profit margin, which depends on subtotal.
-    // This gets complicated. Let's redefine based on what the user wants.
-    // Let's assume profit margin is on net revenue (subtotal).
-    // And affiliate/misc percentages are on the final quote (grandTotal).
-    
-    // grandTotal = baseForPercentages + fixedAffiliateCost + percentageAffiliateCost + miscCost + profit + tax
-    // Let grandTotal = G, subtotal = S
-    // S = baseForPercentages + profit
-    // profit = S * profitMarginDecimal
-    // S = baseForPercentages + S * profitMarginDecimal => S * (1 - profitMarginDecimal) = baseForPercentages => S = baseForPercentages / (1 - profitMarginDecimal)
     if ((1 - profitMarginDecimal) > 0) {
       subtotal = baseForPercentages / (1 - profitMarginDecimal);
     } else {
       subtotal = 0;
     }
 
-    // Now calculate grandTotal based on this subtotal, adding tax and percentage costs.
-    // G = S + tax + G * totalAffiliatePercentage + G * miscDecimal
-    // G * (1 - totalAffiliatePercentage - miscDecimal) = S + tax
     let taxDecimal = 0;
     if (businessType === 'vat_registered') {
         taxType = "VAT";
         taxDecimal = (effectiveTaxRate / 100);
-        // tax = S * taxDecimal
-        // G * (1 - totalAffiliatePercentage - miscDecimal) = S + S * taxDecimal = S * (1 + taxDecimal)
         const denominator = 1 - totalAffiliatePercentage - miscDecimal;
         if (denominator > 0) {
             grandTotal = (subtotal * (1 + taxDecimal)) / denominator;
@@ -152,9 +130,6 @@ const performCalculations = (formValues: FormValues): Calculations => {
         taxType = "TOT";
         effectiveTaxRate = 3;
         taxDecimal = effectiveTaxRate / 100;
-        // tax = G * taxDecimal
-        // G * (1 - totalAffiliatePercentage - miscDecimal) = S + G * taxDecimal
-        // G * (1 - totalAffiliatePercentage - miscDecimal - taxDecimal) = S
         const denominator = 1 - totalAffiliatePercentage - miscDecimal - taxDecimal;
          if (denominator > 0) {
             grandTotal = subtotal / denominator;
@@ -169,7 +144,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const percentageAffiliateCost = grandTotal * totalAffiliatePercentage;
 
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
-    const operationalCost = fixedOperationalCost + miscCost;
+    const operationalCost = fixedOperationalCost + miscCost + salaryCost;
     const totalBaseCost = materialCost + laborCost + operationalCost + affiliateCost;
     const profit = subtotal - baseForPercentages;
     

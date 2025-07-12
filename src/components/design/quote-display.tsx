@@ -13,7 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { Allocation } from "@/store/cost-store";
 import { formatCurrency } from "@/lib/utils";
-import { Users, PiggyBank, Lightbulb, Heart, Info, TrendingUp, ReceiptText } from "lucide-react";
+import { PiggyBank, Lightbulb, Heart, Info } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -39,7 +39,6 @@ interface CostBreakdownProps {
 }
 
 const allocationMeta = {
-  salaries: { icon: Users, label: "Salaries" },
   savings: { icon: PiggyBank, label: "Savings" },
   futureDev: { icon: Lightbulb, label: "Future Dev" },
   csr: { icon: Heart, label: "CSR" },
@@ -111,6 +110,7 @@ export function CostBreakdown({ calculations, allocations }: CostBreakdownProps)
             <div className="space-y-2 text-sm w-full">
                 {Object.entries(allocations).map(([key, value]) => {
                     const meta = allocationMeta[key as keyof typeof allocationMeta];
+                    if (!meta) return null;
                     const Icon = meta.icon;
                     return (
                         <div key={key} className="flex justify-between items-center text-muted-foreground">

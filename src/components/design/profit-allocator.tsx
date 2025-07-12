@@ -14,7 +14,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Users, PiggyBank, Lightbulb, Heart, CheckCircle2, AlertCircle } from "lucide-react";
+import { PiggyBank, Lightbulb, Heart, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface AllocationItem {
@@ -24,7 +24,6 @@ interface AllocationItem {
 }
 
 const allocationItems: AllocationItem[] = [
-    { id: 'salaries', label: 'Salaries', icon: Users },
     { id: 'savings', label: 'Savings', icon: PiggyBank },
     { id: 'futureDev', label: 'Future Dev', icon: Lightbulb },
     { id: 'csr', label: 'CSR', icon: Heart },
@@ -80,13 +79,13 @@ export function ProfitAllocator() {
         <div className="pt-4 space-y-2">
             <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Total Allocation</span>
-                <span className={`text-sm font-bold ${totalAllocation === 100 ? 'text-accent' : 'text-destructive'}`}>
+                <span className={`text-sm font-bold ${totalAllocation === 100 ? 'text-green-600' : 'text-destructive'}`}>
                     {totalAllocation.toFixed(0)}%
                 </span>
             </div>
-            <Progress value={totalAllocation} className={`${totalAllocation > 100 ? '[&>div]:bg-destructive' : totalAllocation === 100 ? '[&>div]:bg-accent' : ''}`} />
+            <Progress value={totalAllocation} className={`${totalAllocation > 100 ? '[&>div]:bg-destructive' : totalAllocation === 100 ? '[&>div]:bg-green-500' : ''}`} />
              {totalAllocation === 100 ? (
-                <div className="flex items-center justify-center gap-2 pt-2 text-sm text-accent">
+                <div className="flex items-center justify-center gap-2 pt-2 text-sm text-green-600">
                     <CheckCircle2 className="size-4" />
                     <p>Perfectly allocated!</p>
                 </div>

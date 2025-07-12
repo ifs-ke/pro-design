@@ -41,7 +41,8 @@ import {
   Briefcase,
   Handshake,
   Milestone,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Users
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
@@ -67,6 +68,11 @@ const operationItemSchema = z.object({
   cost: z.coerce.number().min(0, "Cost cannot be negative."),
 });
 
+const salaryItemSchema = z.object({
+  name: z.string().min(1, "Name is required."),
+  cost: z.coerce.number().min(0, "Cost cannot be negative."),
+});
+
 const affiliateItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
   rateType: z.enum(['hourly', 'daily', 'percentage']),
@@ -88,6 +94,7 @@ export const formSchema = z.object({
   materials: z.array(materialItemSchema).optional(),
   labor: z.array(laborItemSchema).optional(),
   operations: z.array(operationItemSchema).optional(),
+  salaries: z.array(salaryItemSchema).optional(),
   affiliates: z.array(affiliateItemSchema).optional(),
   businessType: z.enum(['vat_registered', 'sole_proprietor']),
   taxRate: z.coerce.number().min(0, "Tax rate cannot be negative.").max(100),
@@ -122,6 +129,11 @@ export function CostForm() {
     append: appendOperation,
     remove: removeOperation,
   } = useFieldArray({ control: form.control, name: "operations" });
+   const {
+    fields: salaryFields,
+    append: appendSalary,
+    remove: removeSalary,
+  } = useFieldArray({ control: form.control, name: "salaries" });
   const {
     fields: affiliateFields,
     append: appendAffiliate,
@@ -362,6 +374,7 @@ export function CostForm() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
+                  <Label>Fixed Operational Costs</Label>
                   {operationFields.map((field, index) => (
                     <div
                       key={field.id}
@@ -415,8 +428,68 @@ export function CostForm() {
                     size="sm"
                     onClick={() => appendOperation({ name: "", cost: 0 })}
                   >
-                    <PlusCircle className="mr-2" /> Add Operation
+                    <PlusCircle className="mr-2" /> Add Operation Cost
                   </Button>
+
+                  <Separator />
+
+                  <Label className="flex items-center gap-2 pt-2"><Users className="size-4" /> Salaries</Label>
+                   {salaryFields.map((field, index) => (
+                    <div
+                      key={field.id}
+                      className="grid grid-cols-[1fr_auto_auto] gap-2 items-end"
+                    >
+                      <FormField
+                        control={form.control}
+                        name={`salaries.${index}.name`}
+                        render={({ field }) => (
+                           <FormItem>
+                             <FormLabel className={index !== 0 ? 'sr-only' : ''}>Role / Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Project Manager" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`salaries.${index}.cost`}
+                        render={({ field }) => (
+                          <FormItem>
+                             <FormLabel className={index !== 0 ? 'sr-only' : ''}>Monthly Cost (Ksh)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="50000"
+                                {...field}
+                                className="w-28"
+                              />
+                            </FormControl>
+                             <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeSalary(index)}
+                         className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendSalary({ name: "", cost: 0 })}
+                  >
+                    <PlusCircle className="mr-2" /> Add Salary
+                  </Button>
+
                   <Separator />
                    <FormField
                         control={form.control}
@@ -680,5 +753,3 @@ export function CostForm() {
     </Card>
   );
 }
-
-    
