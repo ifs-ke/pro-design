@@ -13,7 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { Allocation } from "./profit-allocator";
 import { formatCurrency } from "@/lib/utils";
-import { Users, PiggyBank, Lightbulb, Heart, Info, TrendingUp, ReceiptText } from "lucide-react";
+import { Users, PiggyBank, Lightbulb, Heart, Info } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -107,11 +107,10 @@ export function CostBreakdown({ calculations, allocations }: CostBreakdownProps)
                 </div>
             </div>
         </TooltipProvider>
-
-      </CardContent>
-       <CardFooter className="bg-primary/5 mt-4 p-4 rounded-b-lg flex-col items-start gap-2">
+        <Separator />
+        <div>
             <h4 className="font-medium mb-2 text-sm">Profit Allocation Details</h4>
-            <div className="space-y-2 text-sm w-full">
+            <div className="space-y-2 text-sm">
                 {Object.entries(allocations).map(([key, value]) => {
                     const meta = allocationMeta[key as keyof typeof allocationMeta];
                     const Icon = meta.icon;
@@ -123,7 +122,8 @@ export function CostBreakdown({ calculations, allocations }: CostBreakdownProps)
                     )
                 })}
             </div>
-      </CardFooter>
+        </div>
+      </CardContent>
     </Card>
   );
 }

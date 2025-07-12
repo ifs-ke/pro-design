@@ -9,7 +9,8 @@ import { useState, useMemo, useEffect } from "react";
 import { CostForm, formSchema } from "@/components/design/cost-form";
 import { ProfitAllocator } from "@/components/design/profit-allocator";
 import type { Allocation } from "@/components/design/profit-allocator";
-import { QuoteDisplay } from "@/components/design/quote-display";
+import { CostBreakdown } from "@/components/design/cost-breakdown";
+import { ProjectQuote } from "@/components/design/project-quote";
 import { MaterialSuggester } from "@/components/design/material-suggester";
 
 export default function DesignCostProPage() {
@@ -136,17 +137,20 @@ export default function DesignCostProPage() {
           <div className="lg:col-span-2 space-y-8">
             <CostForm form={form} />
             <div className="grid md:grid-cols-2 gap-8">
+              <CostBreakdown
+                calculations={calculations}
+                allocations={allocations}
+              />
               <ProfitAllocator
                 allocations={allocations}
                 setAllocations={setAllocations}
                 profit={calculations.profit}
               />
-              <QuoteDisplay
-                calculations={calculations}
-                allocations={allocations}
-                onFinalQuoteChange={handleFinalQuoteChange}
-              />
             </div>
+             <ProjectQuote 
+                calculations={calculations}
+                onFinalQuoteChange={handleFinalQuoteChange}
+             />
           </div>
 
           <div className="lg:col-span-1">
