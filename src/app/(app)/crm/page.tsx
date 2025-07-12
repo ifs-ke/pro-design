@@ -36,6 +36,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from 'next/link';
+import { FollowUpTracker } from "@/components/design/follow-up-tracker";
+import { Separator } from "@/components/ui/separator";
 
 function ClientFormDialog({ client, onSave, children }: { client?: Client, onSave: (data: any) => void, children: React.ReactNode }) {
     const [open, setOpen] = useState(false);
@@ -113,7 +115,7 @@ function ClientCard({ client }: { client: Client }) {
     }
 
     return (
-        <Card>
+        <Card className="flex flex-col">
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle>{client.name}</CardTitle>
@@ -158,7 +160,7 @@ function ClientCard({ client }: { client: Client }) {
                     </AlertDialogContent>
                 </AlertDialog>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 flex-grow">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <h4 className="font-semibold text-sm flex items-center gap-2"><Building className="text-primary"/> Projects ({clientProjects.length})</h4>
@@ -184,6 +186,8 @@ function ClientCard({ client }: { client: Client }) {
                          ) : <p className="text-sm text-muted-foreground mt-2">No quotes yet.</p>}
                     </div>
                 </div>
+                 <Separator />
+                <FollowUpTracker client={client} />
             </CardContent>
         </Card>
     )

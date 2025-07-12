@@ -30,12 +30,20 @@ export type Calculations = {
   businessType: string;
 };
 
+export type Interaction = {
+    id: string;
+    timestamp: number;
+    type: 'Email' | 'Call' | 'Meeting' | 'Other';
+    notes: string;
+}
+
 export type Client = {
     id: string;
     name: string;
     email?: string;
     phone?: string;
     createdAt: number;
+    interactions: Interaction[];
 }
 
 export type PublishedQuote = {
@@ -65,9 +73,10 @@ interface CostState {
   projects: Project[];
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
-  addClient: (clientData: Omit<Client, 'id' | 'createdAt'>) => Client;
-  updateClient: (id: string, clientData: Partial<Omit<Client, 'id' | 'createdAt'>>) => void;
+  addClient: (clientData: Omit<Client, 'id' | 'createdAt' | 'interactions'>) => Client;
+  updateClient: (id: string, clientData: Partial<Omit<Client, 'id' | 'createdAt' | 'interactions'>>) => void;
   deleteClient: (id: string) => void;
+  addInteraction: (clientId: string, interaction: Omit<Interaction, 'id' | 'timestamp'>) => void;
   publishQuote: (finalCalculations: Calculations, suggestedCalculations: Calculations) => string; // Returns the new quote ID
   updateQuoteStatus: (id: string, status: PublishedQuote['status']) => void;
   deleteQuote: (id: string) => void;
@@ -232,6 +241,7 @@ export const useStore = create<CostState>()(
                         ...clientData,
                         id: `CLT-${Date.now().toString()}`,
                         createdAt: Date.now(),
+                        interactions: [],
                     };
                     set(state => ({ clients: [...state.clients, newClient] }));
                     return newClient;
@@ -246,13 +256,26 @@ export const useStore = create<CostState>()(
                 deleteClient: (id) => {
                     set(state => ({
                         clients: state.clients.filter(c => c.id !== id),
-                        // Optional: Also delete associated quotes and projects, or handle orphan data.
-                        // For now, we'll leave them, but they may become inaccessible without the client.
+                    }));
+                },
+                
+                addInteraction: (clientId, interaction) => {
+                    const newInteraction: Interaction = {
+                        ...interaction,
+                        id: `INT-${Date.now()}`,
+                        timestamp: Date.now(),
+                    };
+                    set(state => ({
+                        clients: state.clients.map(c => 
+                            c.id === clientId 
+                                ? { ...c, interactions: [...c.interactions, newInteraction] } 
+                                : c
+                        ),
                     }));
                 },
 
                 publishQuote: (finalCalculations, suggestedCalculations) => {
-                    const { formValues, allocations, publishedQuotes, clients } = get();
+                    const { formValues, allocations, publishedQuotes } = get();
                     const existingQuoteIndex = publishedQuotes.findIndex(q => q.id === formValues.clientId?.replace(/\s+/g, '-'));
 
                     if (existingQuoteIndex !== -1) {
