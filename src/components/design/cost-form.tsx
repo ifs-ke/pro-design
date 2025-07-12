@@ -113,7 +113,7 @@ export function CostForm() {
     defaultValues: formValues,
   });
 
-  const [showDescription, setShowDescription] = useState<{ [index: number]: boolean, }>({});
+  const [showDescription, setShowDescription] = useState<{ [index: number]: boolean; }>({});
 
   const {
     fields: materialFields,
@@ -738,7 +738,7 @@ export function CostForm() {
                         control={form.control}
                         name="profitMargin"
                         render={({ field }) => (
-                        <FormItem className={businessType === 'sole_proprietor' ? 'md:col-span-2' : ''}>
+                        <FormItem className="md:col-span-2">
                             <div className="flex justify-between items-center">
                                 <FormLabel>Profit Margin (%)</FormLabel>
                                 <span className="font-bold text-primary">
