@@ -113,7 +113,7 @@ export function CostForm() {
     defaultValues: formValues,
   });
 
-  const [showDescription, setShowDescription] = useState<{ [index: number]: boolean }>({});
+  const [showDescription, setShowDescription] = useState<{ [index: number]: boolean; }>({});
 
   const {
     fields: materialFields,
@@ -148,6 +148,12 @@ export function CostForm() {
 
   const miscPercentage = form.watch('miscPercentage');
   const businessType = form.watch('businessType');
+  
+  const handleAddMaterial = () => {
+    appendMaterial({ name: "", quantity: 1, cost: 0, description: "" }, { shouldFocus: false });
+    // Ensure new material description is hidden
+    setShowDescription(prev => ({...prev, [materialFields.length]: false}));
+  };
 
   return (
     <Card>
@@ -280,7 +286,7 @@ export function CostForm() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => appendMaterial({ name: "", quantity: 1, cost: 0, description: "" })}
+                      onClick={handleAddMaterial}
                     >
                       <PlusCircle className="mr-2" /> Add Material
                     </Button>
@@ -766,5 +772,3 @@ export function CostForm() {
     </Card>
   );
 }
-
-    
