@@ -40,6 +40,7 @@ import Link from 'next/link';
 import { FollowUpTracker } from "@/components/design/follow-up-tracker";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 
 const responsivenessVariant: { [key in ResponsivenessStatus]: "success" | "secondary" | "destructive" } = {
   "Hot": "success",
@@ -146,6 +147,23 @@ function ClientFormDialog({ client, onSave, children }: { client?: Client, onSav
     )
 }
 
+const MotionCard = motion(Card);
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
 function ClientCard({ client }: { client: Client }) {
     const { publishedQuotes, projects, deleteClient } = useStore();
     const [showAlert, setShowAlert] = useState(false);
@@ -165,7 +183,7 @@ function ClientCard({ client }: { client: Client }) {
     }
 
     return (
-        <Card className="flex flex-col">
+        <MotionCard className="flex flex-col" variants={cardVariants}>
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle className="text-xl">{client.name}</CardTitle>
@@ -244,7 +262,7 @@ function ClientCard({ client }: { client: Client }) {
                     <FollowUpTracker client={client} />
                 </div>
             </CardContent>
-        </Card>
+        </MotionCard>
     )
 }
 
@@ -284,11 +302,16 @@ export default function CrmPage() {
                     <p className="text-muted-foreground">Click "Create New Client" to get started.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <motion.div
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                     {clients.sort((a,b) => b.createdAt - a.createdAt).map(client => (
                         <ClientCard key={client.id} client={client} />
                     ))}
-                </div>
+                </motion.div>
             )}
         </div>
     );
