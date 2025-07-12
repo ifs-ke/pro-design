@@ -660,7 +660,7 @@ export function CostForm() {
                     />
                 </div>
                 
-                {(calculations.profitMargin ?? 0) < 18 && (
+                {(calculations.profitMargin ?? 0) < 18 && calculations.grandTotal > 0 && (
                 <Alert variant="destructive" className="bg-amber-100 border-amber-300 text-amber-900">
                     <AlertTriangle className="h-4 w-4 !text-amber-700" />
                     <AlertTitle>Low Profit Margin</AlertTitle>

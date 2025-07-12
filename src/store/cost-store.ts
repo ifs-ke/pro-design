@@ -93,7 +93,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
         return acc + ((Number(item.units) || 0) * (Number(item.rate) || 0));
     }, 0) ?? 0;
 
-    const totalFixedCosts = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost;
+    const fixedBaseCost = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost;
 
     const totalAffiliatePercentage = affiliates?.reduce((acc, item) => {
         if (item.rateType === 'percentage') {
@@ -111,28 +111,29 @@ const performCalculations = (formValues: FormValues): Calculations => {
     let taxType = "VAT";
     let effectiveTaxRate = taxRate || 0;
 
+    // This is the core logic. We solve for subtotal.
+    // subtotal = fixedBaseCost + subtotal * miscDecimal + subtotal * totalAffiliatePercentage + subtotal * profitMarginDecimal
+    // subtotal * (1 - miscDecimal - totalAffiliatePercentage - profitMarginDecimal) = fixedBaseCost
+    const denominator = 1 - miscDecimal - totalAffiliatePercentage - profitMarginDecimal;
+    if (denominator > 0) {
+        subtotal = fixedBaseCost / denominator;
+    } else {
+        subtotal = 0;
+    }
+    
     if (businessType === 'vat_registered') {
         taxType = "VAT";
-        // The denominator accounts for all percentages that are subtracted from the subtotal.
-        // It solves for `subtotal = totalFixedCosts + subtotal * (miscDecimal + totalAffiliatePercentage + profitMarginDecimal)`
-        // Which simplifies to `subtotal * (1 - miscDecimal - totalAffiliatePercentage - profitMarginDecimal) = totalFixedCosts`
-        const denominator = 1 - miscDecimal - totalAffiliatePercentage - profitMarginDecimal;
-        if (denominator > 0) {
-            subtotal = totalFixedCosts / denominator;
-            grandTotal = subtotal * (1 + (effectiveTaxRate / 100));
-            tax = grandTotal - subtotal;
-        }
-
+        grandTotal = subtotal * (1 + (effectiveTaxRate / 100));
+        tax = grandTotal - subtotal;
     } else { // sole_proprietor with Turnover Tax
         taxType = "TOT";
         effectiveTaxRate = 3;
-        // Same logic for subtotal, but tax is applied differently to get the grandTotal
-        const denominator = 1 - miscDecimal - totalAffiliatePercentage - profitMarginDecimal;
-         if (denominator > 0) {
-            subtotal = totalFixedCosts / denominator;
-            // grandTotal = subtotal / (1 - (TOT_rate / 100))
-            grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
-            tax = grandTotal - subtotal;
+        // For TOT, the grandTotal is the base upon which tax is calculated.
+        // grandTotal = subtotal + tax = subtotal + grandTotal * (effectiveTaxRate / 100)
+        // grandTotal * (1 - effectiveTaxRate / 100) = subtotal
+        if ((1 - (effectiveTaxRate/100)) > 0) {
+          grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
+          tax = grandTotal - subtotal;
         }
     }
     
@@ -143,7 +144,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const percentageAffiliateCost = subtotal * totalAffiliatePercentage;
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
     const operationalCost = fixedOperationalCost + miscCost;
-    const totalBaseCost = totalFixedCosts + percentageAffiliateCost + miscCost;
+    const totalBaseCost = fixedBaseCost + percentageAffiliateCost + miscCost;
     const profit = subtotal - totalBaseCost;
     
     return {
@@ -159,7 +160,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
       tax,
       taxRate: effectiveTaxRate,
       taxType,
-      profitMargin: profitMargin || 0,
+      profitMargin: profit > 0 && subtotal > 0 ? (profit / subtotal) * 100 : 0,
       businessType: formValues.businessType,
     };
 }
