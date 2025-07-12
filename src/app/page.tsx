@@ -50,7 +50,9 @@ export default function DesignCostProPage() {
     const laborCost = labor?.reduce((acc, item) => acc + ((item.hours || 0) * (item.rate || 0)), 0) ?? 0;
     const operationalCost = operations?.reduce((acc, item) => acc + (item.cost || 0), 0) ?? 0;
     
-    const totalBaseCost = materialCost + laborCost + operationalCost;
+    const baseCost = materialCost + laborCost + operationalCost;
+    const miscellaneousCost = baseCost * 0.10;
+    const totalBaseCost = baseCost + miscellaneousCost;
     const profit = totalBaseCost * ((profitMargin || 0) / 100);
     const subtotal = totalBaseCost + profit;
     const tax = subtotal * ((taxRate || 0) / 100);
@@ -60,6 +62,7 @@ export default function DesignCostProPage() {
       materialCost,
       laborCost,
       operationalCost,
+      miscellaneousCost,
       totalBaseCost,
       profit,
       subtotal,

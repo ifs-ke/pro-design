@@ -18,6 +18,7 @@ interface QuoteDisplayProps {
     materialCost: number;
     laborCost: number;
     operationalCost: number;
+    miscellaneousCost: number;
     totalBaseCost: number;
     profit: number;
     subtotal: number;
@@ -40,6 +41,7 @@ export function QuoteDisplay({ calculations, allocations }: QuoteDisplayProps) {
     materialCost,
     laborCost,
     operationalCost,
+    miscellaneousCost,
     totalBaseCost,
     profit,
     subtotal,
@@ -60,6 +62,7 @@ export function QuoteDisplay({ calculations, allocations }: QuoteDisplayProps) {
             <div className="flex justify-between"><p className="text-muted-foreground">Material Cost</p><p>{formatCurrency(materialCost)}</p></div>
             <div className="flex justify-between"><p className="text-muted-foreground">Labor Cost</p><p>{formatCurrency(laborCost)}</p></div>
             <div className="flex justify-between"><p className="text-muted-foreground">Operational Cost</p><p>{formatCurrency(operationalCost)}</p></div>
+            <div className="flex justify-between"><p className="text-muted-foreground">Miscellaneous (10%)</p><p>{formatCurrency(miscellaneousCost)}</p></div>
         </div>
         <Separator />
          <div className="space-y-2 text-sm">
