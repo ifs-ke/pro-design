@@ -85,7 +85,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
       salaryPercentage,
     } = formValues;
 
-    const materialCost = materials?.reduce((acc, item) => acc + (Number(item.cost) || 0), 0) ?? 0;
+    const materialCost = materials?.reduce((acc, item) => acc + ((Number(item.quantity) || 0) * (Number(item.cost) || 0)), 0) ?? 0;
     const laborCost = labor?.reduce((acc, item) => acc + ((Number(item.units) || 0) * (Number(item.rate) || 0)), 0) ?? 0;
     const fixedOperationalCost = operations?.reduce((acc, item) => acc + (Number(item.cost) || 0), 0) ?? 0;
     
