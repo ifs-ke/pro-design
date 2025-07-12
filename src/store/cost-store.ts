@@ -65,14 +65,14 @@ const performCalculations = (formValues: FormValues): Calculations => {
       businessType,
     } = formValues;
 
-    const materialCost = materials?.reduce((acc, item) => acc + (item.cost || 0), 0) ?? 0;
-    const laborCost = labor?.reduce((acc, item) => acc + ((item.units || 0) * (item.rate || 0)), 0) ?? 0;
-    const operationalCost = operations?.reduce((acc, item) => acc + (item.cost || 0), 0) ?? 0;
+    const materialCost = materials?.reduce((acc, item) => acc + (Number(item.cost) || 0), 0) ?? 0;
+    const laborCost = labor?.reduce((acc, item) => acc + ((Number(item.units) || 0) * (Number(item.rate) || 0)), 0) ?? 0;
+    const operationalCost = operations?.reduce((acc, item) => acc + (Number(item.cost) || 0), 0) ?? 0;
     
     // Calculate fixed costs from affiliates (hourly/daily)
     const fixedAffiliateCost = affiliates?.reduce((acc, item) => {
         if (!item.rate || item.rateType === 'percentage') return acc;
-        return acc + ((item.units || 0) * item.rate);
+        return acc + ((Number(item.units) || 0) * (Number(item.rate) || 0));
     }, 0) ?? 0;
 
     // Sum of all fixed costs
@@ -81,7 +81,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
     // Sum of all percentage rates from affiliates
     const totalAffiliatePercentage = affiliates?.reduce((acc, item) => {
         if (item.rateType === 'percentage') {
-            return acc + (item.rate / 100);
+            return acc + ((Number(item.rate) || 0) / 100);
         }
         return acc;
     }, 0) ?? 0;
@@ -96,32 +96,15 @@ const performCalculations = (formValues: FormValues): Calculations => {
 
     if (businessType === 'vat_registered') {
         taxType = "VAT";
-        // Let G = grandTotal, F = totalFixedCosts, A = totalAffiliatePercentage, P = profitMarginDecimal, T = taxRate
-        // G = (F + G*A) * (1 + P) * (1 + T)
-        // G = (F + G*A) * (1 + P + T + P*T)
-        // G = F*(...) + G*A*(...)
-        // G - G*A*(...) = F*(...)
-        // G * (1 - A*(1+P)) = F*(1+P)
-        // grandTotal = F * (1+P) / (1 - A*(1+P))
-        // And for VAT, it's applied on the subtotal.
-        // Let S = subtotal. G = S * (1 + T). S = F/(1 - A*(1+P)). G = F/(1 - A*(1+P)) * (1+T) NO
-        // S = Base + Profit = (F + G*A) + (F + G*A)*P = (F+G*A)(1+P)
-        // G = S * (1+T) => S = G/(1+T)
-        // G/(1+T) = (F+G*A)(1+P)
-        // G = (1+T)(F(1+P) + G*A(1+P))
-        // G = F(1+T)(1+P) + G*A(1+T)(1+P)
-        // G(1 - A(1+T)(1+P)) = F(1+T)(1+P)
-        // G = F(1+T)(1+P) / (1 - A(1+T)(1+P)) --- THIS IS WRONG. Let's simplify.
-        // BaseCost = F + G*A. Profit = BaseCost*P. Subtotal = BaseCost*(1+P). G = Subtotal*(1+T).
-        // BaseCost = F + Subtotal*(1+T)*A
-        // Subtotal/(1+P) = F + Subtotal*(1+T)*A
-        // Subtotal/(1+P) - Subtotal*(1+T)*A = F
-        // Subtotal * (1/(1+P) - A(1+T)) = F
-        // Subtotal = F / (1/(1+P) - A(1+T))
-        
-        const denominator = (1 / (1 + profitMarginDecimal)) - (totalAffiliatePercentage * (1 + (effectiveTaxRate / 100)));
+        // Let S = subtotal. F = totalFixedCosts. A = totalAffiliatePercentage. P = profitMarginDecimal. T = taxRate/100
+        // BaseCost = F + G*A. G = S(1+T). BaseCost = F+S(1+T)A.
+        // S = BaseCost(1+P) = (F+S(1+T)A)(1+P) = F(1+P) + S(1+T)A(1+P)
+        // S - S(1+T)A(1+P) = F(1+P)
+        // S * (1 - A(1+T)(1+P)) = F(1+P)
+        // S = F(1+P) / (1 - A(1+T)(1+P))
+        const denominator = 1 - (totalAffiliatePercentage * (1 + (effectiveTaxRate/100)) * (1 + profitMarginDecimal));
         if (denominator > 0) {
-            subtotal = totalFixedCosts / denominator;
+            subtotal = (totalFixedCosts * (1 + profitMarginDecimal)) / denominator;
             tax = subtotal * (effectiveTaxRate / 100);
             grandTotal = subtotal + tax;
         }
@@ -129,22 +112,22 @@ const performCalculations = (formValues: FormValues): Calculations => {
     } else { // sole_proprietor
         taxType = "TOT";
         effectiveTaxRate = 3;
-        // Let G = grandTotal, F = totalFixedCosts, A = totalAffiliatePercentage, P = profitMarginDecimal, T_tot = 0.03
-        // BaseCost = F + G*A. Subtotal = BaseCost*(1+P). G = Subtotal / (1-T_tot).
-        // BaseCost = F + (Subtotal/(1-T_tot))*A.
-        // Subtotal/(1+P) = F + (Subtotal/(1-T_tot))*A.
-        // Subtotal/(1+P) - Subtotal*A/(1-T_tot) = F.
-        // Subtotal * (1/(1+P) - A/(1-T_tot)) = F.
-        // Subtotal = F / (1/(1+P) - A/(1-T_tot)).
-        const denominator = (1 / (1 + profitMarginDecimal)) - (totalAffiliatePercentage / (1 - (effectiveTaxRate / 100)));
+        // Let S = subtotal. F = totalFixedCosts. A = totalAffiliatePercentage. P = profitMarginDecimal. T_tot = 0.03
+        // BaseCost = F + G*A. G = S/(1-T_tot). BaseCost = F + S/(1-T_tot)*A
+        // S = BaseCost(1+P) = (F + S*A/(1-T_tot))(1+P) = F(1+P) + S*A(1+P)/(1-T_tot)
+        // S - S*A(1+P)/(1-T_tot) = F(1+P)
+        // S * (1 - A(1+P)/(1-T_tot)) = F(1+P)
+        // S = F(1+P) / (1 - A(1+P)/(1-T_tot))
+        const denominator = 1 - (totalAffiliatePercentage * (1 + profitMarginDecimal) / (1 - (effectiveTaxRate/100)));
         if (denominator > 0) {
-            subtotal = totalFixedCosts / denominator;
+            subtotal = (totalFixedCosts * (1 + profitMarginDecimal)) / denominator;
             grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
             tax = grandTotal - subtotal;
         }
     }
     
     if (grandTotal < 0) grandTotal = 0; // Prevent negative totals
+    if (subtotal < 0) subtotal = 0;
 
     const percentageAffiliateCost = grandTotal * totalAffiliatePercentage;
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
