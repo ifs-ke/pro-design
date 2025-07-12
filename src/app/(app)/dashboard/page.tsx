@@ -133,8 +133,8 @@ export default function DashboardPage() {
               </Card>
            </CarouselItem>
         </CarouselContent>
-        <CarouselPrevious className="-left-12" />
-        <CarouselNext className="-right-12" />
+        <CarouselPrevious className="-left-4" />
+        <CarouselNext className="-right-4" />
         <CarouselDots className="mt-4" />
       </Carousel>
       
