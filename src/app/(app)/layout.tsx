@@ -14,7 +14,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { Home, FileText, Calculator, BotMessageSquare, Building } from "lucide-react";
+import { Home, FileText, Calculator, BotMessageSquare, Building, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
@@ -22,6 +22,7 @@ const navItems = [
   { href: "/costing", label: "Costing Tool", icon: Calculator },
   { href: "/quotes", label: "Quotes", icon: FileText },
   { href: "/projects", label: "Projects", icon: Building },
+  { href: "/crm", label: "CRM", icon: Users },
 ];
 
 export default function AppLayout({
