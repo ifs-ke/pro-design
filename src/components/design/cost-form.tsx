@@ -651,8 +651,12 @@ export function CostForm() {
                                 className="py-2"
                             />
                             </FormControl>
-                            <div className="text-right text-sm text-muted-foreground">
-                              Suggested Quote: <span className="font-medium text-foreground">{formatCurrency(calculations.grandTotal)}</span>
+                            <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-center">
+                                <Label className="text-xs text-primary/80 flex items-center justify-center gap-1">
+                                    <Milestone className="size-3"/>
+                                    Suggested Quote
+                                </Label>
+                                <p className="font-bold text-lg text-primary">{formatCurrency(calculations.grandTotal)}</p>
                             </div>
                             <FormMessage />
                         </FormItem>
@@ -676,3 +680,5 @@ export function CostForm() {
     </Card>
   );
 }
+
+    
