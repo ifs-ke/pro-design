@@ -15,7 +15,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { BarChart, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { BarChart, PieChart, Pie, Cell, ResponsiveContainer, Bar } from "recharts";
 import {
   Carousel,
   CarouselContent,
