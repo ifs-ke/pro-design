@@ -19,10 +19,10 @@ import { Button } from "@/components/ui/button";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/costing", label: "Costing Tool", icon: Calculator },
-  { href: "/quotes", label: "Quotes", icon: FileText },
   { href: "/projects", label: "Projects", icon: Building },
+  { href: "/quotes", label: "Quotes", icon: FileText },
   { href: "/crm", label: "CRM", icon: Users },
+  { href: "/costing", label: "Costing Tool", icon: Calculator },
 ];
 
 export default function AppLayout({
