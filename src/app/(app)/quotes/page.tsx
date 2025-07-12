@@ -2,9 +2,10 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PlusCircle, FileText } from "lucide-react";
+import { PlusCircle, FileText, MoreHorizontal } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const quotes = [
   { id: "QT-001", client: "ABC Corp", date: "2024-07-20", total: 250000, status: "Sent" },
@@ -13,9 +14,9 @@ const quotes = [
   { id: "QT-004", client: "The Coffee House", date: "2024-07-12", total: 450000, status: "Declined" },
 ];
 
-const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
+const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" | "success" } = {
   "Sent": "secondary",
-  "Approved": "default",
+  "Approved": "success",
   "Draft": "outline",
   "Declined": "destructive",
 }
@@ -24,10 +25,10 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | 
 export default function QuotesPage() {
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex justify-between items-start">
+      <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
           <h1 className="text-4xl font-bold tracking-tight">Quotes</h1>
-          <p className="text-muted-foreground mt-2">Manage all your client quotes in one place.</p>
+          <p className="text-muted-foreground mt-1">Manage all your client quotes in one place.</p>
         </div>
         <Link href="/costing">
           <Button>
@@ -58,13 +59,22 @@ export default function QuotesPage() {
                   <TableCell>{quote.date}</TableCell>
                   <TableCell className="text-right">{quote.total.toLocaleString()}</TableCell>
                   <TableCell className="text-center">
-                    <Badge variant={statusVariant[quote.status] || "secondary"}>{quote.status}</Badge>
+                    <Badge variant={statusVariant[quote.status] || "secondary"} className="capitalize">{quote.status}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <FileText className="size-4" />
-                      <span className="sr-only">View Quote</span>
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="size-4" />
+                          <span className="sr-only">More actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <FileText className="mr-2" /> View Quote
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

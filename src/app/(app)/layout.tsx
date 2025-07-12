@@ -14,13 +14,14 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { Home, FileText, Calculator, BotMessageSquare } from "lucide-react";
+import { Home, FileText, Calculator, BotMessageSquare, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/costing", label: "Costing Tool", icon: Calculator },
   { href: "/quotes", label: "Quotes", icon: FileText },
+  { href: "/projects", label: "Projects", icon: Building },
 ];
 
 export default function AppLayout({
@@ -32,25 +33,27 @@ export default function AppLayout({
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar side="left" variant="sidebar" collapsible="icon">
         <SidebarHeader className="p-4">
-          <div className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <BotMessageSquare className="size-8 text-primary" />
-            <h1 className="text-xl font-semibold">DesignCost Pro</h1>
-          </div>
+            <h1 className="text-xl font-semibold group-data-[collapsible=icon]:hidden">
+              DesignCost Pro
+            </h1>
+          </Link>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu>
+          <SidebarMenu className="px-2">
             {navItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href} legacyBehavior passHref>
                   <a>
                     <SidebarMenuButton
-                      isActive={pathname === item.href}
+                      isActive={pathname.startsWith(item.href)}
                       tooltip={{ children: item.label }}
                     >
                       <item.icon />
-                      <span>{item.label}</span>
+                      <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                     </SidebarMenuButton>
                   </a>
                 </Link>
@@ -61,7 +64,7 @@ export default function AppLayout({
       </Sidebar>
       <SidebarInset>
         <main className="p-4 sm:p-6 lg:p-8">
-            <div className="absolute top-4 right-4 z-20">
+            <div className="absolute top-4 right-4 z-20 md:hidden">
                 <SidebarTrigger />
             </div>
             {children}

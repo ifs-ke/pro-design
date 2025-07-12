@@ -30,8 +30,8 @@ export default function CostingPage() {
 
   return (
     <>
-      <header className="mb-8 text-center lg:text-left">
-        <h1 className="text-4xl lg:text-5xl font-bold text-primary tracking-tight">
+      <header className="mb-8">
+        <h1 className="text-4xl lg:text-5xl font-bold text-foreground tracking-tight">
           Costing Tool
         </h1>
         <p className="text-muted-foreground mt-2 text-lg">
