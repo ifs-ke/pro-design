@@ -39,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { motion } from "framer-motion";
 
 function ProjectFormDialog({ project, clients, onSave, children }: { project?: Project, clients: Client[], onSave: (data: ProjectDataInput) => void, children: React.ReactNode }) {
     const [open, setOpen] = useState(false);
@@ -108,6 +109,24 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
     )
 }
 
+const MotionCard = motion(Card);
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+
 function ProjectCard({ project }: { project: Project }) {
     const { publishedQuotes, updateProject, deleteProject, clients } = useStore();
     const [showAlert, setShowAlert] = useState(false);
@@ -127,7 +146,7 @@ function ProjectCard({ project }: { project: Project }) {
     };
 
     return (
-        <Card className="flex flex-col">
+        <MotionCard className="flex flex-col" variants={cardVariants}>
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div className="flex-grow pr-4">
@@ -173,8 +192,8 @@ function ProjectCard({ project }: { project: Project }) {
                     </AlertDialog>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4 flex-grow">
-                <div className="space-y-4">
+            <CardContent className="space-y-4 flex-grow flex flex-col">
+                <div className="space-y-4 flex-grow">
                     <div>
                         <h4 className="font-semibold text-sm text-muted-foreground mb-2">Approved Value</h4>
                         <p className="text-2xl font-bold">{formatCurrency(totalApprovedValue)}</p>
@@ -201,7 +220,7 @@ function ProjectCard({ project }: { project: Project }) {
                         )}
                     </div>
                 </div>
-                <div>
+                <div className="mt-auto pt-4">
                     <h4 className="text-sm font-semibold text-muted-foreground mb-2">Linked Quotes ({projectQuotes.length})</h4>
                     {projectQuotes.length > 0 ? (
                         <ul className="space-y-2">
@@ -220,7 +239,7 @@ function ProjectCard({ project }: { project: Project }) {
                     )}
                 </div>
             </CardContent>
-        </Card>
+        </MotionCard>
     );
 }
 
@@ -279,11 +298,16 @@ export default function ProjectsPage() {
             </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
             {projects.sort((a,b) => b.createdAt - a.createdAt).map(project => (
                 <ProjectCard key={project.id} project={project} />
             ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );
