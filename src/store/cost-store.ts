@@ -48,6 +48,9 @@ interface CostState {
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
   publishQuote: () => string; // Returns the new quote ID
+  updateQuoteStatus: (id: string, status: PublishedQuote['status']) => void;
+  deleteQuote: (id: string) => void;
+  loadQuoteIntoForm: (id: string) => void;
 }
 
 const defaultFormValues: FormValues = {
@@ -59,7 +62,7 @@ const defaultFormValues: FormValues = {
   businessType: "vat_registered",
   taxRate: 16,
   profitMargin: 25,
-  miscPercentage: 5,
+  miscPercentage: 0,
 };
 
 const defaultAllocations: Allocation = {
@@ -179,6 +182,24 @@ export const useStore = create<CostState>()(
 
                 publishQuote: () => {
                     const { formValues, allocations, calculations, publishedQuotes } = get();
+                    const existingQuoteIndex = publishedQuotes.findIndex(q => q.id === formValues.clientName?.replace(/\s+/g, '-'));
+
+                    if (existingQuoteIndex !== -1) {
+                         set(state => ({
+                            publishedQuotes: state.publishedQuotes.map((q, index) =>
+                                index === existingQuoteIndex
+                                ? { ...q,
+                                    timestamp: Date.now(),
+                                    formValues: JSON.parse(JSON.stringify(formValues)),
+                                    allocations: JSON.parse(JSON.stringify(allocations)),
+                                    calculations: JSON.parse(JSON.stringify(calculations)),
+                                  }
+                                : q
+                            ),
+                        }));
+                        return formValues.clientName!.replace(/\s+/g, '-');
+                    }
+                    
                     const nextId = `QT-${(publishedQuotes.length + 1).toString().padStart(3, '0')}`;
                     const newQuote: PublishedQuote = {
                         id: nextId,
@@ -191,6 +212,29 @@ export const useStore = create<CostState>()(
                     };
                     set({ publishedQuotes: [...publishedQuotes, newQuote] });
                     return nextId;
+                },
+                updateQuoteStatus: (id, status) => {
+                    set(state => ({
+                        publishedQuotes: state.publishedQuotes.map(q => 
+                            q.id === id ? { ...q, status } : q
+                        ),
+                    }));
+                },
+
+                deleteQuote: (id) => {
+                    set(state => ({
+                        publishedQuotes: state.publishedQuotes.filter(q => q.id !== id),
+                    }));
+                },
+                loadQuoteIntoForm: (id) => {
+                    const quoteToLoad = get().publishedQuotes.find(q => q.id === id);
+                    if (quoteToLoad) {
+                        set({
+                            formValues: quoteToLoad.formValues,
+                            allocations: quoteToLoad.allocations,
+                            calculations: quoteToLoad.calculations,
+                        });
+                    }
                 }
             }),
             {
