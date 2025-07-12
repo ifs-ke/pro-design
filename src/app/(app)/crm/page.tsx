@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useStore, type Client, type PublishedQuote, type Project } from "@/store/cost-store";
+import { useStore, type Client, type PublishedQuote, type Project, type ClientStatus, type ResponsivenessStatus } from "@/store/cost-store";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
@@ -35,31 +35,52 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from 'next/link';
 import { FollowUpTracker } from "@/components/design/follow-up-tracker";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+
+const responsivenessVariant: { [key in ResponsivenessStatus]: "success" | "secondary" | "destructive" } = {
+  "Hot": "success",
+  "Warm": "secondary",
+  "Cold": "destructive",
+};
+
+const statusVariant: { [key in ClientStatus]: "default" | "secondary" | "outline" } = {
+  "Lead": "secondary",
+  "Active": "default",
+  "On-Hold": "outline",
+  "Inactive": "outline"
+};
 
 function ClientFormDialog({ client, onSave, children }: { client?: Client, onSave: (data: any) => void, children: React.ReactNode }) {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState(client?.name || "");
     const [email, setEmail] = useState(client?.email || "");
     const [phone, setPhone] = useState(client?.phone || "");
+    const [status, setStatus] = useState<ClientStatus>(client?.status || 'Lead');
+    const [responsiveness, setResponsiveness] = useState<ResponsivenessStatus>(client?.responsiveness || 'Warm');
 
     useEffect(() => {
         if (client) {
             setName(client.name);
             setEmail(client.email || "");
             setPhone(client.phone || "");
+            setStatus(client.status);
+            setResponsiveness(client.responsiveness);
         } else {
             setName("");
             setEmail("");
             setPhone("");
+            setStatus('Lead');
+            setResponsiveness('Warm');
         }
     }, [client]);
 
     const handleSave = () => {
         if (!name) return;
-        onSave({ name, email, phone });
+        onSave({ name, email, phone, status, responsiveness });
         setOpen(false);
     }
 
@@ -85,6 +106,35 @@ function ClientFormDialog({ client, onSave, children }: { client?: Client, onSav
                     <div className="space-y-2">
                         <Label htmlFor="client-phone">Phone</Label>
                         <Input id="client-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                           <Label htmlFor="client-status">Status</Label>
+                           <Select onValueChange={(value: ClientStatus) => setStatus(value)} defaultValue={status}>
+                                <SelectTrigger id="client-status">
+                                    <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Lead">Lead</SelectItem>
+                                    <SelectItem value="Active">Active</SelectItem>
+                                    <SelectItem value="On-Hold">On-Hold</SelectItem>
+                                    <SelectItem value="Inactive">Inactive</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                           <Label htmlFor="client-responsiveness">Responsiveness</Label>
+                           <Select onValueChange={(value: ResponsivenessStatus) => setResponsiveness(value)} defaultValue={responsiveness}>
+                                <SelectTrigger id="client-responsiveness">
+                                    <SelectValue placeholder="Select responsiveness" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Hot">Hot</SelectItem>
+                                    <SelectItem value="Warm">Warm</SelectItem>
+                                    <SelectItem value="Cold">Cold</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>
@@ -161,6 +211,10 @@ function ClientCard({ client }: { client: Client }) {
                 </AlertDialog>
             </CardHeader>
             <CardContent className="space-y-4 flex-grow">
+                <div className="flex gap-2">
+                    <Badge variant={statusVariant[client.status]}>{client.status}</Badge>
+                    <Badge variant={responsivenessVariant[client.responsiveness]}>{client.responsiveness}</Badge>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <h4 className="font-semibold text-sm flex items-center gap-2"><Building className="text-primary"/> Projects ({clientProjects.length})</h4>

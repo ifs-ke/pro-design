@@ -37,6 +37,9 @@ export type Interaction = {
     notes: string;
 }
 
+export type ClientStatus = 'Lead' | 'Active' | 'On-Hold' | 'Inactive';
+export type ResponsivenessStatus = 'Hot' | 'Warm' | 'Cold';
+
 export type Client = {
     id: string;
     name: string;
@@ -44,6 +47,8 @@ export type Client = {
     phone?: string;
     createdAt: number;
     interactions: Interaction[];
+    status: ClientStatus;
+    responsiveness: ResponsivenessStatus;
 }
 
 export type PublishedQuote = {
@@ -64,6 +69,8 @@ export type Project = {
     createdAt: number;
 }
 
+type ClientDataInput = Omit<Client, 'id' | 'createdAt' | 'interactions'>;
+
 interface CostState {
   formValues: FormValues;
   allocations: Allocation;
@@ -73,8 +80,8 @@ interface CostState {
   projects: Project[];
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
-  addClient: (clientData: Omit<Client, 'id' | 'createdAt' | 'interactions'>) => Client;
-  updateClient: (id: string, clientData: Partial<Omit<Client, 'id' | 'createdAt' | 'interactions'>>) => void;
+  addClient: (clientData: Omit<ClientDataInput, 'status' | 'responsiveness'> & Partial<Pick<ClientDataInput, 'status' | 'responsiveness'>>) => Client;
+  updateClient: (id: string, clientData: Partial<ClientDataInput>) => void;
   deleteClient: (id: string) => void;
   addInteraction: (clientId: string, interaction: Omit<Interaction, 'id' | 'timestamp'>) => void;
   publishQuote: (finalCalculations: Calculations, suggestedCalculations: Calculations) => string; // Returns the new quote ID
@@ -238,10 +245,14 @@ export const useStore = create<CostState>()(
 
                 addClient: (clientData) => {
                     const newClient: Client = {
-                        ...clientData,
+                        name: clientData.name,
+                        email: clientData.email,
+                        phone: clientData.phone,
                         id: `CLT-${Date.now().toString()}`,
                         createdAt: Date.now(),
                         interactions: [],
+                        status: clientData.status || 'Lead',
+                        responsiveness: clientData.responsiveness || 'Warm',
                     };
                     set(state => ({ clients: [...state.clients, newClient] }));
                     return newClient;
