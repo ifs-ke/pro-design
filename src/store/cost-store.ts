@@ -30,15 +30,28 @@ type Calculations = {
   businessType: string;
 };
 
+export type PublishedQuote = {
+    id: string;
+    timestamp: number;
+    clientName: string;
+    status: 'Draft' | 'Sent' | 'Approved' | 'Declined';
+    formValues: FormValues;
+    allocations: Allocation;
+    calculations: Calculations;
+}
+
 interface CostState {
   formValues: FormValues;
   allocations: Allocation;
   calculations: Calculations;
+  publishedQuotes: PublishedQuote[];
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
+  publishQuote: () => string; // Returns the new quote ID
 }
 
 const defaultFormValues: FormValues = {
+  clientName: '',
   materials: [],
   labor: [],
   operations: [],
@@ -88,7 +101,6 @@ const performCalculations = (formValues: FormValues): Calculations => {
     
     const miscDecimal = (miscPercentage || 0) / 100;
     const profitMarginDecimal = (profitMargin || 0) / 100;
-    const totalPercentageCosts = totalAffiliatePercentage + miscDecimal;
     
     let grandTotal = 0;
     let subtotal = 0;
@@ -98,26 +110,26 @@ const performCalculations = (formValues: FormValues): Calculations => {
 
     if (businessType === 'vat_registered') {
         taxType = "VAT";
-        const denominator = 1 - (totalPercentageCosts * (1 + (effectiveTaxRate/100)) * (1 + profitMarginDecimal));
+        const denominator = 1 - miscDecimal - totalAffiliatePercentage - (profitMarginDecimal * (1 + miscDecimal + totalAffiliatePercentage));
         if (denominator > 0) {
-            subtotal = (totalFixedCosts * (1 + profitMarginDecimal)) / denominator;
-            tax = subtotal * (effectiveTaxRate / 100);
-            grandTotal = subtotal + tax;
+            grandTotal = (totalFixedCosts / denominator) * (1 + (effectiveTaxRate / 100));
+            subtotal = grandTotal / (1 + (effectiveTaxRate / 100));
+            tax = grandTotal - subtotal;
         }
 
     } else { // sole_proprietor
         taxType = "TOT";
         effectiveTaxRate = 3;
-        const denominator = 1 - (totalPercentageCosts * (1 + profitMarginDecimal) / (1 - (effectiveTaxRate/100)));
+        const denominator = 1 - miscDecimal - totalAffiliatePercentage - (profitMarginDecimal * (1 + miscDecimal + totalAffiliatePercentage));
         if (denominator > 0) {
-            subtotal = (totalFixedCosts * (1 + profitMarginDecimal)) / denominator;
+            subtotal = totalFixedCosts / denominator;
             grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
             tax = grandTotal - subtotal;
         }
     }
     
-    if (grandTotal < 0) grandTotal = 0;
-    if (subtotal < 0) subtotal = 0;
+    if (grandTotal < 0 || !isFinite(grandTotal)) grandTotal = 0;
+    if (subtotal < 0 || !isFinite(subtotal)) subtotal = 0;
 
     const miscCost = grandTotal * miscDecimal;
     const percentageAffiliateCost = grandTotal * totalAffiliatePercentage;
@@ -133,7 +145,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
       affiliateCost,
       miscCost,
       totalBaseCost,
-      profit,
+      profit: profit > 0 ? profit : 0,
       subtotal,
       grandTotal,
       tax,
@@ -148,10 +160,11 @@ const performCalculations = (formValues: FormValues): Calculations => {
 export const useStore = create<CostState>()(
     devtools(
         persist(
-            (set) => ({
+            (set, get) => ({
                 formValues: defaultFormValues,
                 allocations: defaultAllocations,
                 calculations: performCalculations(defaultFormValues),
+                publishedQuotes: [],
 
                 setFormValues: (values) => {
                     set({
@@ -163,20 +176,37 @@ export const useStore = create<CostState>()(
                 setAllocations: (allocations) => {
                     set({ allocations });
                 },
+
+                publishQuote: () => {
+                    const { formValues, allocations, calculations, publishedQuotes } = get();
+                    const nextId = `QT-${(publishedQuotes.length + 1).toString().padStart(3, '0')}`;
+                    const newQuote: PublishedQuote = {
+                        id: nextId,
+                        timestamp: Date.now(),
+                        clientName: formValues.clientName || 'Unnamed Client',
+                        status: 'Draft',
+                        formValues: JSON.parse(JSON.stringify(formValues)),
+                        allocations: JSON.parse(JSON.stringify(allocations)),
+                        calculations: JSON.parse(JSON.stringify(calculations)),
+                    };
+                    set({ publishedQuotes: [...publishedQuotes, newQuote] });
+                    return nextId;
+                }
             }),
             {
                 name: "cost-store-storage",
                 storage: createJSONStorage(() => localStorage), 
-                // Only persist formValues and allocations
-                partialize: (state) => ({ formValues: state.formValues, allocations: state.allocations }),
+                partialize: (state) => ({ 
+                    formValues: state.formValues, 
+                    allocations: state.allocations,
+                    publishedQuotes: state.publishedQuotes 
+                }),
             }
         ),
         { name: "CostStore" }
     )
 );
 
-// We need to handle hydration manually to avoid mismatches between server and client.
-// On page load, we'll call rehydrate() to get the latest persisted state.
 if (typeof window !== 'undefined') {
   useStore.persist.rehydrate();
 }

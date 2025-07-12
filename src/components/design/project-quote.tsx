@@ -11,13 +11,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { ReceiptText, Info, Milestone } from "lucide-react";
+import { ReceiptText, Info, Milestone, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AiQuoteAnalyst } from "@/components/design/ai-quote-analyst";
 import { QuoteVariance } from "@/components/design/quote-variance";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+
 
 interface QuoteBreakdown {
     grandTotal: number;
@@ -30,31 +33,26 @@ interface QuoteBreakdown {
 }
 
 export function ProjectQuote() {
-  const { calculations: globalCalculations, formValues } = useStore(state => ({
+  const { calculations: globalCalculations, formValues, publishQuote } = useStore(state => ({
     calculations: state.calculations,
     formValues: state.formValues,
+    publishQuote: state.publishQuote,
   }));
+  const { toast } = useToast();
 
-  // Local state for the final quote input. Default to the globally calculated total.
   const [finalQuote, setFinalQuote] = useState<number | string>(globalCalculations.grandTotal);
   
-  // Effect to update the local finalQuote ONLY when the global grandTotal changes.
-  // This syncs the input when the form is updated, but preserves manual edits otherwise.
   useEffect(() => {
-    // Only reset the local quote if the base costs have changed.
-    // This preserves manual adjustments if only profit margin or tax rates change.
     setFinalQuote(globalCalculations.grandTotal);
   }, [globalCalculations.grandTotal]);
 
   const localBreakdown = useMemo((): QuoteBreakdown => {
     const numericQuote = typeof finalQuote === 'string' ? parseFloat(finalQuote) : finalQuote;
 
-    // If the input is not a valid number or is less than the base cost, show the global calculations.
     if (isNaN(numericQuote) || numericQuote < globalCalculations.totalBaseCost) {
         return globalCalculations;
     }
 
-    // Recalculate the breakdown locally based on the new final quote.
     const { totalBaseCost } = globalCalculations;
     const { businessType, taxRate: vatRate } = formValues;
 
@@ -70,8 +68,6 @@ export function ProjectQuote() {
     } else { // sole_proprietor
         newTaxType = 'TOT';
         newTaxRate = 3;
-        // The final quote is the gross revenue. TOT is 3% of this.
-        // Net = Gross * (1 - 0.03)
         newSubtotal = numericQuote * (1 - (newTaxRate / 100));
         newTax = numericQuote - newSubtotal;
     }
@@ -91,12 +87,10 @@ export function ProjectQuote() {
 
 
   const handleQuoteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Keep input as string while typing for better UX (e.g., allowing trailing decimals)
     setFinalQuote(e.target.value); 
   };
 
   const handleBlur = () => {
-    // On blur, format the number or reset to the last valid state if invalid.
     const numericValue = parseFloat(finalQuote as string);
      if (!isNaN(numericValue) && numericValue >= globalCalculations.totalBaseCost) {
         setFinalQuote(numericValue);
@@ -105,13 +99,29 @@ export function ProjectQuote() {
      }
   }
 
+  const handlePublish = () => {
+    if (!formValues.clientName) {
+        toast({
+            variant: "destructive",
+            title: "Client Name Required",
+            description: "Please enter a client name before publishing.",
+        });
+        return;
+    }
+    const newQuoteId = publishQuote();
+    toast({
+        title: "Quote Published!",
+        description: `Quote ID ${newQuoteId} has been saved.`,
+    });
+  }
+
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Final Project Quote</CardTitle>
         <CardDescription>
-          Adjust the final quote to see a real-time breakdown. This will not change your base costs or profit margin settings.
+          Adjust the final quote and publish when you're ready.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -188,8 +198,14 @@ export function ProjectQuote() {
         </div>
         
         <Separator />
-
-        <AiQuoteAnalyst />
+        
+        <div className="space-y-2">
+          <AiQuoteAnalyst />
+          <Button onClick={handlePublish} className="w-full">
+            <Send className="mr-2" />
+            Publish Quote
+          </Button>
+        </div>
 
       </CardContent>
     </Card>

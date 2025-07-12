@@ -84,6 +84,7 @@ const affiliateItemSchema = z.object({
 
 
 export const formSchema = z.object({
+  clientName: z.string().optional(),
   materials: z.array(materialItemSchema).optional(),
   labor: z.array(laborItemSchema).optional(),
   operations: z.array(operationItemSchema).optional(),
@@ -137,7 +138,6 @@ export function CostForm() {
   }, [form, setFormValues]);
 
 
-  const profitMargin = form.watch('profitMargin');
   const miscPercentage = form.watch('miscPercentage');
   const businessType = form.watch('businessType');
 
@@ -152,6 +152,19 @@ export function CostForm() {
       <CardContent>
         <FormProvider {...form}>
           <form className="space-y-4">
+             <FormField
+                control={form.control}
+                name="clientName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Client Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter client's name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             <Accordion type="multiple" defaultValue={[]} className="w-full">
               {/* Materials Section */}
               <AccordionItem value="materials">
@@ -638,21 +651,16 @@ export function CostForm() {
                                 className="py-2"
                             />
                             </FormControl>
+                            <div className="text-right text-sm text-muted-foreground">
+                              Suggested Quote: <span className="font-medium text-foreground">{formatCurrency(calculations.grandTotal)}</span>
+                            </div>
                             <FormMessage />
                         </FormItem>
                         )}
                     />
                 </div>
-                <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 space-y-1 text-center">
-                    <Label className="text-xs text-primary/80 flex items-center justify-center gap-2">
-                        <Milestone className="size-3"/>
-                        Suggested Quote
-                    </Label>
-                    <p className="text-xl font-bold text-primary tracking-tight">
-                        {formatCurrency(calculations.grandTotal)}
-                    </p>
-                </div>
-                {(profitMargin ?? 0) < 18 && (
+                
+                {(calculations.profitMargin ?? 0) < 18 && (
                 <Alert variant="destructive" className="bg-amber-100 border-amber-300 text-amber-900">
                     <AlertTriangle className="h-4 w-4 !text-amber-700" />
                     <AlertTitle>Low Profit Margin</AlertTitle>
