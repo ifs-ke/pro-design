@@ -13,8 +13,10 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarInset,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Home, FileText, Calculator, Building, Users } from "lucide-react";
+import { ThemeToggle } from "@/components/design/theme-toggle";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -78,6 +80,10 @@ export default function AppLayout({
             ))}
           </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter className="p-2 mt-auto flex-col items-center group-data-[collapsible=icon]:items-center">
+            <div className="group-data-[collapsible=icon]:hidden h-8" />
+            <ThemeToggle />
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <main className="p-4 sm:p-6 lg:p-8 relative">
