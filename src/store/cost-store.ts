@@ -12,7 +12,7 @@ export type Allocation = {
   csr: number;
 };
 
-type Calculations = {
+export type Calculations = {
   materialCost: number;
   laborCost: number;
   operationalCost: number;
@@ -47,7 +47,7 @@ interface CostState {
   publishedQuotes: PublishedQuote[];
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
-  publishQuote: () => string; // Returns the new quote ID
+  publishQuote: (finalCalculations: Calculations) => string; // Returns the new quote ID
   updateQuoteStatus: (id: string, status: PublishedQuote['status']) => void;
   deleteQuote: (id: string) => void;
   loadQuoteIntoForm: (id: string) => void;
@@ -113,35 +113,57 @@ const performCalculations = (formValues: FormValues): Calculations => {
     let taxType = "VAT";
     let effectiveTaxRate = taxRate || 0;
     let taxRateDecimal = 0;
+    let profit = 0;
 
-    const profit = fixedCosts * (profitMarginRate / (1 - profitMarginRate));
-    
-    if (!isFinite(profit) || profit < 0) {
-        subtotal = fixedCosts;
-    } else {
-        subtotal = fixedCosts + profit;
-    }
+    // A = B + C*A + D*A + E*A + F*A
+    // A - C*A - D*A - E*A - F*A = B
+    // A * (1 - C - D - E - F) = B
+    // A = B / (1 - C - D - E - F)
+    // where:
+    // A = grandTotal
+    // B = fixedCosts + profit
+    // C = tax (if TOT)
+    // D = miscRate
+    // E = salaryRate
+    // F = percentageAffiliateRate
 
     if (businessType === 'vat_registered') {
         taxType = "VAT";
         taxRateDecimal = (effectiveTaxRate / 100);
-        const denominator = 1 - percentageAffiliateRate - miscRate - salaryRate;
+
+        const baseForProfit = fixedCosts;
+        profit = profitMarginRate > 0 ? baseForProfit * (profitMarginRate / (1 - profitMarginRate)) : 0;
+        if (!isFinite(profit)) profit = 0;
+
+        subtotal = fixedCosts + profit;
+        
+        const denominator = 1 - miscRate - salaryRate - percentageAffiliateRate;
         if (denominator > 0) {
-            grandTotal = (subtotal * (1 + taxRateDecimal)) / denominator;
+            const netRevenue = subtotal / denominator;
+            grandTotal = netRevenue * (1 + taxRateDecimal);
+            tax = netRevenue * taxRateDecimal;
         }
+
     } else { // sole_proprietor with Turnover Tax
         taxType = "TOT";
         effectiveTaxRate = 3;
         taxRateDecimal = effectiveTaxRate / 100;
-        const denominator = 1 - percentageAffiliateRate - miscRate - salaryRate - taxRateDecimal;
-         if (denominator > 0) {
+
+        const baseForProfit = fixedCosts;
+        profit = profitMarginRate > 0 ? baseForProfit * (profitMarginRate / (1 - profitMarginRate)) : 0;
+        if (!isFinite(profit)) profit = 0;
+
+        subtotal = fixedCosts + profit;
+
+        const denominator = 1 - miscRate - salaryRate - percentageAffiliateRate - taxRateDecimal;
+        if (denominator > 0) {
             grandTotal = subtotal / denominator;
+            tax = grandTotal * taxRateDecimal;
         }
     }
 
     if (grandTotal < 0 || !isFinite(grandTotal)) grandTotal = 0;
 
-    tax = businessType === 'vat_registered' ? subtotal * taxRateDecimal : grandTotal * taxRateDecimal;
     const miscCost = grandTotal * miscRate;
     const salaryCost = grandTotal * salaryRate;
     const percentageAffiliateCost = grandTotal * percentageAffiliateRate;
@@ -149,7 +171,9 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
     const operationalCost = fixedOperationalCost + miscCost + salaryCost;
     const totalBaseCost = materialCost + laborCost + operationalCost + affiliateCost;
-    const finalProfit = subtotal - fixedCosts;
+    
+    const finalSubtotal = grandTotal - tax;
+    const finalProfit = finalSubtotal - totalBaseCost;
     
     return {
       materialCost,
@@ -160,12 +184,12 @@ const performCalculations = (formValues: FormValues): Calculations => {
       salaryCost,
       totalBaseCost,
       profit: finalProfit > 0 ? finalProfit : 0,
-      subtotal,
+      subtotal: finalSubtotal,
       grandTotal,
       tax,
       taxRate: effectiveTaxRate,
       taxType,
-      profitMargin: finalProfit > 0 && subtotal > 0 ? (finalProfit / subtotal) * 100 : 0,
+      profitMargin: finalProfit > 0 && finalSubtotal > 0 ? (finalProfit / finalSubtotal) * 100 : 0,
       businessType: formValues.businessType,
     };
 }
@@ -191,8 +215,8 @@ export const useStore = create<CostState>()(
                     set({ allocations });
                 },
 
-                publishQuote: () => {
-                    const { formValues, allocations, calculations, publishedQuotes } = get();
+                publishQuote: (finalCalculations) => {
+                    const { formValues, allocations, publishedQuotes } = get();
                     const existingQuoteIndex = publishedQuotes.findIndex(q => q.id === formValues.clientName?.replace(/\s+/g, '-'));
 
                     if (existingQuoteIndex !== -1) {
@@ -203,7 +227,7 @@ export const useStore = create<CostState>()(
                                     timestamp: Date.now(),
                                     formValues: JSON.parse(JSON.stringify(formValues)),
                                     allocations: JSON.parse(JSON.stringify(allocations)),
-                                    calculations: JSON.parse(JSON.stringify(calculations)),
+                                    calculations: JSON.parse(JSON.stringify(finalCalculations)),
                                   }
                                 : q
                             ),
@@ -219,7 +243,7 @@ export const useStore = create<CostState>()(
                         status: 'Draft',
                         formValues: JSON.parse(JSON.stringify(formValues)),
                         allocations: JSON.parse(JSON.stringify(allocations)),
-                        calculations: JSON.parse(JSON.stringify(calculations)),
+                        calculations: JSON.parse(JSON.stringify(finalCalculations)),
                     };
                     set({ publishedQuotes: [...publishedQuotes, newQuote] });
                     return nextId;

@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useStore } from "@/store/cost-store";
+import type { Calculations } from "@/store/cost-store";
 import {
   Card,
   CardContent,
@@ -20,17 +21,6 @@ import { AiQuoteAnalyst } from "@/components/design/ai-quote-analyst";
 import { QuoteVariance } from "@/components/design/quote-variance";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-
-
-interface QuoteBreakdown {
-    grandTotal: number;
-    totalBaseCost: number;
-    profit: number;
-    subtotal: number;
-    tax: number;
-    taxRate: number;
-    taxType: string;
-}
 
 export function ProjectQuote() {
   const { calculations: globalCalculations, formValues, publishQuote } = useStore(state => ({
@@ -50,14 +40,14 @@ export function ProjectQuote() {
     }
   }, [globalCalculations.grandTotal, globalCalculations.totalBaseCost]);
 
-  const localBreakdown = useMemo((): QuoteBreakdown => {
+  const localBreakdown = useMemo((): Calculations => {
     const numericQuote = typeof finalQuote === 'string' ? parseFloat(finalQuote) : finalQuote;
 
     if (isNaN(numericQuote) || numericQuote < globalCalculations.totalBaseCost) {
         return globalCalculations;
     }
 
-    const { totalBaseCost } = globalCalculations;
+    const { totalBaseCost, materialCost, laborCost, operationalCost, affiliateCost, miscCost, salaryCost } = globalCalculations;
     const { businessType, taxRate: vatRate } = formValues;
 
     let newSubtotal: number;
@@ -80,6 +70,7 @@ export function ProjectQuote() {
     }
     
     const newProfit = newSubtotal - totalBaseCost;
+    const newProfitMargin = newProfit > 0 && newSubtotal > 0 ? (newProfit / newSubtotal) * 100 : 0;
 
     return {
         grandTotal: numericQuote,
@@ -89,6 +80,14 @@ export function ProjectQuote() {
         tax: newTax,
         taxRate: newTaxRate,
         taxType: newTaxType,
+        profitMargin: newProfitMargin,
+        materialCost,
+        laborCost,
+        operationalCost,
+        affiliateCost,
+        miscCost,
+        salaryCost,
+        businessType: formValues.businessType,
     };
   }, [finalQuote, globalCalculations, formValues]);
 
@@ -115,7 +114,7 @@ export function ProjectQuote() {
         });
         return;
     }
-    const newQuoteId = publishQuote();
+    const newQuoteId = publishQuote(localBreakdown);
     toast({
         title: "Quote Published!",
         description: `Quote ID ${newQuoteId} has been saved.`,
