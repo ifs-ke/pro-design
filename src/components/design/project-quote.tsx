@@ -60,13 +60,18 @@ export function ProjectQuote() {
         newTaxRate = vatRate || 0;
         newSubtotal = numericQuote / (1 + (newTaxRate / 100));
         newTax = numericQuote - newSubtotal;
-    } else { // sole_proprietor
+    } else if (businessType === 'sole_proprietor') { 
         newTaxType = 'TOT';
         newTaxRate = 3;
         // The final quote is the gross revenue. TOT is 3% of this.
         // Net = Gross * (1 - 0.03)
         newTax = numericQuote * (newTaxRate / 100);
         newSubtotal = numericQuote - newTax;
+    } else { // no_tax
+        newTaxType = 'No Tax';
+        newTaxRate = 0;
+        newTax = 0;
+        newSubtotal = numericQuote;
     }
     
     const newProfit = newSubtotal - totalBaseCost;

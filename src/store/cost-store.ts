@@ -122,57 +122,23 @@ const performCalculations = (formValues: FormValues): Calculations => {
     let taxType = "VAT";
     let effectiveTaxRate = taxRate || 0;
     
-    // Formula derivation:
-    // grandTotal = baseForPercentages / (1 - miscRate - salaryRate - percentageAffiliateRate - taxRateDecimal)
-    // where baseForPercentages = fixedCosts + profit
-    // and profit = profitMarginRate * subtotal = profitMarginRate * (grandTotal - tax)
-    // This gets complex. Let's simplify. Let's assume percentages are of grandTotal.
-
     const profitMarginRate = (profitMargin || 0) / 100;
 
-    const baseForPercentages = fixedCosts; // Base cost before any percentages or profit.
-
-    // Let R be the Net Revenue (Subtotal)
-    // R = totalBaseCost + profit
-    // totalBaseCost = fixedCosts + miscCost + salaryCost + affiliateCost
-    // profit = profitMarginRate * R
-    // R = (fixedCosts + miscCost + salaryCost + affiliateCost) + profitMarginRate * R
-    // R * (1 - profitMarginRate) = fixedCosts + miscCost + salaryCost + affiliateCost
-    // Let's assume misc, salary, and affiliate % are based on Grand Total.
-    
     let taxRateDecimal = 0;
 
     if (businessType === 'vat_registered') {
         taxType = "VAT";
         taxRateDecimal = (effectiveTaxRate / 100);
-    } else {
+    } else if (businessType === 'sole_proprietor') {
         taxType = "TOT";
         effectiveTaxRate = 3;
         taxRateDecimal = effectiveTaxRate / 100;
+    } else { // no_tax
+        taxType = "No Tax";
+        effectiveTaxRate = 0;
+        taxRateDecimal = 0;
     }
     
-    // Let GT = Grand Total
-    // GT = Subtotal + Tax
-    // Subtotal = totalBaseCost + profit
-    // totalBaseCost = fixedCosts + (GT * miscRate) + (GT * salaryRate) + (GT * percentageAffiliateRate)
-    // profit = profitMarginRate * Subtotal
-    // Subtotal = fixedCosts + GT * (miscRate + salaryRate + percentageAffiliateRate) + profitMarginRate * Subtotal
-    // Subtotal * (1 - profitMarginRate) = fixedCosts + GT * (miscRate + salaryRate + percentageAffiliateRate)
-    // Subtotal = (fixedCosts + GT * (miscRate + salaryRate + percentageAffiliateRate)) / (1 - profitMarginRate)
-
-    // For VAT: Subtotal = GT / (1 + taxRateDecimal)
-    // GT / (1 + taxRateDecimal) = (fixedCosts + GT*(...rates)) / (1-profitMarginRate)
-    // GT * (1-profitMarginRate) = (1+taxRateDecimal) * (fixedCosts + GT*(...rates))
-    // GT * (1-profitMarginRate) = (1+taxRateDecimal)*fixedCosts + (1+taxRateDecimal)*GT*(...rates)
-    // GT * [(1-profitMarginRate) - (1+taxRateDecimal)*(...rates)] = (1+taxRateDecimal)*fixedCosts
-    // GT = (1+taxRateDecimal)*fixedCosts / [(1-profitMarginRate) - (1+taxRateDecimal)*(miscRate + salaryRate + percentageAffiliateRate)]
-
-    // For TOT: Tax = GT * taxRateDecimal, so Subtotal = GT - Tax = GT * (1-taxRateDecimal)
-    // GT * (1-taxRateDecimal) = (fixedCosts + GT*(...rates)) / (1-profitMarginRate)
-    // GT * (1-taxRateDecimal) * (1-profitMarginRate) = fixedCosts + GT*(...rates)
-    // GT * [(1-taxRateDecimal)*(1-profitMarginRate) - (...rates)] = fixedCosts
-    // GT = fixedCosts / [(1-taxRateDecimal)*(1-profitMarginRate) - (miscRate + salaryRate + percentageAffiliateRate)]
-
     let denominator = 1;
     let numerator = fixedCosts;
 
@@ -180,7 +146,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
         const percentageRates = miscRate + salaryRate + percentageAffiliateRate;
         numerator = (1 + taxRateDecimal) * fixedCosts;
         denominator = (1 - profitMarginRate) - ((1 + taxRateDecimal) * percentageRates);
-    } else { // sole_proprietor
+    } else { // sole_proprietor or no_tax
         const percentageRates = miscRate + salaryRate + percentageAffiliateRate;
         numerator = fixedCosts;
         denominator = ((1 - taxRateDecimal) * (1 - profitMarginRate)) - percentageRates;
@@ -202,8 +168,8 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const percentageAffiliateCost = grandTotal * percentageAffiliateRate;
 
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
-    const operationalCost = fixedOperationalCost + miscCost + salaryCost;
-    const totalBaseCost = materialCost + laborCost + operationalCost + affiliateCost;
+    const operationalCost = fixedOperationalCost; // miscCost and salaryCost are now top-level costs, not part of operations
+    const totalBaseCost = materialCost + laborCost + operationalCost + affiliateCost + miscCost + salaryCost;
     
     const finalProfit = subtotal - totalBaseCost;
     

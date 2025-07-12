@@ -94,7 +94,7 @@ export const formSchema = z.object({
   labor: z.array(laborItemSchema).optional(),
   operations: z.array(operationItemSchema).optional(),
   affiliates: z.array(affiliateItemSchema).optional(),
-  businessType: z.enum(['vat_registered', 'sole_proprietor']),
+  businessType: z.enum(['vat_registered', 'sole_proprietor', 'no_tax']),
   taxRate: z.coerce.number().min(0, "Tax rate cannot be negative.").max(100),
   profitMargin: z.coerce.number().min(0, "Profit margin cannot be negative."),
   miscPercentage: z.coerce.number().min(0, "Misc. percentage cannot be negative."),
@@ -688,6 +688,14 @@ export function CostForm() {
                               Sole Proprietorship (Turnover Tax)
                             </FormLabel>
                           </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="no_tax" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              No Tax / Not Applicable
+                            </FormLabel>
+                          </FormItem>
                         </RadioGroup>
                       </FormControl>
                       <FormMessage />
@@ -776,4 +784,3 @@ export function CostForm() {
     </Card>
   );
 }
-
