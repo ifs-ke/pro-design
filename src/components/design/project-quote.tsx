@@ -11,52 +11,100 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { TrendingUp, ReceiptText, Info, Wand2 } from "lucide-react";
+import { ReceiptText, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AiQuoteAnalyst } from "@/components/design/ai-quote-analyst";
 
+interface QuoteBreakdown {
+    grandTotal: number;
+    totalBaseCost: number;
+    profit: number;
+    subtotal: number;
+    tax: number;
+    taxRate: number;
+    taxType: string;
+}
 
 export function ProjectQuote() {
-  const { calculations, updateProfitMarginFromFinalQuote } = useStore(state => ({
+  const { calculations: globalCalculations, formValues } = useStore(state => ({
     calculations: state.calculations,
-    updateProfitMarginFromFinalQuote: state.updateProfitMarginFromFinalQuote
+    formValues: state.formValues,
   }));
 
-  const { grandTotal, totalBaseCost, profit, subtotal, tax, taxRate, taxType } = calculations;
-
-  const [finalQuote, setFinalQuote] = useState<number | string>(grandTotal);
-
+  const [finalQuote, setFinalQuote] = useState<number | string>(globalCalculations.grandTotal);
+  const [localBreakdown, setLocalBreakdown] = useState<QuoteBreakdown>(globalCalculations);
+  
   useEffect(() => {
-    // Update the local state when the calculated grandTotal changes
-    // This happens when any form field (like profit margin) is adjusted
-    setFinalQuote(grandTotal);
-  }, [grandTotal]);
+    // When the global calculations change (e.g., from the CostForm),
+    // update both the final quote input and the local breakdown display.
+    setFinalQuote(globalCalculations.grandTotal);
+    setLocalBreakdown(globalCalculations);
+  }, [globalCalculations]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQuoteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setFinalQuote(value); // Keep input as string while typing
-  };
+    setFinalQuote(value); // Keep input as string while typing for better UX
 
-  const handleInputBlur = () => {
-    const numericValue = parseFloat(finalQuote as string);
-    if (!isNaN(numericValue) && numericValue > 0) {
-      setFinalQuote(numericValue);
-      updateProfitMarginFromFinalQuote(numericValue);
+    const numericValue = parseFloat(value);
+    if (!isNaN(numericValue) && numericValue >= globalCalculations.totalBaseCost) {
+        // Recalculate the breakdown locally based on the new final quote
+        const { totalBaseCost } = globalCalculations;
+        const { businessType, taxRate: vatRate } = formValues;
+
+        let newSubtotal: number;
+        let newTax: number;
+        let newTaxType = 'VAT';
+        let newTaxRate = vatRate || 0;
+
+        if (businessType === 'vat_registered') {
+            newSubtotal = numericValue / (1 + (vatRate / 100));
+            newTax = numericValue - newSubtotal;
+        } else { // sole_proprietor
+            newTaxType = 'TOT';
+            newTaxRate = 3;
+            newSubtotal = numericValue * (1 - (newTaxRate / 100));
+            newTax = numericValue - newSubtotal;
+        }
+        
+        const newProfit = newSubtotal - totalBaseCost;
+
+        setLocalBreakdown({
+            grandTotal: numericValue,
+            totalBaseCost: totalBaseCost,
+            profit: newProfit,
+            subtotal: newSubtotal,
+            tax: newTax,
+            taxRate: newTaxRate,
+            taxType: newTaxType,
+        });
+
     } else {
-      // Reset to the last valid calculation if input is invalid
-      setFinalQuote(grandTotal);
+        // If input is invalid or less than base cost, revert to global state
+        setLocalBreakdown(globalCalculations);
     }
   };
+
+  const handleBlur = () => {
+    // On blur, format the number or reset to the last valid state
+    const numericValue = parseFloat(finalQuote as string);
+     if (!isNaN(numericValue) && numericValue >= globalCalculations.totalBaseCost) {
+        setFinalQuote(numericValue);
+     } else {
+        setFinalQuote(globalCalculations.grandTotal);
+        setLocalBreakdown(globalCalculations);
+     }
+  }
+
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Final Project Quote</CardTitle>
         <CardDescription>
-          The final quote to be presented to the client. Adjusting this will impact the profit margin.
+          Adjust the final quote to see a real-time breakdown. This will not change your base costs or profit margin settings.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -70,8 +118,8 @@ export function ProjectQuote() {
                 type="number"
                 placeholder="Enter final quote"
                 value={typeof finalQuote === 'number' ? finalQuote.toFixed(0) : finalQuote}
-                onChange={handleInputChange}
-                onBlur={handleInputBlur}
+                onChange={handleQuoteChange}
+                onBlur={handleBlur}
                 className="bg-background/80 text-lg font-bold text-primary"
             />
         </div>
@@ -82,8 +130,8 @@ export function ProjectQuote() {
           <h4 className="font-medium text-center md:text-left">Quote Breakdown</h4>
           <TooltipProvider>
             <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><p className="text-muted-foreground">Total Base Cost</p><p className="font-medium">{formatCurrency(totalBaseCost)}</p></div>
-                <div className="flex justify-between"><p className="text-muted-foreground">Profit</p><p className="font-medium">{formatCurrency(profit)}</p></div>
+                <div className="flex justify-between"><p className="text-muted-foreground">Total Base Cost</p><p className="font-medium">{formatCurrency(localBreakdown.totalBaseCost)}</p></div>
+                <div className="flex justify-between"><p className="text-muted-foreground">Profit</p><p className="font-medium">{formatCurrency(localBreakdown.profit)}</p></div>
                 <Separator className="my-2"/>
                 <div className="flex justify-between">
                     <p className="text-muted-foreground flex items-center">
@@ -97,16 +145,16 @@ export function ProjectQuote() {
                             </TooltipContent>
                         </Tooltip>
                     </p>
-                    <p className="font-semibold">{formatCurrency(subtotal)}</p>
+                    <p className="font-semibold">{formatCurrency(localBreakdown.subtotal)}</p>
                 </div>
                  <div className="flex justify-between">
-                    <p className="text-muted-foreground">{taxType} ({taxRate}%)</p>
-                    <p className="font-semibold">{formatCurrency(tax)}</p>
+                    <p className="text-muted-foreground">{localBreakdown.taxType} ({localBreakdown.taxRate}%)</p>
+                    <p className="font-semibold">{formatCurrency(localBreakdown.tax)}</p>
                 </div>
                 <Separator className="my-2"/>
                 <div className="flex justify-between font-bold text-base bg-primary/10 p-2 rounded-md">
                     <p>Grand Total</p>
-                    <p>{formatCurrency(grandTotal)}</p>
+                    <p>{formatCurrency(localBreakdown.grandTotal)}</p>
                 </div>
             </div>
           </TooltipProvider>

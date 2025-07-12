@@ -106,12 +106,6 @@ export function CostForm() {
     return () => subscription.unsubscribe();
   }, [form, setFormValues]);
 
-  // When the profit margin is updated from the ProjectQuote component,
-  // we need to update the form's profit margin slider.
-  useEffect(() => {
-    form.setValue('profitMargin', formValues.profitMargin);
-  }, [formValues.profitMargin, form]);
-
 
   const profitMargin = form.watch('profitMargin');
   const businessType = form.watch('businessType');
@@ -127,7 +121,7 @@ export function CostForm() {
       <CardContent>
         <FormProvider {...form}>
           <form className="space-y-4">
-            <Accordion type="multiple" defaultValue={["materials", "labor", "operations"]} className="w-full">
+            <Accordion type="multiple" defaultValue={[]} className="w-full">
               {/* Materials Section */}
               <AccordionItem value="materials">
                 <AccordionTrigger>

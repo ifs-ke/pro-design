@@ -17,10 +17,9 @@ type Calculations = {
   materialCost: number;
   laborCost: number;
   operationalCost: number;
-  miscellaneousCost: number;
   totalBaseCost: number;
   profit: number;
-  subtotal: number;
+  subtotal: number; // Net Revenue (Base Cost + Profit)
   grandTotal: number;
   tax: number;
   taxRate: number;
@@ -35,7 +34,6 @@ interface CostState {
   calculations: Calculations;
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
-  updateProfitMarginFromFinalQuote: (finalQuote: number) => void;
 }
 
 const defaultFormValues: FormValues = {
@@ -68,9 +66,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const laborCost = labor?.reduce((acc, item) => acc + ((item.units || 0) * (item.rate || 0)), 0) ?? 0;
     const operationalCost = operations?.reduce((acc, item) => acc + (item.cost || 0), 0) ?? 0;
     
-    const baseCost = materialCost + laborCost + operationalCost;
-    const miscellaneousCost = baseCost * 0.10;
-    const totalBaseCost = baseCost + miscellaneousCost;
+    const totalBaseCost = materialCost + laborCost + operationalCost;
     const profit = totalBaseCost * ((profitMargin || 0) / 100);
     const subtotal = totalBaseCost + profit; // This is Net Revenue
 
@@ -85,8 +81,11 @@ const performCalculations = (formValues: FormValues): Calculations => {
     } else { // sole_proprietor
         taxType = "TOT";
         effectiveTaxRate = 3;
-        // TOT is calculated on gross sales. So we need to solve for grandTotal where grandTotal = subtotal + 0.03 * grandTotal
-        // grandTotal (1 - 0.03) = subtotal  => grandTotal = subtotal / 0.97
+        // TOT is 3% of the gross amount (grand total).
+        // grandTotal = subtotal + (grandTotal * 0.03)
+        // grandTotal - (grandTotal * 0.03) = subtotal
+        // grandTotal * (1 - 0.03) = subtotal
+        // grandTotal = subtotal / 0.97
         grandTotal = subtotal / (1 - (effectiveTaxRate / 100));
         tax = grandTotal - subtotal;
     }
@@ -95,7 +94,6 @@ const performCalculations = (formValues: FormValues): Calculations => {
       materialCost,
       laborCost,
       operationalCost,
-      miscellaneousCost,
       totalBaseCost,
       profit,
       subtotal,
@@ -112,7 +110,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
 export const useStore = create<CostState>()(
     devtools(
         persist(
-            (set, get) => ({
+            (set) => ({
                 formValues: defaultFormValues,
                 allocations: defaultAllocations,
                 calculations: performCalculations(defaultFormValues),
@@ -126,38 +124,6 @@ export const useStore = create<CostState>()(
 
                 setAllocations: (allocations) => {
                     set({ allocations });
-                },
-
-                updateProfitMarginFromFinalQuote: (finalQuote) => {
-                    const { calculations, formValues } = get();
-                    const { totalBaseCost, businessType } = calculations;
-
-                    let subtotal;
-                    if (businessType === 'vat_registered') {
-                    const taxRate = formValues.taxRate || 0;
-                    subtotal = finalQuote / (1 + (taxRate / 100));
-                    } else { // sole_proprietor
-                    const effectiveTaxRate = 3;
-                    subtotal = finalQuote * (1 - (effectiveTaxRate / 100));
-                    }
-
-                    const newProfit = subtotal - totalBaseCost;
-                    
-                    let newProfitMargin = 0;
-                    if (totalBaseCost > 0) {
-                    newProfitMargin = (newProfit / totalBaseCost) * 100;
-                    }
-
-                    if (newProfitMargin >= 0) {
-                        const newFormValues = {
-                            ...formValues,
-                            profitMargin: parseFloat(newProfitMargin.toFixed(2)),
-                        };
-                        set({
-                            formValues: newFormValues,
-                            calculations: performCalculations(newFormValues),
-                        });
-                    }
                 },
             }),
             {
