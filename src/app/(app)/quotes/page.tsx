@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useStore, type PublishedQuote, type Project, type Client, type ProjectDataInput } from "@/store/cost-store";
 import Link from 'next/link';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText, MoreHorizontal, Trash2, Edit, CheckCircle, Briefcase } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -184,41 +184,51 @@ export default function QuotesPage() {
     <div className="flex flex-col gap-8">
       <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">Quotes</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Quotes</h1>
           <p className="text-muted-foreground mt-1">Manage all your client quotes in one place.</p>
         </div>
         <Link href="/costing">
-          <Button>
+          <Button size="sm">
             <PlusCircle className="mr-2" />
             Create New Quote
           </Button>
         </Link>
       </header>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Quote ID</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <motion.tbody variants={listVariants} initial="hidden" animate="visible">
-                {publishedQuotes.length === 0 ? (
+      {publishedQuotes.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
+          <CardHeader>
+            <FileText className="mx-auto size-12 text-muted-foreground mb-4" />
+            <CardTitle>No Quotes Yet</CardTitle>
+            <CardDescription>Click "Create New Quote" to get started.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/costing">
+              <Button>
+                <PlusCircle className="mr-2" />
+                Create New Quote
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      No quotes published yet.
-                    </TableCell>
+                    <TableHead>Quote ID</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Project</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  publishedQuotes.map((quote) => (
+                </TableHeader>
+                <motion.tbody variants={listVariants} initial="hidden" animate="visible">
+                  {publishedQuotes.sort((a,b) => b.timestamp - a.timestamp).map((quote) => (
                     <MotionRow key={quote.id} variants={itemVariants}>
                       <TableCell className="font-medium">{quote.id}</TableCell>
                       <TableCell>{getClientName(quote.clientId)}</TableCell>
@@ -296,13 +306,13 @@ export default function QuotesPage() {
                         </AlertDialog>
                       </TableCell>
                     </MotionRow>
-                  ))
-                )}
-              </motion.tbody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  ))}
+                </motion.tbody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

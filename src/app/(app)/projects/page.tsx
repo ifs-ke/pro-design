@@ -150,7 +150,7 @@ function ProjectCard({ project }: { project: Project }) {
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div className="flex-grow pr-4">
-                        <CardTitle className="flex items-start gap-3">
+                        <CardTitle className="text-xl flex items-start gap-3">
                             <Building className="text-primary mt-1 flex-shrink-0"/>
                             <span>{project.name}</span>
                         </CardTitle>
@@ -268,11 +268,11 @@ export default function ProjectsPage() {
     <div className="flex flex-col gap-8">
       <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">Projects</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
           <p className="text-muted-foreground mt-1">Manage all your ongoing and completed projects.</p>
         </div>
         <ProjectFormDialog onSave={handleCreate} clients={clients}>
-          <Button>
+          <Button size="sm">
             <PlusCircle className="mr-2" />
             Create Project
           </Button>
@@ -299,7 +299,7 @@ export default function ProjectsPage() {
         </Card>
       ) : (
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
