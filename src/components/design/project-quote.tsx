@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { ReceiptText, Info } from "lucide-react";
+import { ReceiptText, Info, Milestone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -60,11 +60,13 @@ export function ProjectQuote() {
         let newTaxRate = vatRate || 0;
 
         if (businessType === 'vat_registered') {
-            newSubtotal = numericValue / (1 + (vatRate / 100));
+            newSubtotal = numericValue / (1 + (newTaxRate / 100));
             newTax = numericValue - newSubtotal;
         } else { // sole_proprietor
             newTaxType = 'TOT';
             newTaxRate = 3;
+            // TOT is 3% of the gross amount (grand total).
+            // grandTotal = netRevenue / (1 - 0.03)
             newSubtotal = numericValue * (1 - (newTaxRate / 100));
             newTax = numericValue - newSubtotal;
         }
@@ -108,20 +110,35 @@ export function ProjectQuote() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="w-full space-y-2">
-            <Label htmlFor="final-quote" className="flex items-center">
-                <ReceiptText className="mr-2 h-4 w-4" />
-                Final Client Quote (Ksh)
-            </Label>
-            <Input
-                id="final-quote"
-                type="number"
-                placeholder="Enter final quote"
-                value={typeof finalQuote === 'number' ? finalQuote.toFixed(0) : finalQuote}
-                onChange={handleQuoteChange}
-                onBlur={handleBlur}
-                className="bg-background/80 text-lg font-bold text-primary"
-            />
+        <div className="space-y-4">
+            <div className="w-full space-y-2">
+                <Label htmlFor="suggested-quote" className="flex items-center text-muted-foreground">
+                    <Milestone className="mr-2 h-4 w-4" />
+                    Suggested Quote (from calculator)
+                </Label>
+                <Input
+                    id="suggested-quote"
+                    type="text"
+                    readOnly
+                    value={formatCurrency(globalCalculations.grandTotal)}
+                    className="bg-muted/50 border-dashed font-semibold"
+                />
+            </div>
+            <div className="w-full space-y-2">
+                <Label htmlFor="final-quote" className="flex items-center">
+                    <ReceiptText className="mr-2 h-4 w-4" />
+                    Final Client Quote (Ksh)
+                </Label>
+                <Input
+                    id="final-quote"
+                    type="number"
+                    placeholder="Enter final quote"
+                    value={typeof finalQuote === 'number' ? finalQuote.toFixed(0) : finalQuote}
+                    onChange={handleQuoteChange}
+                    onBlur={handleBlur}
+                    className="bg-background/80 text-lg font-bold text-primary"
+                />
+            </div>
         </div>
         
         <Separator />
