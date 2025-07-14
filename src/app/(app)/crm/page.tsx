@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from "react";
-import { getClients } from "@/lib/actions";
+import { useHydratedStore } from "@/store/cost-store";
 import { ClientCard } from "@/components/design/client-card";
 import { ClientFormDialog } from "@/components/design/client-form";
 import { Button } from "@/components/ui/button";
@@ -20,24 +19,12 @@ const containerVariants = {
 };
 
 export default function CrmPage() {
-    const [clients, setClients] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { clients, isLoading } = useHydratedStore(state => ({
+        clients: state.clients,
+        isLoading: state.clients.length === 0 && !state._hydrated, // Example loading state
+    }));
 
-    useEffect(() => {
-        async function fetchClients() {
-            try {
-                const fetchedClients = await getClients();
-                setClients(fetchedClients);
-            } catch (error) {
-                console.error("Failed to fetch clients:", error);
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchClients();
-    }, []);
-
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="flex justify-center items-center h-screen">
                 <div className="text-lg">Loading Clients...</div>

@@ -4,7 +4,7 @@
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useStore } from "@/store/cost-store";
 import {
   FormControl,
@@ -46,6 +46,7 @@ import {
   MessageSquarePlus,
   UserPlus,
   FolderPlus,
+  Loader2,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
@@ -133,15 +134,18 @@ function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) =>
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
+    const [isPending, startTransition] = useTransition();
 
     const handleAddClient = async () => {
         if (!name) return;
-        const newClient = await createClient({ name, email, phone });
-        onClientAdded(newClient as Client);
-        setName("");
-        setEmail("");
-        setPhone("");
-        setOpen(false);
+        startTransition(async () => {
+            const newClient = await createClient({ name, email, phone });
+            onClientAdded(newClient as Client);
+            setName("");
+            setEmail("");
+            setPhone("");
+            setOpen(false);
+        });
     };
 
     return (
@@ -172,7 +176,10 @@ function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) =>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button onClick={handleAddClient} disabled={!name}>Add Client</Button>
+                    <Button onClick={handleAddClient} disabled={!name || isPending}>
+                         {isPending && <Loader2 className="mr-2 animate-spin" />}
+                        Add Client
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -182,13 +189,16 @@ function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) =>
 function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onProjectAdded: (project: Project) => void }) {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState("");
+    const [isPending, startTransition] = useTransition();
 
     const handleAddProject = async () => {
         if (!name || !clientId) return;
-        const newProject = await createProject({ name, clientId });
-        onProjectAdded(newProject as Project);
-        setName("");
-        setOpen(false);
+        startTransition(async () => {
+            const newProject = await createProject({ name, clientId });
+            onProjectAdded(newProject as Project);
+            setName("");
+            setOpen(false);
+        });
     };
 
     return (
@@ -211,7 +221,10 @@ function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onP
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button onClick={handleAddProject} disabled={!name}>Add Project</Button>
+                    <Button onClick={handleAddProject} disabled={!name || isPending}>
+                         {isPending && <Loader2 className="mr-2 animate-spin" />}
+                        Add Project
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

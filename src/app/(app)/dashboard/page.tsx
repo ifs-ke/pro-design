@@ -1,3 +1,7 @@
+
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
@@ -15,8 +19,24 @@ import {
 import { DashboardCharts } from "@/components/design/dashboard-charts";
 
 
-export default async function DashboardPage() {
-  const dashboardMetrics = await getDashboardMetrics();
+export default function DashboardPage() {
+  const [dashboardMetrics, setDashboardMetrics] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      const metrics = await getDashboardMetrics();
+      setDashboardMetrics(metrics);
+    }
+    fetchData();
+  }, []);
+
+  if (!dashboardMetrics) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <div className="text-lg">Loading Dashboard...</div>
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">

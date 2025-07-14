@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from "react";
-import { getProjects, getClients, getProperties } from "@/lib/actions";
+import { useHydratedStore } from "@/store/cost-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
@@ -22,32 +21,15 @@ const containerVariants = {
 };
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
-  const [properties, setProperties] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { projects, clients, properties, isLoading } = useHydratedStore(state => ({
+    projects: state.projects,
+    clients: state.clients,
+    properties: state.properties,
+    isLoading: !state._hydrated,
+  }));
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [projectsData, clientsData, propertiesData] = await Promise.all([
-          getProjects(),
-          getClients(),
-          getProperties()
-        ]);
-        setProjects(projectsData);
-        setClients(clientsData);
-        setProperties(propertiesData);
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
 
-  if (loading) {
+  if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen">
             <div className="text-lg">Loading Projects...</div>

@@ -61,7 +61,6 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: any, project
     const [isCreating, setIsCreating] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-    const router = useRouter();
     const clientForQuote = clients.find(c => c.id === quote.clientId);
 
     const handleAssign = () => {
@@ -70,7 +69,6 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: any, project
                 await assignQuoteToProject(quote.id, selectedProject);
                 toast({ title: "Quote Assigned" });
                 setOpen(false);
-                router.refresh();
             });
         }
     }
@@ -84,7 +82,6 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: any, project
                 setNewProjectName("");
                 setIsCreating(false);
                 setOpen(false);
-                router.refresh();
             });
         }
     }
@@ -171,7 +168,7 @@ function QuoteRow({ quote, projects, clients }: { quote: any, projects: any[], c
     const { toast } = useToast();
 
     const handleEdit = () => {
-        loadQuoteIntoForm(quote);
+        loadQuoteIntoForm(quote.id);
         router.push('/costing');
     }
     
@@ -181,7 +178,6 @@ function QuoteRow({ quote, projects, clients }: { quote: any, projects: any[], c
         startTransition(async () => {
             await updateQuoteStatus(quote.id, status);
             toast({title: `Quote status set to ${status}`});
-            router.refresh();
         });
     }
 
@@ -189,7 +185,6 @@ function QuoteRow({ quote, projects, clients }: { quote: any, projects: any[], c
         startTransition(async () => {
             await deleteQuote(quote.id);
             toast({title: "Quote deleted successfully"});
-            router.refresh();
         });
     }
 
@@ -204,7 +199,7 @@ function QuoteRow({ quote, projects, clients }: { quote: any, projects: any[], c
                   <div className="flex justify-between items-start">
                     <div>
                         <Link href={`/quotes/${quote.id}`} className="font-medium hover:underline">
-                            {quote.id.substring(0,8)}...
+                            {quote.id}
                         </Link>
                     </div>
                     <Badge variant={statusVariant[quote.status] || "secondary"} className="capitalize">{quote.status.toLowerCase()}</Badge>
@@ -269,7 +264,7 @@ function QuoteRow({ quote, projects, clients }: { quote: any, projects: any[], c
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     This action cannot be undone. This will permanently delete the quote
-                                    for <span className="font-semibold">{clientName}</span> (ID: {quote.id.substring(0,8)}...).
+                                    for <span className="font-semibold">{clientName}</span> (ID: {quote.id}).
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -284,7 +279,7 @@ function QuoteRow({ quote, projects, clients }: { quote: any, projects: any[], c
                   </div>
               </div>
             </TableCell>
-            <TableCell className="font-medium hidden md:table-cell">{quote.id.substring(0,8)}...</TableCell>
+            <TableCell className="font-medium hidden md:table-cell">{quote.id}</TableCell>
             <TableCell className="hidden md:table-cell">{clientName}</TableCell>
             <TableCell className="hidden md:table-cell">{new Date(quote.timestamp).toLocaleDateString()}</TableCell>
             <TableCell className="hidden md:table-cell">{projectName}</TableCell>
@@ -345,7 +340,7 @@ function QuoteRow({ quote, projects, clients }: { quote: any, projects: any[], c
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
                           This action cannot be undone. This will permanently delete the quote
-                          for <span className="font-semibold">{clientName}</span> (ID: {quote.id.substring(0,8)}...).
+                          for <span className="font-semibold">{clientName}</span> (ID: {quote.id}).
                       </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

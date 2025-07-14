@@ -1,9 +1,8 @@
 
 'use client';
 
-import { useEffect, useState } from "react";
-import { getProperties, getClients } from "@/lib/actions";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { useHydratedStore } from "@/store/cost-store";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Home, User } from "lucide-react";
 import { PropertyFormDialog } from "@/components/design/property-form";
@@ -21,26 +20,13 @@ const containerVariants = {
 };
 
 export default function PropertiesPage() {
-  const [properties, setProperties] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+    const { properties, clients, isLoading } = useHydratedStore(state => ({
+        properties: state.properties,
+        clients: state.clients,
+        isLoading: !state._hydrated,
+    }));
 
-  useEffect(() => {
-    async function fetchData() {
-        try {
-            const [propertiesData, clientsData] = await Promise.all([getProperties(), getClients()]);
-            setProperties(propertiesData);
-            setClients(clientsData);
-        } catch (error) {
-            console.error("Failed to fetch properties data:", error);
-        } finally {
-            setLoading(false);
-        }
-    }
-    fetchData();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen">
             <div className="text-lg">Loading Properties...</div>

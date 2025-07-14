@@ -2,12 +2,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStore } from "@/store/cost-store";
+import { useHydratedStore } from "@/store/cost-store";
 
 import { CostForm } from "@/components/design/cost-form";
 import { ProfitAllocator } from "@/components/design/profit-allocator";
 import { ProjectQuote } from "@/components/design/project-quote";
-import { getClients, getProjects } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 
@@ -26,30 +25,18 @@ interface Project {
 
 
 export default function CostingPage() {
-  const [isHydrated, setIsHydrated] = useState(false);
-  const { resetForm } = useStore();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-
-  useEffect(() => {
-    // Zustand persistance hydration can cause a mismatch between the server and client render.
-    // This effect ensures that the component only renders on the client, after hydration is complete.
-    setIsHydrated(true);
-    
-    async function fetchData() {
-        const [clientData, projectData] = await Promise.all([getClients(), getProjects()]);
-        setClients(clientData as Client[]);
-        setProjects(projectData as Project[]);
-    }
-    fetchData();
-
-  }, []);
+  const { resetForm, clients, projects, isLoading } = useHydratedStore(state => ({
+      resetForm: state.resetForm,
+      clients: state.clients,
+      projects: state.projects,
+      isLoading: !state._hydrated,
+  }));
 
   const handleNewQuote = () => {
     resetForm();
   }
 
-  if (!isHydrated) {
+  if (isLoading) {
     // You can return a loading spinner or null here
     return (
         <div className="flex justify-center items-center h-screen">

@@ -1,41 +1,22 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText } from "lucide-react";
-import { getQuotes, getProjects, getClients } from "@/lib/actions";
+import { useHydratedStore } from "@/store/cost-store";
 import { QuotesTable } from '@/components/design/quotes-table';
 
 export default function QuotesPage() {
-  const [quotes, setQuotes] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+    const { quotes, projects, clients, isLoading } = useHydratedStore(state => ({
+        quotes: state.quotes,
+        projects: state.projects,
+        clients: state.clients,
+        isLoading: !state._hydrated,
+    }));
 
-  useEffect(() => {
-    async function fetchData() {
-        try {
-            const [quotesData, projectsData, clientsData] = await Promise.all([
-              getQuotes(),
-              getProjects(),
-              getClients(),
-            ]);
-            setQuotes(quotesData);
-            setProjects(projectsData);
-            setClients(clientsData);
-        } catch (error) {
-            console.error("Failed to fetch quotes data:", error);
-        } finally {
-            setLoading(false);
-        }
-    }
-    fetchData();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen">
             <div className="text-lg">Loading Quotes...</div>
