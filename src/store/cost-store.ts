@@ -32,7 +32,14 @@ export type Calculations = {
 };
 
 // Define types for our in-memory "database"
-interface Client {
+export interface Interaction {
+    id: string;
+    type: 'Email' | 'Call' | 'Meeting' | 'Other';
+    notes: string;
+    timestamp: string;
+}
+
+export interface Client {
     id: string;
     name: string;
     email?: string;
@@ -42,18 +49,9 @@ interface Client {
     createdAt: string;
     updatedAt: string;
     interactions: Interaction[];
-    projects: Project[];
-    quotes: Quote[];
 }
 
-interface Interaction {
-    id: string;
-    type: 'Email' | 'Call' | 'Meeting' | 'Other';
-    notes: string;
-    timestamp: string;
-}
-
-interface Property {
+export interface Property {
     id: string;
     name: string;
     clientId: string;
@@ -62,11 +60,9 @@ interface Property {
     notes?: string;
     createdAt: string;
     updatedAt: string;
-    client?: Client;
-    projects?: Project[];
 }
 
-interface Project {
+export interface Project {
     id: string;
     name: string;
     clientId: string;
@@ -80,12 +76,9 @@ interface Project {
     status: 'Planning' | 'InProgress' | 'Completed' | 'OnHold' | 'Cancelled';
     createdAt: string;
     updatedAt: string;
-    client?: Client;
-    property?: Property;
-    quotes?: Quote[];
 }
 
-interface Quote {
+export interface Quote {
     id: string;
     clientId: string;
     projectId?: string | null;
@@ -95,6 +88,27 @@ interface Quote {
     suggestedCalculations: Calculations;
     status: 'Draft' | 'Sent' | 'Approved' | 'Declined';
     timestamp: string;
+}
+
+// Enriched types for client-side hydration with relationships
+export interface HydratedClient extends Client {
+    projects: HydratedProject[];
+    quotes: HydratedQuote[];
+    properties: Property[];
+}
+
+export interface HydratedProperty extends Property {
+    client?: Client;
+    projects: HydratedProject[];
+}
+
+export interface HydratedProject extends Project {
+    client?: Client;
+    property?: Property;
+    quotes: HydratedQuote[];
+}
+
+export interface HydratedQuote extends Quote {
     client?: Client;
     project?: Project;
 }
@@ -125,7 +139,7 @@ interface CostState {
   addClient: (data: { name: string; email?: string; phone?: string }) => Client;
   updateClient: (id: string, data: Partial<Client>) => void;
   deleteClient: (id: string) => void;
-  addInteraction: (clientId: string, data: { type: any; notes: string }) => void;
+  addInteraction: (clientId: string, data: { type: Interaction['type']; notes: string }) => void;
   
   addProperty: (data: Partial<Property>) => Property;
   updateProperty: (id: string, data: Partial<Property>) => void;
@@ -136,7 +150,7 @@ interface CostState {
   deleteProject: (id: string) => void;
 
   publishQuote: (quoteId: string | null, formValues: FormValues, allocations: Allocation, finalCalculations: Calculations, suggestedCalculations: Calculations) => { quoteId: string, wasExisting: boolean };
-  updateQuoteStatus: (id: string, status: string) => void;
+  updateQuoteStatus: (id: string, status: Quote['status']) => void;
   deleteQuote: (id: string) => void;
   assignQuoteToProject: (quoteId: string, projectId: string) => void;
 }
@@ -193,7 +207,9 @@ const performCalculations = (formValues: FormValues): Calculations => {
     }, 0) ?? 0;
 
     const miscRate = (miscPercentage || 0) / 100;
-    const salaryRate = (salaryPercentage || 0) / 100;
+    
+    // Only apply salary percentage if numberOfPeople is greater than 0
+    const salaryRate = (numberOfPeople ?? 0) > 0 ? (salaryPercentage || 0) / 100 : 0;
     
     const fixedCosts = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost;
     
@@ -335,8 +351,6 @@ export const useStore = create<CostState>()(
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 interactions: [],
-                projects: [],
-                quotes: [],
             };
             set(state => ({ clients: [...state.clients, newClient] }));
             return newClient;
@@ -355,9 +369,9 @@ export const useStore = create<CostState>()(
             }));
         },
         addInteraction: (clientId, data) => {
-            const newInteraction = { ...data, id: crypto.randomUUID(), timestamp: new Date().toISOString() };
+            const newInteraction: Interaction = { ...data, id: crypto.randomUUID(), timestamp: new Date().toISOString() };
             set(state => ({
-                clients: state.clients.map(c => c.id === clientId ? { ...c, interactions: [...(c.interactions || []), newInteraction] } : c)
+                clients: state.clients.map(c => c.id === clientId ? { ...c, interactions: [...(c.interactions || []), newInteraction].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) } : c)
             }));
         },
 
@@ -482,38 +496,3 @@ export const useStore = create<CostState>()(
     { name: "CostFormStore" }
   )
 );
-
-// This function is kept for conceptual linking, but client components will use the hook.
-const getHydratedState = () => {
-    const state = useStore.getState();
-    const clients = state.clients.map(c => ({
-        ...c,
-        projects: state.projects.filter(p => p.clientId === c.id),
-        quotes: state.quotes.filter(q => q.clientId === c.id),
-        interactions: c.interactions || []
-    }));
-
-    const projects = state.projects.map(p => ({
-        ...p,
-        client: state.clients.find(c => c.id === p.clientId),
-        property: state.properties.find(prop => prop.id === p.propertyId),
-        quotes: state.quotes.filter(q => q.projectId === p.id)
-    }));
-    
-    const properties = state.properties.map(p => ({
-        ...p,
-        client: state.clients.find(c => c.id === p.clientId),
-        projects: state.projects.filter(proj => proj.propertyId === p.id)
-    }));
-
-    const quotes = state.quotes.map(q => ({
-        ...q,
-        client: state.clients.find(c => c.id === q.clientId),
-        project: state.projects.find(p => p.id === q.projectId)
-    }));
-    
-    return { ...state, clients, projects, properties, quotes };
-};
-
-// Add the function to the store's state for server-side usage if needed.
-useStore.setState({ getHydratedState });

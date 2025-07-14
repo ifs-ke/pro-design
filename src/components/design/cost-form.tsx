@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect, useState, useTransition } from "react";
 import { useStore } from "@/store/cost-store";
+import { useHydratedStore } from "@/hooks/use-hydrated-store";
 import {
   FormControl,
   FormField,
@@ -243,18 +244,9 @@ export function CostForm({ clients: initialClients, projects: initialProjects }:
     calculations: state.calculations,
     loadedQuoteId: state.loadedQuoteId
   }));
-
-  const [clients, setClients] = useState(initialClients);
-  const [projects, setProjects] = useState(initialProjects);
-
-  useEffect(() => {
-    setClients(initialClients);
-  }, [initialClients]);
   
-  useEffect(() => {
-    setProjects(initialProjects);
-  }, [initialProjects]);
-
+  const clients = useHydratedStore(state => state.clients) || initialClients;
+  const projects = useHydratedStore(state => state.projects) || initialProjects;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -344,7 +336,6 @@ export function CostForm({ clients: initialClients, projects: initialProjects }:
                             </SelectContent>
                         </Select>
                         <AddClientDialog onClientAdded={(client) => {
-                            setClients(c => [...c, client]);
                             form.setValue('clientId', client.id);
                         }} />
                      </div>
@@ -373,7 +364,6 @@ export function CostForm({ clients: initialClients, projects: initialProjects }:
                             </SelectContent>
                         </Select>
                         <AddProjectDialog clientId={selectedClientId} onProjectAdded={(project) => {
-                            setProjects(p => [...p, project]);
                             form.setValue('projectId', project.id);
                         }} />
                      </div>

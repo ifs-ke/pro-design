@@ -60,10 +60,11 @@ export function ProjectFormDialog({ project, clients, properties, children }: Pr
     }, [open, project]);
     
      useEffect(() => {
-        if (!project || project?.clientId !== clientId) {
+        // If the selected client doesn't own the selected property, reset the property.
+        if (propertyId && !clientProperties.some(p => p.id === propertyId)) {
           setPropertyId("");
         }
-    }, [clientId, project]);
+    }, [clientId, propertyId, clientProperties]);
 
     const handleSave = () => {
         if (!name) return;
