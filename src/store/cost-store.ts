@@ -464,7 +464,7 @@ export const useStore = create<CostState>()(
       }),
       {
         name: 'cost-form-storage', 
-        storage: createJSONStorage(() => sessionStorage),
+        storage: createJSONStorage(() => localStorage),
         partialize: (state) => ({ 
             formValues: state.formValues,
             allocations: state.allocations,
