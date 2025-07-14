@@ -66,11 +66,23 @@ export type PublishedQuote = {
 
 export type ProjectStatus = 'Planning' | 'In Progress' | 'Completed' | 'On Hold' | 'Cancelled';
 
+export type Property = {
+    id: string;
+    name: string;
+    address?: string;
+    propertyType: 'Residential' | 'Commercial' | 'Other';
+    clientId: string;
+    notes?: string;
+    createdAt: number;
+}
+export type PropertyDataInput = Partial<Omit<Property, 'id' | 'createdAt'>> & Pick<Property, 'name' | 'clientId'>;
+
 export type Project = {
     id: string;
     name: string;
     createdAt: number;
     clientId?: string;
+    propertyId?: string;
     scope?: string;
     timeline?: string;
     projectType?: 'Residential' | 'Commercial' | 'Hospitality' | 'Other';
@@ -89,6 +101,7 @@ interface CostState {
   allocations: Allocation;
   calculations: Calculations;
   clients: Client[];
+  properties: Property[];
   publishedQuotes: PublishedQuote[];
   projects: Project[];
   setFormValues: (values: FormValues) => void;
@@ -105,6 +118,9 @@ interface CostState {
   updateProject: (id: string, projectData: ProjectDataInput) => void;
   deleteProject: (id: string) => void;
   assignQuoteToProject: (quoteId: string, projectId: string) => void;
+  addProperty: (propertyData: PropertyDataInput) => Property;
+  updateProperty: (id: string, propertyData: Partial<PropertyDataInput>) => void;
+  deleteProperty: (id: string) => void;
 }
 
 const defaultFormValues: FormValues = {
@@ -250,6 +266,7 @@ export const useStore = create<CostState>()(
                 clients: [],
                 publishedQuotes: [],
                 projects: [],
+                properties: [],
 
                 setFormValues: (values) => {
                     set({
@@ -286,7 +303,8 @@ export const useStore = create<CostState>()(
                 deleteClient: (id) => {
                     set(state => ({
                         clients: state.clients.filter(c => c.id !== id),
-                        projects: state.projects.map(p => p.clientId === id ? { ...p, clientId: undefined } : p)
+                        projects: state.projects.map(p => p.clientId === id ? { ...p, clientId: undefined } : p),
+                        properties: state.properties.filter(p => p.clientId !== id)
                     }));
                 },
                 
@@ -373,6 +391,7 @@ export const useStore = create<CostState>()(
                         createdAt: Date.now(),
                         name: projectData.name,
                         clientId: projectData.clientId,
+                        propertyId: projectData.propertyId,
                         scope: projectData.scope,
                         timeline: projectData.timeline,
                         projectType: projectData.projectType,
@@ -402,6 +421,27 @@ export const useStore = create<CostState>()(
                             q.id === quoteId ? { ...q, projectId } : q
                         ),
                     }));
+                },
+                addProperty: (propertyData) => {
+                    const newProperty: Property = {
+                        id: `PROP-${Date.now()}`,
+                        createdAt: Date.now(),
+                        ...propertyData,
+                        propertyType: propertyData.propertyType || 'Residential',
+                    };
+                    set(state => ({ properties: [...state.properties, newProperty] }));
+                    return newProperty;
+                },
+                updateProperty: (id, propertyData) => {
+                    set(state => ({
+                        properties: state.properties.map(p => p.id === id ? { ...p, ...propertyData } : p)
+                    }));
+                },
+                deleteProperty: (id) => {
+                    set(state => ({
+                        properties: state.properties.filter(p => p.id !== id),
+                        projects: state.projects.map(p => p.propertyId === id ? { ...p, propertyId: undefined } : p)
+                    }));
                 }
             }),
             {
@@ -410,7 +450,8 @@ export const useStore = create<CostState>()(
                 partialize: (state) => ({ 
                     clients: state.clients,
                     publishedQuotes: state.publishedQuotes,
-                    projects: state.projects
+                    projects: state.projects,
+                    properties: state.properties,
                 }),
                 onRehydrateStorage: () => (state) => {
                     if (state) {

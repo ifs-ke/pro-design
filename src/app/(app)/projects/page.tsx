@@ -2,11 +2,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStore, type Project, type ProjectDataInput, type Client, type ProjectStatus } from "@/store/cost-store";
+import { useStore, type Project, type ProjectDataInput, type Client, type ProjectStatus, type Property } from "@/store/cost-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PlusCircle, Building, FileText, MoreHorizontal, Edit, Trash2, User, Calendar, ClipboardList, Home, Settings, BedDouble, Square, Activity } from "lucide-react";
+import { PlusCircle, Building, FileText, MoreHorizontal, Edit, Trash2, User, Calendar, ClipboardList, Home, Settings, BedDouble, Square, Activity, HomeIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -49,10 +49,11 @@ const statusVariant: { [key in ProjectStatus]: "default" | "secondary" | "outlin
   "Cancelled": "destructive",
 };
 
-function ProjectFormDialog({ project, clients, onSave, children }: { project?: Project, clients: Client[], onSave: (data: ProjectDataInput) => void, children: React.ReactNode }) {
+function ProjectFormDialog({ project, clients, properties, onSave, children }: { project?: Project, clients: Client[], properties: Property[], onSave: (data: ProjectDataInput) => void, children: React.ReactNode }) {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState("");
     const [clientId, setClientId] = useState<string | undefined>("");
+    const [propertyId, setPropertyId] = useState<string | undefined>("");
     const [scope, setScope] = useState("");
     const [timeline, setTimeline] = useState("");
     const [projectType, setProjectType] = useState<Project['projectType']>('Residential');
@@ -61,10 +62,13 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
     const [otherSpaces, setOtherSpaces] = useState("");
     const [status, setStatus] = useState<ProjectStatus>('Planning');
 
+    const clientProperties = properties.filter(p => p.clientId === clientId);
+
     useEffect(() => {
         if (open) {
             setName(project?.name || "");
             setClientId(project?.clientId || "");
+            setPropertyId(project?.propertyId || "");
             setScope(project?.scope || "");
             setTimeline(project?.timeline || "");
             setProjectType(project?.projectType || 'Residential');
@@ -74,12 +78,19 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
             setStatus(project?.status || 'Planning');
         }
     }, [open, project]);
+    
+     useEffect(() => {
+        if (!project) {
+          setPropertyId("");
+        }
+    }, [clientId, project]);
 
     const handleSave = () => {
         if (!name) return;
         onSave({ 
             name, 
             clientId, 
+            propertyId,
             scope, 
             timeline,
             projectType,
@@ -106,18 +117,33 @@ function ProjectFormDialog({ project, clients, onSave, children }: { project?: P
                         <Label htmlFor="project-name">Project Name *</Label>
                         <Input id="project-name" value={name} onChange={(e) => setName(e.target.value)} />
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="project-client">Client</Label>
-                        <Select onValueChange={setClientId} defaultValue={clientId}>
-                            <SelectTrigger id="project-client">
-                                <SelectValue placeholder="Select a client" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {clients.map(c => (
-                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="project-client">Client</Label>
+                            <Select onValueChange={setClientId} defaultValue={clientId}>
+                                <SelectTrigger id="project-client">
+                                    <SelectValue placeholder="Select a client" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {clients.map(c => (
+                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                           <Label htmlFor="project-property">Property</Label>
+                            <Select onValueChange={setPropertyId} value={propertyId} disabled={!clientId || clientProperties.length === 0}>
+                                <SelectTrigger id="project-property">
+                                    <SelectValue placeholder="Select a property" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {clientProperties.map(p => (
+                                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -201,13 +227,14 @@ const containerVariants = {
 
 
 function ProjectCard({ project }: { project: Project }) {
-    const { publishedQuotes, updateProject, deleteProject, clients } = useStore();
+    const { publishedQuotes, updateProject, deleteProject, clients, properties } = useStore();
     const [showAlert, setShowAlert] = useState(false);
 
     const projectQuotes = publishedQuotes.filter(q => q.projectId === project.id);
     const approvedQuotes = projectQuotes.filter(q => q.status === 'Approved');
     const totalApprovedValue = approvedQuotes.reduce((acc, q) => acc + q.calculations.grandTotal, 0);
     const client = clients.find(c => c.id === project.clientId);
+    const property = properties.find(p => p.id === project.propertyId);
 
     const handleUpdate = (data: ProjectDataInput) => {
         updateProject(project.id, data);
@@ -227,11 +254,18 @@ function ProjectCard({ project }: { project: Project }) {
                             <Building className="text-primary mt-1 flex-shrink-0"/>
                             <span>{project.name}</span>
                         </CardTitle>
-                        {client && (
-                             <CardDescription className="flex items-center gap-2 mt-2">
-                                <User className="size-4"/> {client.name}
-                            </CardDescription>
-                        )}
+                        <div className="space-y-1 mt-2">
+                            {client && (
+                                <CardDescription className="flex items-center gap-2">
+                                    <User className="size-4"/> {client.name}
+                                </CardDescription>
+                            )}
+                             {property && (
+                                <CardDescription className="flex items-center gap-2">
+                                    <HomeIcon className="size-4"/> {property.name}
+                                </CardDescription>
+                            )}
+                        </div>
                     </div>
                     <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
                         <DropdownMenu>
@@ -239,7 +273,7 @@ function ProjectCard({ project }: { project: Project }) {
                                 <Button variant="ghost" size="icon"><MoreHorizontal /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <ProjectFormDialog project={project} clients={clients} onSave={handleUpdate}>
+                                <ProjectFormDialog project={project} clients={clients} properties={properties} onSave={handleUpdate}>
                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                         <Edit className="mr-2"/> Edit Project
                                     </DropdownMenuItem>
@@ -357,7 +391,7 @@ function ProjectCard({ project }: { project: Project }) {
 
 export default function ProjectsPage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const { projects, clients, createProject } = useStore();
+  const { projects, clients, properties, createProject } = useStore();
 
   useEffect(() => {
     useStore.persist.rehydrate();
@@ -383,7 +417,7 @@ export default function ProjectsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
           <p className="text-muted-foreground mt-1">Manage all your ongoing and completed projects.</p>
         </div>
-        <ProjectFormDialog onSave={handleCreate} clients={clients}>
+        <ProjectFormDialog onSave={handleCreate} clients={clients} properties={properties}>
           <Button size="sm">
             <PlusCircle className="mr-2" />
             Create Project
@@ -400,7 +434,7 @@ export default function ProjectsPage() {
             </CardHeader>
             <CardContent>
               <div className="flex gap-4 justify-center">
-                <ProjectFormDialog onSave={handleCreate} clients={clients}>
+                <ProjectFormDialog onSave={handleCreate} clients={clients} properties={properties}>
                     <Button>Create Project</Button>
                 </ProjectFormDialog>
                 <Button variant="secondary" asChild>

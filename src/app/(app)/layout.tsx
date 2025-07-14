@@ -15,11 +15,12 @@ import {
   SidebarInset,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Home, FileText, Calculator, Building, Users } from "lucide-react";
+import { Home, FileText, Calculator, Building, Users, HomeIcon } from "lucide-react";
 import { ThemeToggle } from "@/components/design/theme-toggle";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
+  { href: "/dashboard", label: "Dashboard", icon: HomeIcon },
+  { href: "/properties", label: "Properties", icon: Home },
   { href: "/projects", label: "Projects", icon: Building },
   { href: "/quotes", label: "Quotes", icon: FileText },
   { href: "/crm", label: "CRM", icon: Users },
