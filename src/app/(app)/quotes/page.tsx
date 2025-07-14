@@ -5,16 +5,16 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText } from "lucide-react";
-import { useHydratedStore } from "@/hooks/use-hydrated-store";
+import { useStore } from "@/store/cost-store";
 import { QuotesTable } from '@/components/design/quotes-table';
 
 export default function QuotesPage() {
-    const { quotes, projects, clients, isLoading } = useHydratedStore(state => ({
-        quotes: state.quotes,
-        projects: state.projects,
-        clients: state.clients,
-        isLoading: !state._hydrated,
+    const { quotes, projects, clients } = useStore((state) => ({
+      quotes: state.quotes,
+      projects: state.projects,
+      clients: state.clients,
     }));
+    const isLoading = !useStore((state) => state._hydrated);
 
   if (isLoading) {
     return (

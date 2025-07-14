@@ -23,11 +23,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { publishQuote } from "@/lib/actions";
 
-interface ProjectQuoteProps {
-    clients: any[];
-}
-
-export function ProjectQuote({ clients }: ProjectQuoteProps) {
+export function ProjectQuote() {
   const { 
     calculations: globalCalculations, 
     formValues,

@@ -479,17 +479,8 @@ export const useStore = create<CostState>()(
       {
         name: 'cost-form-storage', 
         storage: createJSONStorage(() => localStorage),
-        partialize: (state) => ({ 
-            formValues: state.formValues,
-            allocations: state.allocations,
-            loadedQuoteId: state.loadedQuoteId,
-            clients: state.clients,
-            properties: state.properties,
-            projects: state.projects,
-            quotes: state.quotes,
-        }),
         onRehydrateStorage: () => (state) => {
-            if (state) state.setHydrated();
+          state?.setHydrated();
         },
       }
     ),

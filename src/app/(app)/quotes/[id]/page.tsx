@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useHydratedStore } from "@/hooks/use-hydrated-store";
+import { useStore } from "@/store/cost-store";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { CostBreakdown } from "@/components/design/quote-display";
@@ -16,10 +16,8 @@ export default function QuoteDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const { quote, isLoading } = useHydratedStore(state => ({
-      quote: state.quotes.find(q => q.id === id),
-      isLoading: !state._hydrated,
-  }));
+  const quote = useStore(state => state.quotes.find(q => q.id === id));
+  const isLoading = !useStore((state) => state._hydrated);
   
   if (isLoading) {
     return (

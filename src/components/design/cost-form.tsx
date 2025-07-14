@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect, useState, useTransition } from "react";
 import { useStore } from "@/store/cost-store";
-import { useHydratedStore } from "@/hooks/use-hydrated-store";
 import {
   FormControl,
   FormField,
@@ -66,19 +65,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { createClient, createProject } from "@/lib/actions";
-
-// Manually define types to avoid Prisma dependency on client
-interface Client {
-    id: string;
-    name: string;
-    [key: string]: any;
-}
-interface Project {
-    id: string;
-    name: string;
-    clientId: string;
-    [key: string]: any;
-}
+import type { Client, Project } from "@/store/cost-store";
 
 const materialItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -232,12 +219,7 @@ function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onP
     );
 }
 
-interface CostFormProps {
-    clients: Client[];
-    projects: Project[];
-}
-
-export function CostForm({ clients: initialClients, projects: initialProjects }: CostFormProps) {
+export function CostForm() {
   const { formValues, setFormValues, calculations, loadedQuoteId } = useStore(state => ({
     formValues: state.formValues,
     setFormValues: state.setFormValues,
@@ -245,8 +227,8 @@ export function CostForm({ clients: initialClients, projects: initialProjects }:
     loadedQuoteId: state.loadedQuoteId
   }));
   
-  const clients = useHydratedStore(state => state.clients) || initialClients;
-  const projects = useHydratedStore(state => state.projects) || initialProjects;
+  const clients = useStore((state) => state.clients);
+  const projects = useStore((state) => state.projects);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useHydratedStore } from "@/hooks/use-hydrated-store";
+import { useStore } from "@/store/cost-store";
 
 import { CostForm } from "@/components/design/cost-form";
 import { ProfitAllocator } from "@/components/design/profit-allocator";
@@ -9,34 +9,15 @@ import { ProjectQuote } from "@/components/design/project-quote";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 
-// Manually define types to avoid Prisma dependency on client
-interface Client {
-    id: string;
-    name: string;
-    [key: string]: any;
-}
-interface Project {
-    id: string;
-    name: string;
-    clientId: string;
-    [key: string]: any;
-}
-
-
 export default function CostingPage() {
-  const { resetForm, clients, projects, isLoading } = useHydratedStore(state => ({
-      resetForm: state.resetForm,
-      clients: state.clients,
-      projects: state.projects,
-      isLoading: !state._hydrated,
-  }));
+  const resetForm = useStore((state) => state.resetForm);
+  const isLoading = !useStore((state) => state._hydrated);
 
   const handleNewQuote = () => {
     resetForm();
   }
 
   if (isLoading) {
-    // You can return a loading spinner or null here
     return (
         <div className="flex justify-center items-center h-screen">
             <div className="text-lg">Loading Costing Tool...</div>
@@ -63,12 +44,12 @@ export default function CostingPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
         <div className="lg:col-span-3 space-y-8">
-          <CostForm clients={clients} projects={projects} />
+          <CostForm />
         </div>
 
         <div className="lg:col-span-2 space-y-8 sticky top-8">
           <ProfitAllocator />
-          <ProjectQuote clients={clients} />
+          <ProjectQuote />
         </div>
       </div>
     </>

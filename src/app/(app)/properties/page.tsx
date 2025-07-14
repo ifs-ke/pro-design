@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useHydratedStore } from "@/hooks/use-hydrated-store";
+import { useStore } from "@/store/cost-store";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Home, User } from "lucide-react";
@@ -20,11 +20,8 @@ const containerVariants = {
 };
 
 export default function PropertiesPage() {
-    const { properties, clients, isLoading } = useHydratedStore(state => ({
-        properties: state.properties,
-        clients: state.clients,
-        isLoading: !state._hydrated,
-    }));
+    const { properties, clients } = useStore((state) => ({ properties: state.properties, clients: state.clients }));
+    const isLoading = !useStore((state) => state._hydrated);
 
   if (isLoading) {
     return (
