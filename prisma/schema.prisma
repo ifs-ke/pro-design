@@ -3,15 +3,13 @@
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  binaryTargets = ["native", "linux-musl"]
 }
 
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
-
-// --_ MODELS --_
 
 model Client {
   id              String        @id @default(cuid())
@@ -20,8 +18,8 @@ model Client {
   name            String
   email           String?
   phone           String?
-  status          String        @default("Lead") // Replaces ClientStatus enum
-  responsiveness  String        @default("Warm") // Replaces ResponsivenessStatus enum
+  status          String        @default("Lead")
+  responsiveness  String        @default("Warm")
   properties      Property[]
   projects        Project[]
   quotes          Quote[]
@@ -29,12 +27,12 @@ model Client {
 }
 
 model Interaction {
-  id        String   @id @default(cuid())
-  timestamp DateTime @default(now())
-  type      String   // Replaces InteractionType enum
-  notes     String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId  String
+  id          String   @id @default(cuid())
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  timestamp   DateTime @default(now())
+  type        String   @default("Call")
+  notes       String
 }
 
 model Property {
@@ -43,43 +41,41 @@ model Property {
   updatedAt    DateTime  @updatedAt
   name         String
   address      String?
-  propertyType String    @default("Residential") // Replaces PropertyType enum
+  propertyType String    @default("Residential")
   notes        String?
-  client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId     String
+  client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   projects     Project[]
 }
 
 model Project {
-  id           String    @id @default(cuid())
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  name         String
-  client       Client?   @relation(fields: [clientId], references: [id])
-  clientId     String?
-  property     Property? @relation(fields: [propertyId], references: [id])
-  propertyId   String?
-  scope        String?
-  timeline     String?
-  projectType  String?   @default("Residential")
-  services     String?
-  roomCount    Int?
-  otherSpaces  String?
-  status       String    @default("Planning") // Replaces ProjectStatus enum
-  quotes       Quote[]
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  name        String
+  scope       String?
+  timeline    String?
+  projectType String    @default("Residential")
+  services    String?
+  roomCount   Int?
+  otherSpaces String?
+  status      String    @default("Planning")
+  clientId    String?
+  client      Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  quotes      Quote[]
 }
 
 model Quote {
-  id        String   @id @default(cuid())
-  timestamp DateTime @default(now())
-  status    String   @default("Draft") // Replaces QuoteStatus enum
-
-  client    Client?  @relation(fields: [clientId], references: [id])
-  clientId  String?
-  project   Project? @relation(fields: [projectId], references: [id])
-  projectId String?
-
-  // JSON fields stored as strings
+  id                    String   @id @default(cuid())
+  timestamp             DateTime @default(now())
+  status                String   @default("Draft")
+  clientId              String?
+  client                Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectId             String?
+  project               Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  // JSON fields to store complex, nested data from the form
   formValues            String
   allocations           String
   calculations          String
