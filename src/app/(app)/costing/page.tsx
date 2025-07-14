@@ -2,6 +2,7 @@
 "use client";
 
 import { useStore } from "@/store/cost-store";
+import { useIsHydrated } from "@/hooks/use-hydrated-store";
 
 import { CostForm } from "@/components/design/cost-form";
 import { ProfitAllocator } from "@/components/design/profit-allocator";
@@ -11,7 +12,7 @@ import { RefreshCcw } from "lucide-react";
 
 export default function CostingPage() {
   const resetForm = useStore((state) => state.resetForm);
-  const isLoading = !useStore((state) => state._hydrated);
+  const isLoading = !useIsHydrated();
 
   const handleNewQuote = () => {
     resetForm();

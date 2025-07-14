@@ -2,6 +2,7 @@
 'use client';
 
 import { useStore } from "@/store/cost-store";
+import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { CostBreakdown } from "@/components/design/quote-display";
@@ -10,15 +11,26 @@ import { formatCurrency } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
-import type { Calculations, Allocation, FormValues } from "@/store/cost-store";
+import type { Calculations, Allocation, FormValues, HydratedQuote } from "@/store/cost-store";
+import { useEffect, useState } from "react";
 
 export default function QuoteDetailPage() {
   const params = useParams();
   const id = params.id as string;
-
-  const quote = useStore(state => state.quotes.find(q => q.id === id));
-  const isLoading = !useStore((state) => state._hydrated);
+  const { getHydratedData } = useStore();
+  const isLoading = !useIsHydrated();
   
+  const [quote, setQuote] = useState<HydratedQuote | undefined>(undefined);
+
+  useEffect(() => {
+    if (!isLoading) {
+        const { quotes } = getHydratedData();
+        const foundQuote = quotes.find(q => q.id === id);
+        setQuote(foundQuote);
+    }
+  }, [id, isLoading, getHydratedData]);
+
+
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen">
@@ -28,7 +40,11 @@ export default function QuoteDetailPage() {
   }
   
   if (!quote) {
-    notFound();
+    // We need to wait for the effect to run
+    if (!isLoading) {
+       notFound();
+    }
+    return null; // or a loading spinner
   }
 
   const calculations = quote.calculations as Calculations;

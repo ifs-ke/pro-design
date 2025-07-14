@@ -2,6 +2,7 @@
 'use client';
 
 import { useStore } from "@/store/cost-store";
+import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { ClientCard } from "@/components/design/client-card";
 import { ClientFormDialog } from "@/components/design/client-form";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,8 @@ const containerVariants = {
 };
 
 export default function CrmPage() {
-    const clients = useStore((state) => state.clients);
-    const isLoading = !useStore((state) => state._hydrated);
+    const { clients } = useStore((state) => state.getHydratedData());
+    const isLoading = !useIsHydrated();
 
     if (isLoading) {
         return (

@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useStore } from "@/store/cost-store";
+import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { Calculator, ArrowRight, Users, FileText, BarChart2, CheckCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { getDashboardMetrics } from '@/lib/actions';
 import {
   Carousel,
   CarouselContent,
@@ -20,17 +20,11 @@ import { DashboardCharts } from "@/components/design/dashboard-charts";
 
 
 export default function DashboardPage() {
-  const [dashboardMetrics, setDashboardMetrics] = useState<any>(null);
+  const { dashboardMetrics } = useStore((state) => state.getHydratedData());
+  const isLoading = !useIsHydrated();
 
-  useEffect(() => {
-    async function fetchData() {
-      const metrics = await getDashboardMetrics();
-      setDashboardMetrics(metrics);
-    }
-    fetchData();
-  }, []);
 
-  if (!dashboardMetrics) {
+  if (isLoading || !dashboardMetrics) {
     return (
         <div className="flex justify-center items-center h-screen">
             <div className="text-lg">Loading Dashboard...</div>

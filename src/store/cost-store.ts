@@ -94,7 +94,7 @@ export interface Quote {
 export interface HydratedClient extends Client {
     projects: HydratedProject[];
     quotes: HydratedQuote[];
-    properties: Property[];
+    properties: HydratedProperty[];
 }
 
 export interface HydratedProperty extends Property {
@@ -111,6 +111,26 @@ export interface HydratedProject extends Project {
 export interface HydratedQuote extends Quote {
     client?: Client;
     project?: Project;
+}
+
+type DashboardMetrics = {
+    totalClients: number;
+    totalProjects: number;
+    approvedRevenue: number;
+    approvalRate: number;
+    clientStatusData: { name: string; value: number }[];
+    quoteStatusData: { name: string; value: number }[];
+    projectStatusData: { name: string; value: number }[];
+    totalApprovedQuotes: number;
+    totalQuotes: number;
+};
+
+interface HydratedData {
+    clients: HydratedClient[];
+    properties: HydratedProperty[];
+    projects: HydratedProject[];
+    quotes: HydratedQuote[];
+    dashboardMetrics: DashboardMetrics;
 }
 
 
@@ -134,19 +154,21 @@ interface CostState {
   loadQuoteIntoForm: (quoteId: string) => void; 
   resetForm: () => void;
   setHydrated: () => void;
+  getHydratedData: () => HydratedData;
+
 
   // "DB" actions
   addClient: (data: { name: string; email?: string; phone?: string }) => Client;
-  updateClient: (id: string, data: Partial<Client>) => void;
+  updateClient: (id: string, data: Partial<Omit<Client, 'id' | 'createdAt'>>) => void;
   deleteClient: (id: string) => void;
   addInteraction: (clientId: string, data: { type: Interaction['type']; notes: string }) => void;
   
-  addProperty: (data: Partial<Property>) => Property;
-  updateProperty: (id: string, data: Partial<Property>) => void;
+  addProperty: (data: Partial<Omit<Property, 'id' | 'createdAt' | 'updatedAt'>>) => Property;
+  updateProperty: (id: string, data: Partial<Omit<Property, 'id' | 'createdAt'>>) => void;
   deleteProperty: (id: string) => void;
 
-  addProject: (data: Partial<Project>) => Project;
-  updateProject: (id: string, data: Partial<Project>) => void;
+  addProject: (data: Partial<Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'status'>>) => Project;
+  updateProject: (id: string, data: Partial<Omit<Project, 'id' | 'createdAt'>>) => void;
   deleteProject: (id: string) => void;
 
   publishQuote: (quoteId: string | null, formValues: FormValues, allocations: Allocation, finalCalculations: Calculations, suggestedCalculations: Calculations) => { quoteId: string, wasExisting: boolean };
@@ -208,7 +230,6 @@ const performCalculations = (formValues: FormValues): Calculations => {
 
     const miscRate = (miscPercentage || 0) / 100;
     
-    // Only apply salary percentage if numberOfPeople is greater than 0
     const salaryRate = (numberOfPeople ?? 0) > 0 ? (salaryPercentage || 0) / 100 : 0;
     
     const fixedCosts = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost;
@@ -264,7 +285,7 @@ const performCalculations = (formValues: FormValues): Calculations => {
     const percentageAffiliateCost = grandTotal * percentageAffiliateRate;
 
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
-    const operationalCost = fixedOperationalCost; // miscCost and salaryCost are now top-level costs, not part of operations
+    const operationalCost = fixedOperationalCost;
     const totalBaseCost = materialCost + laborCost + operationalCost + affiliateCost + miscCost + salaryCost;
     
     const finalProfit = subtotal - totalBaseCost;
@@ -300,7 +321,6 @@ export const useStore = create<CostState>()(
         loadedQuoteId: null,
         _hydrated: false,
 
-        // In-memory "database"
         clients: [],
         properties: [],
         projects: [],
@@ -319,6 +339,72 @@ export const useStore = create<CostState>()(
         
         setHydrated: () => {
             set({ _hydrated: true });
+        },
+
+        getHydratedData: () => {
+            const { clients, properties, projects, quotes } = get();
+            
+            const hydratedQuotes: HydratedQuote[] = quotes.map(q => ({
+                ...q,
+                client: clients.find(c => c.id === q.clientId),
+                project: projects.find(p => p.id === q.projectId),
+            })).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+            const hydratedProjects: HydratedProject[] = projects.map(p => ({
+                ...p,
+                client: clients.find(c => c.id === p.clientId),
+                property: properties.find(prop => prop.id === p.propertyId),
+                quotes: hydratedQuotes.filter(q => q.projectId === p.id),
+            })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            const hydratedProperties: HydratedProperty[] = properties.map(p => ({
+                ...p,
+                client: clients.find(c => c.id === p.clientId),
+                projects: hydratedProjects.filter(proj => proj.propertyId === p.id),
+            })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            
+            const hydratedClients: HydratedClient[] = clients.map(c => ({
+                ...c,
+                projects: hydratedProjects.filter(p => p.clientId === c.id),
+                quotes: hydratedQuotes.filter(q => q.clientId === c.id),
+                properties: hydratedProperties.filter(p => p.clientId === c.id),
+            })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            const approvedQuotes = quotes.filter(q => q.status === 'Approved');
+            const approvedRevenue = approvedQuotes.reduce((sum, q) => sum + (q.calculations as any).grandTotal, 0);
+            const approvalRate = quotes.length > 0 ? (approvedQuotes.length / quotes.length) * 100 : 0;
+            const clientStatusCounts = clients.reduce((acc: Record<string, number>, client) => {
+                acc[client.status] = (acc[client.status] || 0) + 1;
+                return acc;
+            }, {});
+            const quoteStatusCounts = quotes.reduce((acc: Record<string, number>, quote) => {
+                acc[quote.status] = (acc[quote.status] || 0) + 1;
+                return acc;
+            }, {});
+            const projectStatusCounts = projects.reduce((acc: Record<string, number>, project) => {
+                acc[project.status] = (acc[project.status] || 0) + 1;
+                return acc;
+            }, {});
+
+            const dashboardMetrics: DashboardMetrics = {
+              totalClients: clients.length,
+              totalProjects: projects.length,
+              approvedRevenue,
+              approvalRate,
+              clientStatusData: Object.entries(clientStatusCounts).map(([name, value]) => ({ name, value })),
+              quoteStatusData: Object.entries(quoteStatusCounts).map(([name, value]) => ({ name, value })),
+              projectStatusData: Object.entries(projectStatusCounts).map(([name, value]) => ({ name, value })),
+              totalApprovedQuotes: approvedQuotes.length,
+              totalQuotes: quotes.length,
+            };
+
+            return {
+                clients: hydratedClients,
+                properties: hydratedProperties,
+                projects: hydratedProjects,
+                quotes: hydratedQuotes,
+                dashboardMetrics
+            }
         },
 
         loadQuoteIntoForm: (quoteId: string) => {
@@ -341,7 +427,6 @@ export const useStore = create<CostState>()(
           });
         },
 
-        // Client actions
         addClient: (data) => {
             const newClient: Client = {
                 ...data,
@@ -375,13 +460,12 @@ export const useStore = create<CostState>()(
             }));
         },
 
-        // Property actions
         addProperty: (data) => {
             const newProperty: Property = {
-                ...data,
                 id: crypto.randomUUID(),
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
+                ...data
             } as Property;
             set(state => ({ properties: [...state.properties, newProperty] }));
             return newProperty;
@@ -398,14 +482,13 @@ export const useStore = create<CostState>()(
             }));
         },
 
-        // Project actions
         addProject: (data) => {
             const newProject: Project = {
-                ...data,
                 id: crypto.randomUUID(),
                 status: 'Planning',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
+                ...data
             } as Project;
             set(state => ({ projects: [...state.projects, newProject] }));
             return newProject;
@@ -422,9 +505,8 @@ export const useStore = create<CostState>()(
             }));
         },
 
-        // Quote actions
         publishQuote: (quoteId, formValues, allocations, finalCalculations, suggestedCalculations) => {
-            if (quoteId) { // Update existing
+            if (quoteId) {
                 let updatedQuote: Quote | null = null;
                 set(state => ({
                     quotes: state.quotes.map(q => {
@@ -436,7 +518,9 @@ export const useStore = create<CostState>()(
                                 calculations: finalCalculations,
                                 suggestedCalculations,
                                 timestamp: new Date().toISOString(),
-                                status: 'Draft'
+                                status: 'Draft',
+                                clientId: formValues.clientId,
+                                projectId: formValues.projectId || null,
                             };
                             return updatedQuote;
                         }
@@ -444,7 +528,7 @@ export const useStore = create<CostState>()(
                     })
                 }));
                 return { quoteId, wasExisting: true };
-            } else { // Create new
+            } else {
                 const newQuote: Quote = {
                     id: `QT-${Date.now().toString().slice(-6)}`,
                     clientId: formValues.clientId,
@@ -477,10 +561,10 @@ export const useStore = create<CostState>()(
         },
       }),
       {
-        name: 'cost-form-storage', 
+        name: 'design-cost-pro-storage',
         storage: createJSONStorage(() => localStorage),
         onRehydrateStorage: () => (state) => {
-          state?.setHydrated();
+          if (state) state.setHydrated();
         },
       }
     ),

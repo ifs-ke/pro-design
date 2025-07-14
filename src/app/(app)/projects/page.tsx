@@ -2,6 +2,7 @@
 'use client';
 
 import { useStore } from "@/store/cost-store";
+import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
@@ -21,12 +22,8 @@ const containerVariants = {
 };
 
 export default function ProjectsPage() {
-  const { projects, clients, properties } = useStore((state) => ({
-    projects: state.projects,
-    clients: state.clients,
-    properties: state.properties,
-  }));
-  const isLoading = !useStore((state) => state._hydrated);
+  const { projects, clients, properties } = useStore((state) => state.getHydratedData());
+  const isLoading = !useIsHydrated();
 
 
   if (isLoading) {
