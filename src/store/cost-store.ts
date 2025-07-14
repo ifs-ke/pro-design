@@ -175,45 +175,51 @@ const performCalculations = (formValues: FormValues): Calculations => {
 
 
 export const useStore = create<CostState>()(
-    devtools(
-        (set) => ({
+  devtools(
+    persist(
+      (set) => ({
+        formValues: defaultFormValues,
+        allocations: defaultAllocations,
+        calculations: performCalculations(defaultFormValues),
+        loadedQuoteId: null,
+
+        setFormValues: (values) => {
+          set({
+            formValues: values,
+            calculations: performCalculations(values),
+          });
+        },
+
+        setAllocations: (allocations) => {
+          set({ allocations });
+        },
+
+        loadQuoteIntoForm: (quote) => {
+          if (quote && quote.formValues && quote.allocations) {
+            const formVals = quote.formValues as FormValues;
+            const allocs = quote.allocations as Allocation;
+            set({
+              formValues: formVals,
+              allocations: allocs,
+              calculations: performCalculations(formVals),
+              loadedQuoteId: quote.id,
+            });
+          }
+        },
+        resetForm: () => {
+          set({
             formValues: defaultFormValues,
             allocations: defaultAllocations,
             calculations: performCalculations(defaultFormValues),
             loadedQuoteId: null,
-
-            setFormValues: (values) => {
-                set({
-                    formValues: values,
-                    calculations: performCalculations(values),
-                });
-            },
-
-            setAllocations: (allocations) => {
-                set({ allocations });
-            },
-
-            loadQuoteIntoForm: (quote) => {
-                if (quote && quote.formValues && quote.allocations) {
-                    const formVals = quote.formValues as FormValues;
-                    const allocs = quote.allocations as Allocation;
-                    set({
-                        formValues: formVals,
-                        allocations: allocs,
-                        calculations: performCalculations(formVals),
-                        loadedQuoteId: quote.id,
-                    });
-                }
-            },
-            resetForm: () => {
-                set({
-                    formValues: defaultFormValues,
-                    allocations: defaultAllocations,
-                    calculations: performCalculations(defaultFormValues),
-                    loadedQuoteId: null,
-                })
-            }
-        }),
-        { name: "CostFormStore" }
-    )
+          });
+        },
+      }),
+      {
+        name: 'cost-form-storage', 
+        storage: createJSONStorage(() => sessionStorage),
+      }
+    ),
+    { name: "CostFormStore" }
+  )
 );

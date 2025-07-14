@@ -1,9 +1,13 @@
+'use client';
+
+import { useEffect, useState } from "react";
 import { getClients } from "@/lib/actions";
 import { ClientCard } from "@/components/design/client-card";
 import { ClientFormDialog } from "@/components/design/client-form";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Users } from "lucide-react";
 import { motion } from "framer-motion";
+import type { Client, Project, Quote, Interaction } from "@prisma/client";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -15,8 +19,37 @@ const containerVariants = {
   },
 };
 
-export default async function CrmPage() {
-    const clients = await getClients();
+type ClientWithRelations = Client & {
+    quotes: Quote[];
+    projects: Project[];
+    interactions: Interaction[];
+}
+
+export default function CrmPage() {
+    const [clients, setClients] = useState<ClientWithRelations[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchClients() {
+            try {
+                const fetchedClients = await getClients();
+                setClients(fetchedClients);
+            } catch (error) {
+                console.error("Failed to fetch clients:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchClients();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="text-lg">Loading Clients...</div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-8">

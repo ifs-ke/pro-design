@@ -2,13 +2,16 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+// --_ MODELS --_
 
 model Client {
   id              String        @id @default(cuid())
@@ -17,22 +20,21 @@ model Client {
   name            String
   email           String?
   phone           String?
-  status          String        @default("Lead") // Replaced enum with String
-  responsiveness  String        @default("Warm") // Replaced enum with String
-
-  properties    Property[]
-  projects      Project[]
-  quotes        Quote[]
-  interactions  Interaction[]
+  status          String        @default("Lead") // Replaces ClientStatus enum
+  responsiveness  String        @default("Warm") // Replaces ResponsivenessStatus enum
+  properties      Property[]
+  projects        Project[]
+  quotes          Quote[]
+  interactions    Interaction[]
 }
 
 model Interaction {
-  id         String   @id @default(cuid())
-  timestamp  DateTime @default(now())
-  type       String   // Replaced enum with String
-  notes      String
-  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId   String
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  type      String   // Replaces InteractionType enum
+  notes     String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId  String
 }
 
 model Property {
@@ -41,12 +43,11 @@ model Property {
   updatedAt    DateTime  @updatedAt
   name         String
   address      String?
-  propertyType String    @default("Residential") // Replaced enum with String
+  propertyType String    @default("Residential") // Replaces PropertyType enum
   notes        String?
-
-  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId   String
-  projects   Project[]
+  client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId     String
+  projects     Project[]
 }
 
 model Project {
@@ -54,29 +55,28 @@ model Project {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   name         String
+  client       Client?   @relation(fields: [clientId], references: [id])
+  clientId     String?
+  property     Property? @relation(fields: [propertyId], references: [id])
+  propertyId   String?
   scope        String?
   timeline     String?
-  projectType  String?   @default("Residential") // Replaced enum with String
+  projectType  String?   @default("Residential")
   services     String?
   roomCount    Int?
   otherSpaces  String?
-  status       String    @default("Planning") // Replaced enum with String
-
-  client       Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  clientId     String?
-  property     Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
-  propertyId   String?
+  status       String    @default("Planning") // Replaces ProjectStatus enum
   quotes       Quote[]
 }
 
 model Quote {
   id        String   @id @default(cuid())
   timestamp DateTime @default(now())
-  status    String   @default("Draft") // Replaced enum with String
+  status    String   @default("Draft") // Replaces QuoteStatus enum
 
-  client    Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  client    Client?  @relation(fields: [clientId], references: [id])
   clientId  String?
-  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project   Project? @relation(fields: [projectId], references: [id])
   projectId String?
 
   // JSON fields stored as strings

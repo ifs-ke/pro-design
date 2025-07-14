@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { getQuoteById } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -6,16 +9,41 @@ import { MaterialsList } from "@/components/design/materials-list";
 import { formatCurrency } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import type { Calculations, Allocation, FormValues } from "@/store/cost-store";
+import type { Quote } from '@prisma/client';
 
-interface QuoteDetailPageProps {
-    params: { id: string };
-}
+type QuoteWithClient = Quote & { client: { name: string } | null };
 
-export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) {
-  const quote = await getQuoteById(params.id);
+export default function QuoteDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const [quote, setQuote] = useState<QuoteWithClient | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (id) {
+      getQuoteById(id)
+        .then((data) => {
+          if (!data) {
+            notFound();
+          } else {
+            setQuote(data as QuoteWithClient);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
+  }, [id]);
+
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <div className="text-lg">Loading Quote...</div>
+        </div>
+    );
+  }
+  
   if (!quote) {
     notFound();
   }

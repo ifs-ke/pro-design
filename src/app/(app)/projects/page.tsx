@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from "react";
 import { getProjects, getClients, getProperties } from "@/lib/actions";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +9,7 @@ import { PlusCircle, Building } from "lucide-react";
 import { ProjectFormDialog } from "@/components/design/project-form";
 import { ProjectCard } from "@/components/design/project-card";
 import { motion } from "framer-motion";
+import type { Project, Client, Property } from "@prisma/client";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -17,12 +21,46 @@ const containerVariants = {
   },
 };
 
-export default async function ProjectsPage() {
-  const [projects, clients, properties] = await Promise.all([
-    getProjects(),
-    getClients(),
-    getProperties()
-  ]);
+type ProjectWithRelations = Project & {
+    client: Client | null;
+    property: Property | null;
+    quotes: any[];
+}
+
+
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<ProjectWithRelations[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [projectsData, clientsData, propertiesData] = await Promise.all([
+          getProjects(),
+          getClients(),
+          getProperties()
+        ]);
+        setProjects(projectsData as ProjectWithRelations[]);
+        setClients(clientsData);
+        setProperties(propertiesData);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <div className="text-lg">Loading Projects...</div>
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">

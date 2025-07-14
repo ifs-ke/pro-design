@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from "react";
 import { getProperties, getClients } from "@/lib/actions";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,6 +8,7 @@ import { PlusCircle, Home, User } from "lucide-react";
 import { PropertyFormDialog } from "@/components/design/property-form";
 import { PropertyCard } from "@/components/design/property-card";
 import { motion } from "framer-motion";
+import type { Property, Client, Project } from "@prisma/client";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -16,8 +20,38 @@ const containerVariants = {
   },
 };
 
-export default async function PropertiesPage() {
-  const [properties, clients] = await Promise.all([getProperties(), getClients()]);
+type PropertyWithRelations = Property & {
+    client: Client;
+    projects: Project[];
+}
+
+export default function PropertiesPage() {
+  const [properties, setProperties] = useState<PropertyWithRelations[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+        try {
+            const [propertiesData, clientsData] = await Promise.all([getProperties(), getClients()]);
+            setProperties(propertiesData as PropertyWithRelations[]);
+            setClients(clientsData);
+        } catch (error) {
+            console.error("Failed to fetch properties data:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <div className="text-lg">Loading Properties...</div>
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">

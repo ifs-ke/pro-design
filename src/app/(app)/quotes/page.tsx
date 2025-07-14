@@ -1,17 +1,49 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText } from "lucide-react";
 import { getQuotes, getProjects, getClients } from "@/lib/actions";
 import { QuotesTable } from '@/components/design/quotes-table';
+import type { Quote, Project, Client } from "@prisma/client";
 
+type QuoteWithRelations = Quote & { client: Client | null; project: Project | null; }
 
-export default async function QuotesPage() {
-  const [quotes, projects, clients] = await Promise.all([
-    getQuotes(),
-    getProjects(),
-    getClients(),
-  ]);
+export default function QuotesPage() {
+  const [quotes, setQuotes] = useState<QuoteWithRelations[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+        try {
+            const [quotesData, projectsData, clientsData] = await Promise.all([
+              getQuotes(),
+              getProjects(),
+              getClients(),
+            ]);
+            setQuotes(quotesData as QuoteWithRelations[]);
+            setProjects(projectsData);
+            setClients(clientsData);
+        } catch (error) {
+            console.error("Failed to fetch quotes data:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <div className="text-lg">Loading Quotes...</div>
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
