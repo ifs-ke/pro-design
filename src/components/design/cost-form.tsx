@@ -5,7 +5,8 @@ import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect, useState, useTransition } from "react";
-import { useStore } from "@/store/cost-store";
+import { useStore, performCalculations } from "@/store/cost-store";
+import type { Client, Project, Calculations } from "@/store/cost-store";
 import {
   FormControl,
   FormField,
@@ -64,7 +65,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import type { Client, Project } from "@/store/cost-store";
 
 const materialItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -220,11 +220,13 @@ function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onP
     );
 }
 
-export function CostForm() {
-  const { formValues, setCalculations, calculations, loadedQuoteId, getHydratedData } = useStore(state => ({
+interface CostFormProps {
+    onCalculationsChange: (calculations: Calculations) => void;
+}
+
+export function CostForm({ onCalculationsChange }: CostFormProps) {
+  const { formValues, loadedQuoteId, getHydratedData } = useStore(state => ({
     formValues: state.formValues,
-    setCalculations: state.setCalculations,
-    calculations: state.calculations,
     loadedQuoteId: state.loadedQuoteId,
     getHydratedData: state.getHydratedData
   }));
@@ -235,6 +237,8 @@ export function CostForm() {
     resolver: zodResolver(formSchema),
     defaultValues: formValues,
   });
+  
+  const [localCalculations, setLocalCalculations] = useState<Calculations>(() => performCalculations(form.getValues()));
   
   // When formValues from store changes (e.g. loading a quote or resetting), reset the form
   useEffect(() => {
@@ -268,13 +272,14 @@ export function CostForm() {
 
   useEffect(() => {
     const subscription = form.watch((value) => {
-      setCalculations(value as z.infer<typeof formSchema>);
+        const newCalculations = performCalculations(value as z.infer<typeof formSchema>);
+        setLocalCalculations(newCalculations);
+        onCalculationsChange(newCalculations);
     });
     return () => subscription.unsubscribe();
-  }, [form, setCalculations]);
+  }, [form, onCalculationsChange]);
 
 
-  const miscPercentage = form.watch('miscPercentage');
   const businessType = form.watch('businessType');
   const selectedClientId = form.watch('clientId');
 
@@ -322,8 +327,8 @@ export function CostForm() {
                             </SelectContent>
                         </Select>
                         <AddClientDialog onClientAdded={(client) => {
-                            form.setValue('clientId', client.id);
-                            form.setValue('projectId', '');
+                            form.setValue('clientId', client.id, { shouldDirty: true });
+                            form.setValue('projectId', '', { shouldDirty: true });
                         }} />
                      </div>
                     <FormMessage />
@@ -351,7 +356,7 @@ export function CostForm() {
                             </SelectContent>
                         </Select>
                         <AddProjectDialog clientId={selectedClientId} onProjectAdded={(project) => {
-                            form.setValue('projectId', project.id);
+                            form.setValue('projectId', project.id, { shouldDirty: true });
                         }} />
                      </div>
                     <FormMessage />
@@ -367,7 +372,7 @@ export function CostForm() {
                     <Package className="size-5 text-primary" />
                     <div className="flex flex-col items-start">
                         <span className="font-semibold">Materials</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.materialCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(localCalculations.materialCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -486,7 +491,7 @@ export function CostForm() {
                     <HardHat className="size-5 text-primary" />
                      <div className="flex flex-col items-start">
                         <span className="font-semibold">Labor / Vendors</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.laborCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(localCalculations.laborCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -597,7 +602,7 @@ export function CostForm() {
                     <Cog className="size-5 text-primary" />
                     <div className="flex flex-col items-start">
                         <span className="font-semibold">Operations</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.operationalCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(localCalculations.operationalCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -687,7 +692,7 @@ export function CostForm() {
                               />
                               </FormControl>
                               <div className="text-right text-sm text-muted-foreground">
-                                Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.salaryCost)}</span>
+                                Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(localCalculations.salaryCost)}</span>
                               </div>
                               <FormMessage />
                           </FormItem>
@@ -734,7 +739,7 @@ export function CostForm() {
                             />
                             </FormControl>
                             <div className="text-right text-sm text-muted-foreground">
-                              Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.miscCost)}</span>
+                              Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(localCalculations.miscCost)}</span>
                             </div>
                             <FormMessage />
                         </FormItem>
@@ -750,7 +755,7 @@ export function CostForm() {
                     <Handshake className="size-5 text-primary" />
                     <div className="flex flex-col items-start">
                       <span className="font-semibold">Affiliates / Partners</span>
-                      <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.affiliateCost)}</span>
+                      <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(localCalculations.affiliateCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -954,7 +959,7 @@ export function CostForm() {
                                     <Milestone className="size-3"/>
                                     Suggested Quote
                                 </Label>
-                                <p className="font-bold text-lg text-primary">{formatCurrency(calculations.grandTotal)}</p>
+                                <p className="font-bold text-lg text-primary">{formatCurrency(localCalculations.grandTotal)}</p>
                             </div>
                             <FormMessage />
                         </FormItem>
@@ -962,7 +967,7 @@ export function CostForm() {
                     />
                 </div>
                 
-                {(calculations.profitMargin ?? 0) < 18 && calculations.grandTotal > 0 && (
+                {(localCalculations.profitMargin ?? 0) < 18 && localCalculations.grandTotal > 0 && (
                 <Alert variant="destructive" className="bg-amber-100 border-amber-300 text-amber-900">
                     <AlertTriangle className="h-4 w-4 !text-amber-700" />
                     <AlertTitle>Low Profit Margin</AlertTitle>

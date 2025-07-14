@@ -24,9 +24,12 @@ import { useToast } from "@/hooks/use-toast";
 import { publishQuote } from "@/lib/actions";
 import { useFormContext } from "react-hook-form";
 
-export function ProjectQuote() {
+interface ProjectQuoteProps {
+    calculations: Calculations;
+}
+
+export function ProjectQuote({ calculations }: ProjectQuoteProps) {
   const { 
-    calculations,
     allocations,
     loadedQuoteId,
     resetForm,

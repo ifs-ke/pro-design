@@ -138,7 +138,7 @@ interface CostState {
   // Form state
   formValues: FormValues;
   allocations: Allocation;
-  calculations: Calculations;
+  calculations: Calculations | null;
   loadedQuoteId: string | null;
   _hydrated: boolean;
   
@@ -149,7 +149,7 @@ interface CostState {
   quotes: Quote[];
 
   // Form actions
-  setCalculations: (values: FormValues) => void;
+  setCalculations: (calculations: Calculations) => void;
   setAllocations: (allocations: Allocation) => void;
   loadQuoteIntoForm: (quoteId: string) => void; 
   resetForm: () => void;
@@ -198,7 +198,7 @@ const defaultAllocations: Allocation = {
   csr: 30,
 };
 
-const performCalculations = (formValues: FormValues): Calculations => {
+export const performCalculations = (formValues: FormValues): Calculations => {
     const {
       materials,
       labor,
@@ -317,7 +317,7 @@ export const useStore = create<CostState>()(
       (set, get) => ({
         formValues: defaultFormValues,
         allocations: defaultAllocations,
-        calculations: performCalculations(defaultFormValues),
+        calculations: null,
         loadedQuoteId: null,
         _hydrated: false,
 
@@ -326,11 +326,8 @@ export const useStore = create<CostState>()(
         projects: [],
         quotes: [],
 
-        setCalculations: (values) => {
-          set({
-            formValues: values, // Keep formValues in sync for calculations
-            calculations: performCalculations(values),
-          });
+        setCalculations: (calculations) => {
+          set({ calculations });
         },
 
         setAllocations: (allocations) => {
@@ -413,7 +410,6 @@ export const useStore = create<CostState>()(
             set({
               formValues: quote.formValues,
               allocations: quote.allocations,
-              calculations: performCalculations(quote.formValues),
               loadedQuoteId: quote.id,
             });
           }
@@ -422,7 +418,7 @@ export const useStore = create<CostState>()(
           set({
             formValues: defaultFormValues,
             allocations: defaultAllocations,
-            calculations: performCalculations(defaultFormValues),
+            calculations: null,
             loadedQuoteId: null,
           });
         },

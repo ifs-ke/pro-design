@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useStore } from "@/store/cost-store";
+import { useState } from "react";
+import { useStore, type Calculations } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 
 import { CostForm } from "@/components/design/cost-form";
@@ -10,12 +11,34 @@ import { ProjectQuote } from "@/components/design/project-quote";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 
+const initialCalculations: Calculations = {
+    materialCost: 0,
+    laborCost: 0,
+    operationalCost: 0,
+    affiliateCost: 0,
+    miscCost: 0,
+    salaryCost: 0,
+    totalBaseCost: 0,
+    profit: 0,
+    subtotal: 0,
+    grandTotal: 0,
+    tax: 0,
+    taxRate: 0,
+    taxType: 'VAT',
+    profitMargin: 0,
+    businessType: 'vat_registered',
+};
+
 export default function CostingPage() {
   const resetForm = useStore((state) => state.resetForm);
+  const setCalculationsInStore = useStore((state) => state.setCalculations);
   const isLoading = !useIsHydrated();
+  
+  const [calculations, setCalculations] = useState<Calculations>(initialCalculations);
 
   const handleNewQuote = () => {
     resetForm();
+    setCalculations(initialCalculations);
   }
 
   if (isLoading) {
@@ -45,12 +68,15 @@ export default function CostingPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
         <div className="lg:col-span-3 space-y-8">
-          <CostForm />
+          <CostForm onCalculationsChange={(newCalculations) => {
+            setCalculations(newCalculations);
+            setCalculationsInStore(newCalculations);
+          }} />
         </div>
 
         <div className="lg:col-span-2 space-y-8 sticky top-8">
-          <ProfitAllocator />
-          <ProjectQuote />
+          <ProfitAllocator profit={calculations.profit} />
+          <ProjectQuote calculations={calculations} />
         </div>
       </div>
     </>

@@ -29,11 +29,14 @@ const allocationItems: AllocationItem[] = [
     { id: 'csr', label: 'CSR', icon: Heart },
 ];
 
-export function ProfitAllocator() {
-  const { allocations, setAllocations, profit } = useStore(state => ({
+interface ProfitAllocatorProps {
+    profit: number;
+}
+
+export function ProfitAllocator({ profit }: ProfitAllocatorProps) {
+  const { allocations, setAllocations } = useStore(state => ({
     allocations: state.allocations,
     setAllocations: state.setAllocations,
-    profit: state.calculations.profit,
   }));
 
   const totalAllocation = useMemo(
