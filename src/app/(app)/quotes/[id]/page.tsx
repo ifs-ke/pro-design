@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useHydratedStore } from "@/hooks/use-hydrated-store";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
