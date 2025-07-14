@@ -8,8 +8,14 @@
  * - MaterialSuggestionsOutput - The return type for the getMaterialSuggestions function.
  */
 
-import {ai} from '@/ai/genkit';
+import {genkit} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 import {z} from 'genkit';
+
+const ai = genkit({
+  plugins: [googleAI()],
+  model: 'googleai/gemini-2.0-flash',
+});
 
 const MaterialSuggestionsInputSchema = z.object({
   budget: z.number().describe('The budget for the material.'),

@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -9,8 +8,14 @@
  * - QuoteInsightsOutput - The return type for the getQuoteInsights function.
  */
 
-import {ai} from '@/ai/genkit';
+import {genkit} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 import {z} from 'genkit';
+
+const ai = genkit({
+  plugins: [googleAI()],
+  model: 'googleai/gemini-2.0-flash',
+});
 
 const QuoteInsightsInputSchema = z.object({
   totalBaseCost: z.number().describe('The total base cost of the project.'),

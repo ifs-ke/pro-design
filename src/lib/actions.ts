@@ -3,50 +3,59 @@
 
 import { db } from './firebase'
 import { revalidatePath } from 'next/cache'
-import { FieldValue } from 'firebase-admin/firestore'
+import type { firestore as admin } from 'firebase-admin';
 import type { Allocation, Calculations, FormValues } from '@/store/cost-store'
 
 // Type helpers
 type DocumentWithId<T> = T & { id: string }
 
-const convertTimestamp = (doc: any) => {
-  const data = doc.data()
+const convertTimestamp = (doc: admin.DocumentSnapshot): DocumentWithId<any> => {
+  const data = doc.data();
+  if (!data) {
+    // This case should ideally not be hit if the document exists, but it's a safeguard.
+    return { id: doc.id };
+  }
+  
+  const convertedData: { [key: string]: any } = {};
   for (const key in data) {
-    if (data[key] instanceof FieldValue && data[key].isEqual(FieldValue.serverTimestamp())) {
-       data[key] = new Date().toISOString()
-    } else if (data[key]?.toDate) { // Convert Firestore Timestamps to ISO strings
-       data[key] = data[key].toDate().toISOString()
+    const value = data[key];
+    if (value && typeof value.toDate === 'function') { // Check if it's a Firestore Timestamp
+      convertedData[key] = value.toDate().toISOString();
+    } else {
+      convertedData[key] = value;
     }
   }
-  return { id: doc.id, ...data }
+  return { id: doc.id, ...convertedData };
 }
 
 // CLIENT ACTIONS
 export async function getClients() {
+  if (!db) throw new Error("Firestore not initialized");
   const snapshot = await db.collection('clients').orderBy('createdAt', 'desc').get()
-  const clients = snapshot.docs.map(doc => convertTimestamp(doc));
+  const clients = snapshot.docs.map(convertTimestamp);
   
   for (const client of clients) {
       const interactionsSnapshot = await db.collection('clients').doc(client.id).collection('interactions').orderBy('timestamp', 'desc').get();
-      client.interactions = interactionsSnapshot.docs.map(doc => convertTimestamp(doc));
+      client.interactions = interactionsSnapshot.docs.map(convertTimestamp);
 
       const projectsSnapshot = await db.collection('projects').where('clientId', '==', client.id).get();
-      client.projects = projectsSnapshot.docs.map(doc => convertTimestamp(doc));
+      client.projects = projectsSnapshot.docs.map(convertTimestamp);
 
       const quotesSnapshot = await db.collection('quotes').where('clientId', '==', client.id).get();
-      client.quotes = quotesSnapshot.docs.map(doc => convertTimestamp(doc));
+      client.quotes = quotesSnapshot.docs.map(convertTimestamp);
   }
   return clients;
 }
 
 export async function createClient(data: { name: string; email?: string; phone?: string }) {
+  if (!db) throw new Error("Firestore not initialized");
   const newClientRef = db.collection('clients').doc()
   await newClientRef.set({
     ...data,
     status: 'Lead',
     responsiveness: 'Warm',
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    createdAt: admin.FieldValue.serverTimestamp(),
+    updatedAt: admin.FieldValue.serverTimestamp(),
   })
   revalidatePath('/crm')
   revalidatePath('/costing')
@@ -55,18 +64,19 @@ export async function createClient(data: { name: string; email?: string; phone?:
 }
 
 export async function updateClient(id: string, data: { name?: string; email?: string; phone?: string; status?: string; responsiveness?: string }) {
+  if (!db) throw new Error("Firestore not initialized");
   await db.collection('clients').doc(id).update({
     ...data,
-    updatedAt: FieldValue.serverTimestamp(),
+    updatedAt: admin.FieldValue.serverTimestamp(),
   })
   revalidatePath('/crm')
 }
 
 export async function deleteClient(id: string) {
-  // This is a simple delete. For a real app, you might want to handle this in a transaction
-  // or a Cloud Function to ensure atomicity of deleting related data.
-  const projectsSnapshot = await db.collection('projects').where('clientId', '==', id).get();
+  if (!db) throw new Error("Firestore not initialized");
   const batch = db.batch();
+
+  const projectsSnapshot = await db.collection('projects').where('clientId', '==', id).get();
   projectsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
   
   const quotesSnapshot = await db.collection('quotes').where('clientId', '==', id).get();
@@ -74,6 +84,9 @@ export async function deleteClient(id: string) {
 
   const propertiesSnapshot = await db.collection('properties').where('clientId', '==', id).get();
   propertiesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+
+  const interactionsSnapshot = await db.collection('clients').doc(id).collection('interactions').get();
+  interactionsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
 
   batch.delete(db.collection('clients').doc(id));
   await batch.commit();
@@ -85,17 +98,19 @@ export async function deleteClient(id: string) {
 }
 
 export async function addInteraction(clientId: string, data: { type: any; notes: string }) {
+  if (!db) throw new Error("Firestore not initialized");
   await db.collection('clients').doc(clientId).collection('interactions').add({
     ...data,
-    timestamp: FieldValue.serverTimestamp(),
+    timestamp: admin.FieldValue.serverTimestamp(),
   })
   revalidatePath('/crm')
 }
 
 // PROPERTY ACTIONS
 export async function getProperties() {
+  if (!db) throw new Error("Firestore not initialized");
   const snapshot = await db.collection('properties').orderBy('createdAt', 'desc').get()
-  const properties = snapshot.docs.map(doc => convertTimestamp(doc));
+  const properties = snapshot.docs.map(convertTimestamp);
 
   for (const property of properties) {
       if (property.clientId) {
@@ -103,17 +118,18 @@ export async function getProperties() {
           property.client = clientDoc.exists ? convertTimestamp(clientDoc) : null;
       }
       const projectsSnapshot = await db.collection('projects').where('propertyId', '==', property.id).get();
-      property.projects = projectsSnapshot.docs.map(doc => convertTimestamp(doc));
+      property.projects = projectsSnapshot.docs.map(convertTimestamp);
   }
   return properties;
 }
 
 export async function createProperty(data: { name: string; clientId: string; address?: string; propertyType?: string; notes?: string }) {
+  if (!db) throw new Error("Firestore not initialized");
   const newPropertyRef = db.collection('properties').doc()
   await newPropertyRef.set({
     ...data,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    createdAt: admin.FieldValue.serverTimestamp(),
+    updatedAt: admin.FieldValue.serverTimestamp(),
   })
   revalidatePath('/properties')
   revalidatePath('/projects')
@@ -122,14 +138,16 @@ export async function createProperty(data: { name: string; clientId: string; add
 }
 
 export async function updateProperty(id: string, data: { name?: string; clientId?: string; address?: string; propertyType?: string; notes?: string }) {
+  if (!db) throw new Error("Firestore not initialized");
   await db.collection('properties').doc(id).update({
       ...data,
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: admin.FieldValue.serverTimestamp(),
   })
   revalidatePath('/properties')
 }
 
 export async function deleteProperty(id: string) {
+  if (!db) throw new Error("Firestore not initialized");
   await db.collection('properties').doc(id).delete()
   revalidatePath('/properties')
   revalidatePath('/projects')
@@ -137,8 +155,9 @@ export async function deleteProperty(id: string) {
 
 // PROJECT ACTIONS
 export async function getProjects() {
+  if (!db) throw new Error("Firestore not initialized");
   const snapshot = await db.collection('projects').orderBy('createdAt', 'desc').get()
-  const projects = snapshot.docs.map(doc => convertTimestamp(doc));
+  const projects = snapshot.docs.map(convertTimestamp);
   
   for (const project of projects) {
       if (project.clientId) {
@@ -150,17 +169,18 @@ export async function getProjects() {
           project.property = propertyDoc.exists ? convertTimestamp(propertyDoc) : null;
       }
       const quotesSnapshot = await db.collection('quotes').where('projectId', '==', project.id).get();
-      project.quotes = quotesSnapshot.docs.map(doc => convertTimestamp(doc));
+      project.quotes = quotesSnapshot.docs.map(convertTimestamp);
   }
   return projects;
 }
 
 export async function createProject(data: any) {
+    if (!db) throw new Error("Firestore not initialized");
     const newProjectRef = db.collection('projects').doc();
     await newProjectRef.set({
         ...data,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
+        createdAt: admin.FieldValue.serverTimestamp(),
+        updatedAt: admin.FieldValue.serverTimestamp(),
         status: data.status || 'Planning',
     });
     revalidatePath('/projects');
@@ -170,14 +190,16 @@ export async function createProject(data: any) {
 }
 
 export async function updateProject(id: string, data: any) {
+  if (!db) throw new Error("Firestore not initialized");
   await db.collection('projects').doc(id).update({
       ...data,
-      updatedAt: FieldValue.serverTimestamp()
+      updatedAt: admin.FieldValue.serverTimestamp()
   })
   revalidatePath('/projects')
 }
 
 export async function deleteProject(id: string) {
+  if (!db) throw new Error("Firestore not initialized");
   await db.collection('projects').doc(id).delete()
   revalidatePath('/projects')
   revalidatePath('/quotes')
@@ -185,8 +207,9 @@ export async function deleteProject(id: string) {
 
 // QUOTE ACTIONS
 export async function getQuotes() {
+  if (!db) throw new Error("Firestore not initialized");
   const snapshot = await db.collection('quotes').orderBy('timestamp', 'desc').get()
-  const quotes = snapshot.docs.map(doc => convertTimestamp(doc));
+  const quotes = snapshot.docs.map(convertTimestamp);
 
   for (const quote of quotes) {
       if (quote.clientId) {
@@ -202,6 +225,7 @@ export async function getQuotes() {
 }
 
 export async function getQuoteById(id: string) {
+  if (!db) throw new Error("Firestore not initialized");
   const doc = await db.collection('quotes').doc(id).get()
   if (!doc.exists) {
       return null;
@@ -221,14 +245,20 @@ export async function publishQuote(
   finalCalculations: Calculations,
   suggestedCalculations: Calculations
 ) {
+  if (!db) throw new Error("Firestore not initialized");
+  // Firestore cannot store undefined values, so ensure they are converted to null.
+  const cleanedFormValues = JSON.parse(JSON.stringify(formValues, (key, value) =>
+      typeof value === 'undefined' ? null : value
+  ));
+
   const data = {
-    clientId: formValues.clientId,
-    projectId: formValues.projectId || null,
-    formValues: formValues,
+    clientId: cleanedFormValues.clientId,
+    projectId: cleanedFormValues.projectId || null,
+    formValues: cleanedFormValues,
     allocations: allocations,
     calculations: finalCalculations,
     suggestedCalculations: suggestedCalculations,
-    timestamp: FieldValue.serverTimestamp(),
+    timestamp: admin.FieldValue.serverTimestamp(),
   }
 
   if (quoteId) {
@@ -245,16 +275,19 @@ export async function publishQuote(
 }
 
 export async function updateQuoteStatus(id: string, status: string) {
+  if (!db) throw new Error("Firestore not initialized");
   await db.collection('quotes').doc(id).update({ status })
   revalidatePath('/quotes')
 }
 
 export async function deleteQuote(id: string) {
+  if (!db) throw new Error("Firestore not initialized");
   await db.collection('quotes').doc(id).delete()
   revalidatePath('/quotes')
 }
 
 export async function assignQuoteToProject(quoteId: string, projectId: string) {
+  if (!db) throw new Error("Firestore not initialized");
   await db.collection('quotes').doc(quoteId).update({ projectId })
   revalidatePath('/quotes')
   revalidatePath('/projects')
@@ -262,6 +295,7 @@ export async function assignQuoteToProject(quoteId: string, projectId: string) {
 
 // DASHBOARD METRICS
 export async function getDashboardMetrics() {
+    if (!db) throw new Error("Firestore not initialized");
     const [quotesSnapshot, projectsSnapshot, clientsSnapshot] = await Promise.all([
         db.collection('quotes').get(),
         db.collection('projects').get(),
