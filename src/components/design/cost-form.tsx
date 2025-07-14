@@ -64,7 +64,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { createClient, createProject } from "@/lib/actions";
 import type { Client, Project } from "@/store/cost-store";
 
 const materialItemSchema = z.object({
@@ -123,11 +122,12 @@ function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) =>
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [isPending, startTransition] = useTransition();
+    const addClient = useStore((state) => state.addClient);
 
     const handleAddClient = async () => {
         if (!name) return;
-        startTransition(async () => {
-            const newClient = await createClient({ name, email, phone });
+        startTransition(() => {
+            const newClient = addClient({ name, email, phone });
             onClientAdded(newClient as Client);
             setName("");
             setEmail("");
@@ -178,11 +178,12 @@ function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onP
     const [open, setOpen] = useState(false);
     const [name, setName] = useState("");
     const [isPending, startTransition] = useTransition();
+    const addProject = useStore((state) => state.addProject);
 
     const handleAddProject = async () => {
         if (!name || !clientId) return;
-        startTransition(async () => {
-            const newProject = await createProject({ name, clientId });
+        startTransition(() => {
+            const newProject = addProject({ name, clientId });
             onProjectAdded(newProject as Project);
             setName("");
             setOpen(false);
@@ -220,15 +221,15 @@ function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onP
 }
 
 export function CostForm() {
-  const { formValues, setFormValues, calculations, loadedQuoteId } = useStore(state => ({
+  const { formValues, setFormValues, calculations, loadedQuoteId, getHydratedData } = useStore(state => ({
     formValues: state.formValues,
     setFormValues: state.setFormValues,
     calculations: state.calculations,
-    loadedQuoteId: state.loadedQuoteId
+    loadedQuoteId: state.loadedQuoteId,
+    getHydratedData: state.getHydratedData
   }));
   
-  const clients = useStore((state) => state.clients);
-  const projects = useStore((state) => state.projects);
+  const { clients, projects } = getHydratedData();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

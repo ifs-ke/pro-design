@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast";
-import { createClient, updateClient } from "@/lib/actions";
+import { updateClient } from "@/lib/actions";
+import { useStore } from "@/store/cost-store";
 import { Loader2 } from "lucide-react";
 
 interface ClientFormDialogProps {
@@ -33,6 +34,7 @@ export function ClientFormDialog({ client, children }: ClientFormDialogProps) {
     const [responsiveness, setResponsiveness] = useState<any>(client?.responsiveness || 'Warm');
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
+    const addClient = useStore((state) => state.addClient);
 
     useEffect(() => {
         if (client) {
@@ -59,7 +61,7 @@ export function ClientFormDialog({ client, children }: ClientFormDialogProps) {
                     await updateClient(client.id, { name, email, phone, status, responsiveness });
                     toast({ title: "Client Updated", description: `${name} has been successfully updated.` });
                 } else {
-                    await createClient({ name, email, phone });
+                    addClient({ name, email, phone });
                     toast({ title: "Client Created", description: `${name} has been successfully created.` });
                 }
                 setOpen(false);

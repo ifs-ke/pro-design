@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { createProject, updateProject } from "@/lib/actions";
+import { updateProject } from "@/lib/actions";
+import { useStore } from "@/store/cost-store";
 import { Loader2 } from "lucide-react";
 
 interface ProjectFormDialogProps {
@@ -41,6 +42,7 @@ export function ProjectFormDialog({ project, clients, properties, children }: Pr
     const [status, setStatus] = useState<any>('Planning');
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
+    const addProject = useStore((state) => state.addProject);
 
     const clientProperties = properties.filter(p => p.clientId === clientId);
 
@@ -87,7 +89,7 @@ export function ProjectFormDialog({ project, clients, properties, children }: Pr
                     await updateProject(project.id, projectData);
                     toast({ title: "Project Updated" });
                 } else {
-                    await createProject(projectData);
+                    addProject(projectData);
                     toast({ title: "Project Created" });
                 }
                 setOpen(false);

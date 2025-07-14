@@ -13,21 +13,12 @@ export async function getClients() {
   return useStore.getState().clients;
 }
 
-export async function createClient(data: { name: string; email?: string; phone?: string }) {
-  const newClient = useStore.getState().addClient(data);
-  return newClient;
-}
-
 export async function updateClient(id: string, data: any) {
   useStore.getState().updateClient(id, data);
 }
 
 export async function deleteClient(id: string) {
   useStore.getState().deleteClient(id);
-}
-
-export async function addInteraction(clientId: string, data: { type: any; notes: string }) {
-    useStore.getState().addInteraction(clientId, data);
 }
 
 export async function getProperties() {
@@ -49,11 +40,6 @@ export async function deleteProperty(id: string) {
 
 export async function getProjects() {
     return useStore.getState().projects;
-}
-
-export async function createProject(data: any) {
-    const newProject = useStore.getState().addProject(data);
-    return newProject;
 }
 
 export async function updateProject(id: string, data: any) {

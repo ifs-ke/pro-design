@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, MessageSquare, Phone, Handshake, Mail } from "lucide-react";
-import { addInteraction } from "@/lib/actions";
+import { useStore } from "@/store/cost-store";
 
 const interactionIcons = {
     'Email': Mail,
@@ -21,10 +21,11 @@ function AddInteractionDialog({ clientId, children }: { clientId: string, childr
     const [open, setOpen] = useState(false);
     const [type, setType] = useState<'Email' | 'Call' | 'Meeting' | 'Other'>('Call');
     const [notes, setNotes] = useState("");
+    const addInteraction = useStore((state) => state.addInteraction);
 
     const handleSave = async () => {
         if (!type || !notes) return;
-        await addInteraction(clientId, { type, notes });
+        addInteraction(clientId, { type, notes });
         setNotes("");
         setOpen(false);
     }
