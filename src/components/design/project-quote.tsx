@@ -22,34 +22,38 @@ import { QuoteVariance } from "@/components/design/quote-variance";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { publishQuote } from "@/lib/actions";
+import { useFormContext } from "react-hook-form";
 
 export function ProjectQuote() {
   const { 
-    calculations: globalCalculations, 
-    formValues,
+    calculations,
     allocations,
     loadedQuoteId,
     resetForm,
+    formValues,
   } = useStore();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
-  const [finalQuote, setFinalQuote] = useState<number | string>(globalCalculations.grandTotal);
+  // We get the form instance to read its current values for publishing
+  const form = useFormContext();
+
+  const [finalQuote, setFinalQuote] = useState<number | string>(calculations.grandTotal);
   
   useEffect(() => {
     // This effect now correctly syncs the local finalQuote state with the
     // Zustand store's grandTotal, especially when a new quote is loaded.
-    setFinalQuote(globalCalculations.grandTotal);
-  }, [globalCalculations.grandTotal]);
+    setFinalQuote(calculations.grandTotal);
+  }, [calculations.grandTotal]);
 
   const localBreakdown = useMemo((): Calculations => {
     const numericQuote = typeof finalQuote === 'string' ? parseFloat(finalQuote) : finalQuote;
 
-    if (isNaN(numericQuote) || numericQuote < globalCalculations.totalBaseCost) {
-        return globalCalculations;
+    if (isNaN(numericQuote) || numericQuote < calculations.totalBaseCost) {
+        return calculations;
     }
 
-    const { totalBaseCost, materialCost, laborCost, operationalCost, affiliateCost, miscCost, salaryCost } = globalCalculations;
+    const { totalBaseCost, materialCost, laborCost, operationalCost, affiliateCost, miscCost, salaryCost } = calculations;
     const { businessType, taxRate: vatRate, numberOfPeople } = formValues;
 
     let newSubtotal: number;
@@ -97,7 +101,7 @@ export function ProjectQuote() {
         businessType: formValues.businessType,
         numberOfPeople: numberOfPeople
     };
-  }, [finalQuote, globalCalculations, formValues]);
+  }, [finalQuote, calculations, formValues]);
 
 
   const handleQuoteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,15 +110,16 @@ export function ProjectQuote() {
 
   const handleBlur = () => {
     const numericValue = parseFloat(finalQuote as string);
-     if (!isNaN(numericValue) && numericValue >= globalCalculations.totalBaseCost) {
+     if (!isNaN(numericValue) && numericValue >= calculations.totalBaseCost) {
         setFinalQuote(numericValue);
      } else {
-        setFinalQuote(globalCalculations.grandTotal);
+        setFinalQuote(calculations.grandTotal);
      }
   }
 
   const handlePublish = () => {
-    if (!formValues.clientId) {
+    const currentFormValues = form.getValues();
+    if (!currentFormValues.clientId) {
         toast({
             variant: "destructive",
             title: "Client Required",
@@ -125,7 +130,7 @@ export function ProjectQuote() {
     
     startTransition(async () => {
         try {
-            const { quoteId, wasExisting } = await publishQuote(loadedQuoteId, formValues, allocations, localBreakdown, globalCalculations);
+            const { quoteId, wasExisting } = await publishQuote(loadedQuoteId, currentFormValues, allocations, localBreakdown, calculations);
             toast({
                 title: `Quote ${wasExisting ? 'Updated' : 'Published'}!`,
                 description: `Quote ID ${quoteId} has been saved.`,
@@ -161,7 +166,7 @@ export function ProjectQuote() {
                     id="suggested-quote"
                     type="text"
                     readOnly
-                    value={formatCurrency(globalCalculations.grandTotal)}
+                    value={formatCurrency(calculations.grandTotal)}
                     className="bg-muted/50 border-dashed font-semibold"
                 />
             </div>
@@ -183,7 +188,7 @@ export function ProjectQuote() {
         </div>
         
         <QuoteVariance
-            suggested={globalCalculations}
+            suggested={calculations}
             final={localBreakdown}
         />
 

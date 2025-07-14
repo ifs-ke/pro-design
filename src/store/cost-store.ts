@@ -149,7 +149,7 @@ interface CostState {
   quotes: Quote[];
 
   // Form actions
-  setFormValues: (values: FormValues) => void;
+  setCalculations: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
   loadQuoteIntoForm: (quoteId: string) => void; 
   resetForm: () => void;
@@ -326,9 +326,9 @@ export const useStore = create<CostState>()(
         projects: [],
         quotes: [],
 
-        setFormValues: (values) => {
+        setCalculations: (values) => {
           set({
-            formValues: values,
+            formValues: values, // Keep formValues in sync for calculations
             calculations: performCalculations(values),
           });
         },

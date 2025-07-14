@@ -221,9 +221,9 @@ function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onP
 }
 
 export function CostForm() {
-  const { formValues, setFormValues, calculations, loadedQuoteId, getHydratedData } = useStore(state => ({
+  const { formValues, setCalculations, calculations, loadedQuoteId, getHydratedData } = useStore(state => ({
     formValues: state.formValues,
-    setFormValues: state.setFormValues,
+    setCalculations: state.setCalculations,
     calculations: state.calculations,
     loadedQuoteId: state.loadedQuoteId,
     getHydratedData: state.getHydratedData
@@ -236,7 +236,7 @@ export function CostForm() {
     defaultValues: formValues,
   });
   
-  // When formValues from store changes (e.g. loading a quote), reset the form
+  // When formValues from store changes (e.g. loading a quote or resetting), reset the form
   useEffect(() => {
     form.reset(formValues);
   }, [formValues, form]);
@@ -267,15 +267,11 @@ export function CostForm() {
 
 
   useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      // Use a deep copy to ensure state updates correctly for nested array changes
-      setFormValues(JSON.parse(JSON.stringify(value)) as z.infer<typeof formSchema>);
-      if (name === 'clientId') {
-        form.setValue('projectId', '');
-      }
+    const subscription = form.watch((value) => {
+      setCalculations(value as z.infer<typeof formSchema>);
     });
     return () => subscription.unsubscribe();
-  }, [form, setFormValues]);
+  }, [form, setCalculations]);
 
 
   const miscPercentage = form.watch('miscPercentage');
@@ -306,7 +302,14 @@ export function CostForm() {
                   <FormItem>
                     <FormLabel>Client</FormLabel>
                      <div className="flex items-center gap-2">
-                        <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue('projectId', ''); // Reset project when client changes
+                          }}
+                          value={field.value}
+                          defaultValue={field.value}
+                        >
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a client" />
@@ -320,6 +323,7 @@ export function CostForm() {
                         </Select>
                         <AddClientDialog onClientAdded={(client) => {
                             form.setValue('clientId', client.id);
+                            form.setValue('projectId', '');
                         }} />
                      </div>
                     <FormMessage />
@@ -334,7 +338,7 @@ export function CostForm() {
                   <FormItem>
                     <FormLabel>Project</FormLabel>
                      <div className="flex items-center gap-2">
-                        <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={!selectedClientId}>
+                        <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value} disabled={!selectedClientId}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a project" />
@@ -940,7 +944,6 @@ export function CostForm() {
                             <Slider
                                 min={0}
                                 max={100}
-                                step={1}
                                 value={[field.value || 0]}
                                 onValueChange={(value) => field.onChange(value[0])}
                                 className="py-2"
