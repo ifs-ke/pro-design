@@ -44,7 +44,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoreHorizontal, Trash2, Edit, CheckCircle, Briefcase, FileText, Calendar, User, Folder, Loader2 } from "lucide-react";
 import { useStore } from "@/store/cost-store";
-import { deleteQuote, updateQuoteStatus, assignQuoteToProject, createProject } from "@/lib/actions";
+import { deleteQuote, updateQuoteStatus, assignQuoteToProject } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" | "success" } = {
@@ -62,6 +62,8 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: any, project
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
     const clientForQuote = clients.find(c => c.id === quote.clientId);
+    const addProject = useStore((state) => state.addProject);
+
 
     const handleAssign = () => {
         if (selectedProject) {
@@ -76,7 +78,7 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: any, project
     const handleCreateAndAssign = () => {
         if (newProjectName && quote.clientId) {
             startTransition(async () => {
-                const newProject = await createProject({ name: newProjectName, clientId: quote.clientId });
+                const newProject = addProject({ name: newProjectName, clientId: quote.clientId });
                 await assignQuoteToProject(quote.id, newProject.id);
                 toast({ title: "Project Created & Assigned" });
                 setNewProjectName("");
