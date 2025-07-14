@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,14 +8,11 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText } from "lucide-react";
 import { getQuotes, getProjects, getClients } from "@/lib/actions";
 import { QuotesTable } from '@/components/design/quotes-table';
-import type { Quote, Project, Client } from "@prisma/client";
-
-type QuoteWithRelations = Quote & { client: Client | null; project: Project | null; }
 
 export default function QuotesPage() {
-  const [quotes, setQuotes] = useState<QuoteWithRelations[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,7 +23,7 @@ export default function QuotesPage() {
               getProjects(),
               getClients(),
             ]);
-            setQuotes(quotesData as QuoteWithRelations[]);
+            setQuotes(quotesData);
             setProjects(projectsData);
             setClients(clientsData);
         } catch (error) {

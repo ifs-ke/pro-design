@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -11,14 +12,11 @@ import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import type { Calculations, Allocation, FormValues } from "@/store/cost-store";
-import type { Quote } from '@prisma/client';
-
-type QuoteWithClient = Quote & { client: { name: string } | null };
 
 export default function QuoteDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const [quote, setQuote] = useState<QuoteWithClient | null>(null);
+  const [quote, setQuote] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +26,7 @@ export default function QuoteDetailPage() {
           if (!data) {
             notFound();
           } else {
-            setQuote(data as QuoteWithClient);
+            setQuote(data);
           }
         })
         .catch(console.error)

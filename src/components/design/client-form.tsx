@@ -1,7 +1,7 @@
+
 'use client'
 
 import { useState, useEffect, useTransition } from "react";
-import type { Client } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,9 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { createClient, updateClient } from "@/lib/actions";
 import { Loader2 } from "lucide-react";
 
-
 interface ClientFormDialogProps {
-    client?: Client;
+    client?: any;
     children: React.ReactNode;
 }
 

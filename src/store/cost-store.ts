@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import type * as z from 'zod';
 import type { formSchema } from '@/components/design/cost-form';
@@ -37,7 +38,7 @@ interface CostState {
   loadedQuoteId: string | null;
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
-  loadQuoteIntoForm: (quote: any) => void; // `any` because Prisma types are complex
+  loadQuoteIntoForm: (quote: any) => void; 
   resetForm: () => void;
 }
 

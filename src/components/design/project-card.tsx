@@ -1,9 +1,9 @@
+
 'use client'
 
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from 'next/link';
-import type { Project, Client, Property, Quote } from "@prisma/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Edit, Trash2, User, HomeIcon, Building, Calendar, ClipboardList, Home, Settings, BedDouble, Square, FileText } from "lucide-react";
@@ -29,16 +29,10 @@ import {
 import { ProjectFormDialog } from "./project-form";
 import { deleteProject } from "@/lib/actions";
 
-type ProjectWithRelations = Project & {
-    client: Client | null;
-    property: Property | null;
-    quotes: Quote[];
-}
-
 interface ProjectCardProps {
-    project: ProjectWithRelations;
-    clients: Client[];
-    properties: Property[];
+    project: any;
+    clients: any[];
+    properties: any[];
 }
 
 const cardVariants = {
@@ -57,8 +51,8 @@ const statusVariant: { [key: string]: "default" | "secondary" | "outline" | "suc
 export function ProjectCard({ project, clients, properties }: ProjectCardProps) {
     const [showAlert, setShowAlert] = useState(false);
 
-    const approvedQuotes = project.quotes.filter(q => q.status === 'Approved');
-    const totalApprovedValue = approvedQuotes.reduce((acc, q) => acc + (q.calculations as any).grandTotal, 0);
+    const approvedQuotes = project.quotes?.filter((q: any) => q.status === 'Approved') || [];
+    const totalApprovedValue = approvedQuotes.reduce((acc: number, q: any) => acc + (q.calculations as any).grandTotal, 0);
 
     return (
         <motion.div variants={cardVariants}>
@@ -183,10 +177,10 @@ export function ProjectCard({ project, clients, properties }: ProjectCardProps) 
                         </div>
                     </div>
                     <div className="mt-auto pt-4 border-t">
-                        <h4 className="text-sm font-semibold text-muted-foreground mb-2">Linked Quotes ({project.quotes.length})</h4>
-                        {project.quotes.length > 0 ? (
+                        <h4 className="text-sm font-semibold text-muted-foreground mb-2">Linked Quotes ({project.quotes?.length || 0})</h4>
+                        {project.quotes?.length > 0 ? (
                             <ul className="space-y-2">
-                                {project.quotes.map(q => (
+                                {project.quotes.map((q: any) => (
                                     <li key={q.id} className="text-sm flex items-center justify-between">
                                         <Link href={`/quotes/${q.id}`} className="flex items-center gap-2 hover:underline">
                                             <FileText className="size-4 text-muted-foreground"/>

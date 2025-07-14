@@ -8,9 +8,22 @@ import { CostForm } from "@/components/design/cost-form";
 import { ProfitAllocator } from "@/components/design/profit-allocator";
 import { ProjectQuote } from "@/components/design/project-quote";
 import { getClients, getProjects } from "@/lib/actions";
-import type { Client, Project } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
+
+// Manually define types to avoid Prisma dependency on client
+interface Client {
+    id: string;
+    name: string;
+    [key: string]: any;
+}
+interface Project {
+    id: string;
+    name: string;
+    clientId: string;
+    [key: string]: any;
+}
+
 
 export default function CostingPage() {
   const [isHydrated, setIsHydrated] = useState(false);
@@ -25,8 +38,8 @@ export default function CostingPage() {
     
     async function fetchData() {
         const [clientData, projectData] = await Promise.all([getClients(), getProjects()]);
-        setClients(clientData);
-        setProjects(projectData);
+        setClients(clientData as Client[]);
+        setProjects(projectData as Project[]);
     }
     fetchData();
 

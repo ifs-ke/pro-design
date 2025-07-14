@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from "react";
@@ -7,7 +8,6 @@ import { ClientFormDialog } from "@/components/design/client-form";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Users } from "lucide-react";
 import { motion } from "framer-motion";
-import type { Client, Project, Quote, Interaction } from "@prisma/client";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -19,14 +19,8 @@ const containerVariants = {
   },
 };
 
-type ClientWithRelations = Client & {
-    quotes: Quote[];
-    projects: Project[];
-    interactions: Interaction[];
-}
-
 export default function CrmPage() {
-    const [clients, setClients] = useState<ClientWithRelations[]>([]);
+    const [clients, setClients] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

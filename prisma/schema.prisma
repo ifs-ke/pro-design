@@ -2,8 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["dataProxy"]
 }
 
 datasource db {
@@ -18,21 +18,21 @@ model Client {
   name            String
   email           String?
   phone           String?
-  status          String        @default("Lead")
-  responsiveness  String        @default("Warm")
+  status          String        @default("Lead") // Lead, Active, OnHold, Inactive
+  responsiveness  String        @default("Warm") // Hot, Warm, Cold
+  interactions    Interaction[]
   properties      Property[]
   projects        Project[]
   quotes          Quote[]
-  interactions    Interaction[]
 }
 
 model Interaction {
-  id          String   @id @default(cuid())
-  clientId    String
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  timestamp   DateTime @default(now())
-  type        String   @default("Call")
-  notes       String
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type       String // Email, Call, Meeting, Other
+  notes      String
 }
 
 model Property {
@@ -41,7 +41,7 @@ model Property {
   updatedAt    DateTime  @updatedAt
   name         String
   address      String?
-  propertyType String    @default("Residential")
+  propertyType String    @default("Residential") // Residential, Commercial, Other
   notes        String?
   clientId     String
   client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -53,28 +53,29 @@ model Project {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   name        String
+  clientId    String?
+  client      Client?   @relation(fields: [clientId], references: [id])
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id])
+  quotes      Quote[]
   scope       String?
   timeline    String?
-  projectType String    @default("Residential")
+  projectType String?   @default("Residential") // Residential, Commercial, Hospitality, Other
   services    String?
   roomCount   Int?
   otherSpaces String?
-  status      String    @default("Planning")
-  clientId    String?
-  client      Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  propertyId  String?
-  property    Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
-  quotes      Quote[]
+  status      String    @default("Planning") // Planning, InProgress, Completed, OnHold, Cancelled
 }
 
 model Quote {
-  id                    String   @id @default(cuid())
-  timestamp             DateTime @default(now())
-  status                String   @default("Draft")
-  clientId              String?
-  client                Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  projectId             String?
-  project               Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  status    String   @default("Draft") // Draft, Sent, Approved, Declined
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id])
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
   // JSON fields to store complex, nested data from the form
   formValues            String
   allocations           String

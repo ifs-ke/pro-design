@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from "react";
@@ -9,7 +10,6 @@ import { PlusCircle, Building } from "lucide-react";
 import { ProjectFormDialog } from "@/components/design/project-form";
 import { ProjectCard } from "@/components/design/project-card";
 import { motion } from "framer-motion";
-import type { Project, Client, Property } from "@prisma/client";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -21,17 +21,10 @@ const containerVariants = {
   },
 };
 
-type ProjectWithRelations = Project & {
-    client: Client | null;
-    property: Property | null;
-    quotes: any[];
-}
-
-
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<ProjectWithRelations[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,7 +35,7 @@ export default function ProjectsPage() {
           getClients(),
           getProperties()
         ]);
-        setProjects(projectsData as ProjectWithRelations[]);
+        setProjects(projectsData);
         setClients(clientsData);
         setProperties(propertiesData);
       } catch (error) {

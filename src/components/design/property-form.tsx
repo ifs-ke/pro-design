@@ -1,7 +1,7 @@
+
 'use client'
 
 import { useState, useEffect, useTransition } from "react";
-import type { Property, Client } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,8 +21,8 @@ import { createProperty, updateProperty } from "@/lib/actions";
 import { Loader2 } from "lucide-react";
 
 interface PropertyFormDialogProps {
-    property?: Property;
-    clients: Client[];
+    property?: any;
+    clients: any[];
     children: React.ReactNode;
 }
 

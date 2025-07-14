@@ -2,11 +2,9 @@
 "use client";
 
 import { useState } from "react";
-import type { Client, Interaction } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, MessageSquare, Phone, Handshake, Mail } from "lucide-react";
@@ -21,7 +19,7 @@ const interactionIcons = {
 
 function AddInteractionDialog({ clientId, children }: { clientId: string, children: React.ReactNode }) {
     const [open, setOpen] = useState(false);
-    const [type, setType] = useState<Interaction['type']>('Call');
+    const [type, setType] = useState<'Email' | 'Call' | 'Meeting' | 'Other'>('Call');
     const [notes, setNotes] = useState("");
 
     const handleSave = async () => {
@@ -42,7 +40,7 @@ function AddInteractionDialog({ clientId, children }: { clientId: string, childr
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
                         <Label htmlFor="interaction-type">Interaction Type</Label>
-                        <Select onValueChange={(value: Interaction['type']) => setType(value)} defaultValue={type}>
+                        <Select onValueChange={(value: 'Email' | 'Call' | 'Meeting' | 'Other') => setType(value)} defaultValue={type}>
                             <SelectTrigger id="interaction-type">
                                 <SelectValue placeholder="Select type" />
                             </SelectTrigger>
@@ -69,7 +67,7 @@ function AddInteractionDialog({ clientId, children }: { clientId: string, childr
 }
 
 
-export function FollowUpTracker({ client }: { client: Client & { interactions: Interaction[] } }) {
+export function FollowUpTracker({ client }: { client: any }) {
     const interactions = client.interactions || [];
 
     return (
@@ -85,8 +83,8 @@ export function FollowUpTracker({ client }: { client: Client & { interactions: I
             </div>
             {interactions.length > 0 ? (
                 <div className="space-y-2 border rounded-md p-3 max-h-40 overflow-y-auto">
-                    {interactions.map(interaction => {
-                        const Icon = interactionIcons[interaction.type];
+                    {interactions.map((interaction: any) => {
+                        const Icon = interactionIcons[interaction.type as keyof typeof interactionIcons];
                         return (
                             <div key={interaction.id} className="text-xs">
                                 <div className="flex items-center gap-2 font-medium">

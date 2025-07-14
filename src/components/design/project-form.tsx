@@ -1,7 +1,7 @@
+
 'use client'
 
 import { useState, useEffect, useTransition } from "react";
-import type { Project, Client, Property } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,9 +21,9 @@ import { createProject, updateProject } from "@/lib/actions";
 import { Loader2 } from "lucide-react";
 
 interface ProjectFormDialogProps {
-    project?: Project;
-    clients: Client[];
-    properties: Property[];
+    project?: any;
+    clients: any[];
+    properties: any[];
     children: React.ReactNode;
 }
 

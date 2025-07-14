@@ -45,7 +45,7 @@ import {
   Users,
   MessageSquarePlus,
   UserPlus,
-  FolderPlus
+  FolderPlus,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
@@ -64,7 +64,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { createClient, createProject } from "@/lib/actions";
-import type { Client, Project } from "@prisma/client";
+
+// Manually define types to avoid Prisma dependency on client
+interface Client {
+    id: string;
+    name: string;
+    [key: string]: any;
+}
+interface Project {
+    id: string;
+    name: string;
+    clientId: string;
+    [key: string]: any;
+}
 
 const materialItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -125,7 +137,7 @@ function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) =>
     const handleAddClient = async () => {
         if (!name) return;
         const newClient = await createClient({ name, email, phone });
-        onClientAdded(newClient);
+        onClientAdded(newClient as Client);
         setName("");
         setEmail("");
         setPhone("");
@@ -174,7 +186,7 @@ function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onP
     const handleAddProject = async () => {
         if (!name || !clientId) return;
         const newProject = await createProject({ name, clientId });
-        onProjectAdded(newProject);
+        onProjectAdded(newProject as Project);
         setName("");
         setOpen(false);
     };

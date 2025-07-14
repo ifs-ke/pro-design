@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useMemo, useTransition } from "react";
 import { useStore } from "@/store/cost-store";
-import type { Calculations, Client } from "@/store/cost-store";
+import type { Calculations } from "@/store/cost-store";
 import {
   Card,
   CardContent,
@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { publishQuote } from "@/lib/actions";
 
 interface ProjectQuoteProps {
-    clients: Client[];
+    clients: any[];
 }
 
 export function ProjectQuote({ clients }: ProjectQuoteProps) {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from "react";
@@ -8,7 +9,6 @@ import { PlusCircle, Home, User } from "lucide-react";
 import { PropertyFormDialog } from "@/components/design/property-form";
 import { PropertyCard } from "@/components/design/property-card";
 import { motion } from "framer-motion";
-import type { Property, Client, Project } from "@prisma/client";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -20,21 +20,16 @@ const containerVariants = {
   },
 };
 
-type PropertyWithRelations = Property & {
-    client: Client;
-    projects: Project[];
-}
-
 export default function PropertiesPage() {
-  const [properties, setProperties] = useState<PropertyWithRelations[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
         try {
             const [propertiesData, clientsData] = await Promise.all([getProperties(), getClients()]);
-            setProperties(propertiesData as PropertyWithRelations[]);
+            setProperties(propertiesData);
             setClients(clientsData);
         } catch (error) {
             console.error("Failed to fetch properties data:", error);

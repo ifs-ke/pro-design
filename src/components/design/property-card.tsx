@@ -1,8 +1,8 @@
+
 'use client'
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import type { Property, Client, Project } from "@prisma/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Edit, Trash2, User, Home, Building, MapPin } from "lucide-react";
@@ -27,14 +27,9 @@ import {
 import { PropertyFormDialog } from "./property-form";
 import { deleteProperty } from "@/lib/actions";
 
-type PropertyWithRelations = Property & {
-    client: Client;
-    projects: Project[];
-}
-
 interface PropertyCardProps {
-    property: PropertyWithRelations;
-    clients: Client[];
+    property: any;
+    clients: any[];
 }
 
 const cardVariants = {
@@ -113,10 +108,10 @@ export function PropertyCard({ property, clients }: PropertyCardProps) {
                         )}
                     </div>
                     <div className="mt-auto pt-4 border-t">
-                        <h4 className="text-sm font-semibold text-muted-foreground mb-2">Linked Projects ({property.projects.length})</h4>
-                        {property.projects.length > 0 ? (
+                        <h4 className="text-sm font-semibold text-muted-foreground mb-2">Linked Projects ({property.projects?.length || 0})</h4>
+                        {property.projects?.length > 0 ? (
                             <ul className="space-y-2">
-                                {property.projects.map(p => (
+                                {property.projects.map((p: any) => (
                                     <li key={p.id} className="text-sm flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Building className="size-4 text-muted-foreground"/>

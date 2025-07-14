@@ -1,10 +1,10 @@
+
 'use client'
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
-import { motion } from "framer-motion";
-import type { Quote, Project, Client } from "@prisma/client";
+import { motion, AnimatePresence } from "framer-motion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,9 +54,7 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | 
   "Declined": "destructive",
 }
 
-type QuoteWithRelations = Quote & { client: Client | null; project: Project | null; }
-
-function AssignProjectDialog({ quote, projects, clients }: { quote: QuoteWithRelations, projects: Project[], clients: Client[] }) {
+function AssignProjectDialog({ quote, projects, clients }: { quote: any, projects: any[], clients: any[] }) {
     const [open, setOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<string | undefined>(quote.projectId || undefined);
     const [newProjectName, setNewProjectName] = useState("");
@@ -167,7 +165,7 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 },
 };
 
-function QuoteRow({ quote, projects, clients }: { quote: QuoteWithRelations, projects: Project[], clients: Client[] }) {
+function QuoteRow({ quote, projects, clients }: { quote: any, projects: any[], clients: any[] }) {
     const { loadQuoteIntoForm } = useStore();
     const router = useRouter();
     const { toast } = useToast();
@@ -179,7 +177,7 @@ function QuoteRow({ quote, projects, clients }: { quote: QuoteWithRelations, pro
     
     const [isPending, startTransition] = useTransition();
 
-    const handleUpdateStatus = (status: Quote['status']) => {
+    const handleUpdateStatus = (status: any) => {
         startTransition(async () => {
             await updateQuoteStatus(quote.id, status);
             toast({title: `Quote status set to ${status}`});
@@ -200,11 +198,15 @@ function QuoteRow({ quote, projects, clients }: { quote: QuoteWithRelations, pro
     const grandTotal = (quote.calculations as any)?.grandTotal || 0;
     
     return (
-        <MotionRow key={quote.id} variants={itemVariants} className="[&>td]:p-0 md:[&>td]:p-4">
+        <MotionRow variants={itemVariants} className="[&>td]:p-0 md:[&>td]:p-4">
             <TableCell colSpan={6} className="p-0 md:hidden">
               <div className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
-                    <div className="font-medium">{quote.id.substring(0,8)}...</div>
+                    <div>
+                        <Link href={`/quotes/${quote.id}`} className="font-medium hover:underline">
+                            {quote.id.substring(0,8)}...
+                        </Link>
+                    </div>
                     <Badge variant={statusVariant[quote.status] || "secondary"} className="capitalize">{quote.status.toLowerCase()}</Badge>
                   </div>
                   <div className="space-y-2 text-muted-foreground">
@@ -360,9 +362,9 @@ function QuoteRow({ quote, projects, clients }: { quote: QuoteWithRelations, pro
 }
 
 interface QuotesTableProps {
-    quotes: QuoteWithRelations[];
-    projects: Project[];
-    clients: Client[];
+    quotes: any[];
+    projects: any[];
+    clients: any[];
 }
 
 export function QuotesTable({ quotes, projects, clients }: QuotesTableProps) {
@@ -377,13 +379,15 @@ export function QuotesTable({ quotes, projects, clients }: QuotesTableProps) {
                 <TableHead className="text-right hidden md:table-cell">Amount</TableHead>
                 <TableHead className="text-center hidden md:table-cell">Status</TableHead>
                 <TableHead className="text-right hidden md:table-cell">Actions</TableHead>
-                <TableHead className="md:hidden">Quotes</TableHead>
+                <TableHead className="md:hidden p-4">All Quotes</TableHead>
             </TableRow>
             </TableHeader>
             <motion.tbody variants={listVariants} initial="hidden" animate="visible">
-            {quotes.map((quote) => (
-                <QuoteRow key={quote.id} quote={quote} projects={projects} clients={clients} />
-            ))}
+                <AnimatePresence>
+                    {quotes.map((quote) => (
+                        <QuoteRow key={quote.id} quote={quote} projects={projects} clients={clients} />
+                    ))}
+                </AnimatePresence>
             </motion.tbody>
         </Table>
     )

@@ -1,9 +1,9 @@
+
 'use client'
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import Link from 'next/link';
 import { motion } from "framer-motion";
-import type { Client, Quote, Project, Interaction } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
@@ -30,14 +30,8 @@ import { FollowUpTracker } from "@/components/design/follow-up-tracker";
 import { ClientFormDialog } from "./client-form";
 import { deleteClient } from "@/lib/actions";
 
-type ClientWithRelations = Client & {
-    quotes: Quote[];
-    projects: Project[];
-    interactions: Interaction[];
-}
-
 interface ClientCardProps {
-    client: ClientWithRelations;
+    client: any;
 }
 
 const responsivenessVariant: { [key: string]: "success" | "secondary" | "destructive" } = {
@@ -112,18 +106,18 @@ export function ClientCard({ client }: ClientCardProps) {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
                         <div>
-                            <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><Building className="text-primary"/> Projects ({client.projects.length})</h4>
-                            {client.projects.length > 0 ? (
+                            <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><Building className="text-primary"/> Projects ({client.projects?.length || 0})</h4>
+                            {client.projects?.length > 0 ? (
                                 <ul className="space-y-1 text-sm text-muted-foreground">
-                                    {client.projects.map(p => <li key={p.id}>{p.name}</li>)}
+                                    {client.projects.map((p: any) => <li key={p.id}>{p.name}</li>)}
                                 </ul>
                             ) : <p className="text-sm text-muted-foreground">No projects yet.</p>}
                         </div>
                         <div>
-                            <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><FileText className="text-primary"/> Quotes ({client.quotes.length})</h4>
-                            {client.quotes.length > 0 ? (
+                            <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><FileText className="text-primary"/> Quotes ({client.quotes?.length || 0})</h4>
+                            {client.quotes?.length > 0 ? (
                                 <ul className="space-y-1 text-sm text-muted-foreground">
-                                    {client.quotes.map(q => (
+                                    {client.quotes.map((q: any) => (
                                         <li key={q.id}>
                                             <Link href={`/quotes/${q.id}`} className="hover:underline flex justify-between">
                                                 <span>{q.id.substring(0,8)}...</span>
