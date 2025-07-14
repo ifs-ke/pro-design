@@ -1,219 +1,11 @@
-
-"use client";
-
-import { useEffect, useState } from "react";
-import { useStore, type Project, type ProjectDataInput, type Client, type ProjectStatus, type Property } from "@/store/cost-store";
+import { getProjects, getClients, getProperties } from "@/lib/actions";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PlusCircle, Building, FileText, MoreHorizontal, Edit, Trash2, User, Calendar, ClipboardList, Home, Settings, BedDouble, Square, Activity, HomeIcon } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { PlusCircle, Building } from "lucide-react";
+import { ProjectFormDialog } from "@/components/design/project-form";
+import { ProjectCard } from "@/components/design/project-card";
 import { motion } from "framer-motion";
-
-const statusVariant: { [key in ProjectStatus]: "default" | "secondary" | "outline" | "success" | "destructive" } = {
-  "Planning": "secondary",
-  "In Progress": "default",
-  "Completed": "success",
-  "On Hold": "outline",
-  "Cancelled": "destructive",
-};
-
-function ProjectFormDialog({ project, clients, properties, onSave, children }: { project?: Project, clients: Client[], properties: Property[], onSave: (data: ProjectDataInput) => void, children: React.ReactNode }) {
-    const [open, setOpen] = useState(false);
-    const [name, setName] = useState("");
-    const [clientId, setClientId] = useState<string | undefined>("");
-    const [propertyId, setPropertyId] = useState<string | undefined>("");
-    const [scope, setScope] = useState("");
-    const [timeline, setTimeline] = useState("");
-    const [projectType, setProjectType] = useState<Project['projectType']>('Residential');
-    const [services, setServices] = useState("");
-    const [roomCount, setRoomCount] = useState<number | string>("");
-    const [otherSpaces, setOtherSpaces] = useState("");
-    const [status, setStatus] = useState<ProjectStatus>('Planning');
-
-    const clientProperties = properties.filter(p => p.clientId === clientId);
-
-    useEffect(() => {
-        if (open) {
-            setName(project?.name || "");
-            setClientId(project?.clientId || "");
-            setPropertyId(project?.propertyId || "");
-            setScope(project?.scope || "");
-            setTimeline(project?.timeline || "");
-            setProjectType(project?.projectType || 'Residential');
-            setServices(project?.services || "");
-            setRoomCount(project?.roomCount || "");
-            setOtherSpaces(project?.otherSpaces || "");
-            setStatus(project?.status || 'Planning');
-        }
-    }, [open, project]);
-    
-     useEffect(() => {
-        if (!project) {
-          setPropertyId("");
-        }
-    }, [clientId, project]);
-
-    const handleSave = () => {
-        if (!name) return;
-        onSave({ 
-            name, 
-            clientId, 
-            propertyId,
-            scope, 
-            timeline,
-            projectType,
-            services,
-            roomCount: Number(roomCount) || undefined,
-            otherSpaces,
-            status
-        });
-        setOpen(false);
-    }
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>{children}</DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>{project ? "Edit Project" : "Create New Project"}</DialogTitle>
-                    <DialogDescription>
-                        {project ? "Update the details for this project." : "Enter the details for the new project."}
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="project-name">Project Name *</Label>
-                        <Input id="project-name" value={name} onChange={(e) => setName(e.target.value)} />
-                    </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="project-client">Client</Label>
-                            <Select onValueChange={setClientId} defaultValue={clientId}>
-                                <SelectTrigger id="project-client">
-                                    <SelectValue placeholder="Select a client" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {clients.map(c => (
-                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                           <Label htmlFor="project-property">Property</Label>
-                            <Select onValueChange={setPropertyId} value={propertyId} disabled={!clientId || clientProperties.length === 0}>
-                                <SelectTrigger id="project-property">
-                                    <SelectValue placeholder="Select a property" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {clientProperties.map(p => (
-                                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="project-type">Project Type</Label>
-                            <Select onValueChange={(v: Project['projectType']) => setProjectType(v)} defaultValue={projectType}>
-                                <SelectTrigger id="project-type">
-                                    <SelectValue placeholder="Select a type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Residential">Residential</SelectItem>
-                                    <SelectItem value="Commercial">Commercial</SelectItem>
-                                    <SelectItem value="Hospitality">Hospitality</SelectItem>
-                                    <SelectItem value="Other">Other</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="project-status">Status</Label>
-                            <Select onValueChange={(v: ProjectStatus) => setStatus(v)} defaultValue={status}>
-                                <SelectTrigger id="project-status">
-                                    <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Planning">Planning</SelectItem>
-                                    <SelectItem value="In Progress">In Progress</SelectItem>
-                                    <SelectItem value="Completed">Completed</SelectItem>
-                                    <SelectItem value="On Hold">On Hold</SelectItem>
-                                    <SelectItem value="Cancelled">Cancelled</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="project-services">Services</Label>
-                        <Input id="project-services" value={services} onChange={(e) => setServices(e.target.value)} placeholder="e.g., Full Service, Consultation" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                            <Label htmlFor="project-rooms">No of Rooms</Label>
-                            <Input id="project-rooms" type="number" value={roomCount} onChange={(e) => setRoomCount(e.target.value)} placeholder="e.g., 3" />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="project-spaces">Other spaces</Label>
-                            <Input id="project-spaces" value={otherSpaces} onChange={(e) => setOtherSpaces(e.target.value)} placeholder="e.g., Balcony" />
-                        </div>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="project-scope">Scope of Work</Label>
-                        <Textarea id="project-scope" value={scope} onChange={(e) => setScope(e.target.value)} placeholder="e.g., Full interior design for a 3-bedroom apartment..."/>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="project-timeline">Timeline</Label>
-                        <Input id="project-timeline" value={timeline} onChange={(e) => setTimeline(e.target.value)} placeholder="e.g., 3-4 Weeks" />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSave} disabled={!name}>{project ? "Save Changes" : "Create Project"}</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    )
-}
-
-const MotionCard = motion(Card);
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -225,190 +17,12 @@ const containerVariants = {
   },
 };
 
-
-function ProjectCard({ project }: { project: Project }) {
-    const { publishedQuotes, updateProject, deleteProject, clients, properties } = useStore();
-    const [showAlert, setShowAlert] = useState(false);
-
-    const projectQuotes = publishedQuotes.filter(q => q.projectId === project.id);
-    const approvedQuotes = projectQuotes.filter(q => q.status === 'Approved');
-    const totalApprovedValue = approvedQuotes.reduce((acc, q) => acc + q.calculations.grandTotal, 0);
-    const client = clients.find(c => c.id === project.clientId);
-    const property = properties.find(p => p.id === project.propertyId);
-
-    const handleUpdate = (data: ProjectDataInput) => {
-        updateProject(project.id, data);
-    };
-
-    const handleDelete = () => {
-        deleteProject(project.id);
-        setShowAlert(false);
-    };
-
-    return (
-        <MotionCard className="flex flex-col" variants={cardVariants}>
-            <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div className="flex-grow pr-4">
-                        <CardTitle className="text-xl flex items-start gap-3">
-                            <Building className="text-primary mt-1 flex-shrink-0"/>
-                            <span>{project.name}</span>
-                        </CardTitle>
-                        <div className="space-y-1 mt-2">
-                            {client && (
-                                <CardDescription className="flex items-center gap-2">
-                                    <User className="size-4"/> {client.name}
-                                </CardDescription>
-                            )}
-                             {property && (
-                                <CardDescription className="flex items-center gap-2">
-                                    <HomeIcon className="size-4"/> {property.name}
-                                </CardDescription>
-                            )}
-                        </div>
-                    </div>
-                    <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon"><MoreHorizontal /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <ProjectFormDialog project={project} clients={clients} properties={properties} onSave={handleUpdate}>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                        <Edit className="mr-2"/> Edit Project
-                                    </DropdownMenuItem>
-                                </ProjectFormDialog>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive" onSelect={() => setShowAlert(true)}>
-                                    <Trash2 className="mr-2" /> Delete Project
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Delete {project.name}?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the project and unassign it from all linked quotes.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-grow flex flex-col">
-                <div className="space-y-4 flex-grow">
-                    <div className="flex items-center gap-2">
-                         <Badge variant={statusVariant[project.status]}>{project.status}</Badge>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Approved Value</h4>
-                        <p className="text-2xl font-bold">{formatCurrency(totalApprovedValue)}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        {project.projectType && (
-                            <div className="flex items-start gap-2">
-                                <Home className="size-4 mt-0.5 text-primary" />
-                                <div>
-                                    <p className="font-semibold">Type</p>
-                                    <p className="text-muted-foreground">{project.projectType}</p>
-                                </div>
-                            </div>
-                        )}
-                        {project.services && (
-                            <div className="flex items-start gap-2">
-                                <Settings className="size-4 mt-0.5 text-primary" />
-                                <div>
-                                    <p className="font-semibold">Services</p>
-                                    <p className="text-muted-foreground">{project.services}</p>
-                                </div>
-                            </div>
-                        )}
-                        {project.roomCount && (
-                            <div className="flex items-start gap-2">
-                                <BedDouble className="size-4 mt-0.5 text-primary" />
-                                <div>
-                                    <p className="font-semibold">Rooms</p>
-                                    <p className="text-muted-foreground">{project.roomCount}</p>
-                                </div>
-                            </div>
-                        )}
-                        {project.otherSpaces && (
-                            <div className="flex items-start gap-2">
-                                <Square className="size-4 mt-0.5 text-primary" />
-                                <div>
-                                    <p className="font-semibold">Other Spaces</p>
-                                    <p className="text-muted-foreground">{project.otherSpaces}</p>
-                                </div>
-                            </div>
-                        )}
-                        {project.timeline && (
-                            <div className="flex items-start gap-2">
-                                <Calendar className="size-4 mt-0.5 text-primary" />
-                                <div>
-                                    <p className="font-semibold">Timeline</p>
-                                    <p className="text-muted-foreground">{project.timeline}</p>
-                                </div>
-                            </div>
-                        )}
-                         {project.scope && (
-                            <div className="flex items-start gap-2 col-span-2">
-                                <ClipboardList className="size-4 mt-0.5 text-primary" />
-                                <div>
-                                    <p className="font-semibold">Scope</p>
-                                    <p className="text-muted-foreground whitespace-pre-wrap">{project.scope}</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-                <div className="mt-auto pt-4">
-                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">Linked Quotes ({projectQuotes.length})</h4>
-                    {projectQuotes.length > 0 ? (
-                        <ul className="space-y-2">
-                            {projectQuotes.map(q => (
-                                <li key={q.id} className="text-sm flex items-center justify-between">
-                                    <Link href={`/quotes/${q.id}`} className="flex items-center gap-2 hover:underline">
-                                        <FileText className="size-4 text-muted-foreground"/>
-                                        <span>{q.id}</span>
-                                    </Link>
-                                    <Badge variant={q.status === 'Approved' ? 'success' : q.status === 'Declined' ? 'destructive' : 'secondary'} className="capitalize">{q.status.toLowerCase()}</Badge>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">No quotes assigned yet.</p>
-                    )}
-                </div>
-            </CardContent>
-        </MotionCard>
-    );
-}
-
-export default function ProjectsPage() {
-  const [isHydrated, setIsHydrated] = useState(false);
-  const { projects, clients, properties, createProject } = useStore();
-
-  useEffect(() => {
-    useStore.persist.rehydrate();
-    setIsHydrated(true);
-  }, []);
-
-  if (!isHydrated) {
-    return (
-        <div className="flex justify-center items-center h-screen">
-            <div className="text-lg">Loading Projects...</div>
-        </div>
-    );
-  }
-
-  const handleCreate = (data: ProjectDataInput) => {
-    createProject(data);
-  }
+export default async function ProjectsPage() {
+  const [projects, clients, properties] = await Promise.all([
+    getProjects(),
+    getClients(),
+    getProperties()
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -417,7 +31,7 @@ export default function ProjectsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
           <p className="text-muted-foreground mt-1">Manage all your ongoing and completed projects.</p>
         </div>
-        <ProjectFormDialog onSave={handleCreate} clients={clients} properties={properties}>
+        <ProjectFormDialog clients={clients} properties={properties}>
           <Button size="sm">
             <PlusCircle className="mr-2" />
             Create Project
@@ -434,7 +48,7 @@ export default function ProjectsPage() {
             </CardHeader>
             <CardContent>
               <div className="flex gap-4 justify-center">
-                <ProjectFormDialog onSave={handleCreate} clients={clients} properties={properties}>
+                <ProjectFormDialog clients={clients} properties={properties}>
                     <Button>Create Project</Button>
                 </ProjectFormDialog>
                 <Button variant="secondary" asChild>
@@ -450,8 +64,8 @@ export default function ProjectsPage() {
           initial="hidden"
           animate="visible"
         >
-            {projects.sort((a,b) => b.createdAt - a.createdAt).map(project => (
-                <ProjectCard key={project.id} project={project} />
+            {projects.map(project => (
+                <ProjectCard key={project.id} project={project} clients={clients} properties={properties} />
             ))}
         </motion.div>
       )}

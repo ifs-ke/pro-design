@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id              String        @id @default(cuid())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  name            String
+  email           String?
+  phone           String?
+  status          String        @default("Lead") // Replaced enum with String
+  responsiveness  String        @default("Warm") // Replaced enum with String
+
+  properties    Property[]
+  projects      Project[]
+  quotes        Quote[]
+  interactions  Interaction[]
+}
+
+model Interaction {
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  type       String   // Replaced enum with String
+  notes      String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId   String
+}
+
+model Property {
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  name         String
+  address      String?
+  propertyType String    @default("Residential") // Replaced enum with String
+  notes        String?
+
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId   String
+  projects   Project[]
+}
+
+model Project {
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  name         String
+  scope        String?
+  timeline     String?
+  projectType  String?   @default("Residential") // Replaced enum with String
+  services     String?
+  roomCount    Int?
+  otherSpaces  String?
+  status       String    @default("Planning") // Replaced enum with String
+
+  client       Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  clientId     String?
+  property     Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  propertyId   String?
+  quotes       Quote[]
+}
+
+model Quote {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  status    String   @default("Draft") // Replaced enum with String
+
+  client    Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  clientId  String?
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectId String?
+
+  // JSON fields stored as strings
+  formValues            String
+  allocations           String
+  calculations          String
+  suggestedCalculations String
+}

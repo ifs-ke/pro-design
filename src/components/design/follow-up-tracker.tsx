@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { useStore, type Client, type Interaction } from "@/store/cost-store";
+import type { Client, Interaction } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, MessageSquare, Phone, Handshake, Mail } from "lucide-react";
+import { addInteraction } from "@/lib/actions";
 
 const interactionIcons = {
     'Email': Mail,
@@ -19,14 +20,13 @@ const interactionIcons = {
 };
 
 function AddInteractionDialog({ clientId, children }: { clientId: string, children: React.ReactNode }) {
-    const { addInteraction } = useStore();
     const [open, setOpen] = useState(false);
     const [type, setType] = useState<Interaction['type']>('Call');
     const [notes, setNotes] = useState("");
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!type || !notes) return;
-        addInteraction(clientId, { type, notes });
+        await addInteraction(clientId, { type, notes });
         setNotes("");
         setOpen(false);
     }
@@ -69,9 +69,8 @@ function AddInteractionDialog({ clientId, children }: { clientId: string, childr
 }
 
 
-export function FollowUpTracker({ client }: { client: Client }) {
+export function FollowUpTracker({ client }: { client: Client & { interactions: Interaction[] } }) {
     const interactions = client.interactions || [];
-    const sortedInteractions = [...interactions].sort((a,b) => b.timestamp - a.timestamp);
 
     return (
         <div className="space-y-2">
@@ -84,9 +83,9 @@ export function FollowUpTracker({ client }: { client: Client }) {
                     </Button>
                 </AddInteractionDialog>
             </div>
-            {sortedInteractions.length > 0 ? (
+            {interactions.length > 0 ? (
                 <div className="space-y-2 border rounded-md p-3 max-h-40 overflow-y-auto">
-                    {sortedInteractions.map(interaction => {
+                    {interactions.map(interaction => {
                         const Icon = interactionIcons[interaction.type];
                         return (
                             <div key={interaction.id} className="text-xs">
@@ -106,5 +105,3 @@ export function FollowUpTracker({ client }: { client: Client }) {
         </div>
     )
 }
-
-    

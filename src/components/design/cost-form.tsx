@@ -5,7 +5,7 @@ import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect, useState } from "react";
-import { useStore, type Client, type Project } from "@/store/cost-store";
+import { useStore } from "@/store/cost-store";
 import {
   FormControl,
   FormField,
@@ -63,6 +63,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { createClient, createProject } from "@/lib/actions";
+import type { Client, Project } from "@prisma/client";
 
 const materialItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -119,11 +121,10 @@ function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) =>
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
-    const { addClient } = useStore();
 
-    const handleAddClient = () => {
+    const handleAddClient = async () => {
         if (!name) return;
-        const newClient = addClient({ name, email, phone });
+        const newClient = await createClient({ name, email, phone });
         onClientAdded(newClient);
         setName("");
         setEmail("");
@@ -169,11 +170,10 @@ function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) =>
 function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onProjectAdded: (project: Project) => void }) {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState("");
-    const { createProject } = useStore();
 
-    const handleAddProject = () => {
+    const handleAddProject = async () => {
         if (!name || !clientId) return;
-        const newProject = createProject({ name, clientId });
+        const newProject = await createProject({ name, clientId });
         onProjectAdded(newProject);
         setName("");
         setOpen(false);
@@ -206,20 +206,41 @@ function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onP
     );
 }
 
+interface CostFormProps {
+    clients: Client[];
+    projects: Project[];
+}
 
-export function CostForm() {
-  const { formValues, setFormValues, calculations, clients, projects } = useStore(state => ({
+export function CostForm({ clients: initialClients, projects: initialProjects }: CostFormProps) {
+  const { formValues, setFormValues, calculations, loadedQuoteId } = useStore(state => ({
     formValues: state.formValues,
     setFormValues: state.setFormValues,
     calculations: state.calculations,
-    clients: state.clients,
-    projects: state.projects,
+    loadedQuoteId: state.loadedQuoteId
   }));
+
+  const [clients, setClients] = useState(initialClients);
+  const [projects, setProjects] = useState(initialProjects);
+
+  useEffect(() => {
+    setClients(initialClients);
+  }, [initialClients]);
+  
+  useEffect(() => {
+    setProjects(initialProjects);
+  }, [initialProjects]);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: formValues,
   });
+  
+  // When formValues from store changes (e.g. loading a quote), reset the form
+  useEffect(() => {
+    form.reset(formValues);
+  }, [formValues, form]);
+
 
   const [showDescription, setShowDescription] = useState<{ [index: number]: boolean, } | undefined>({});
 
@@ -272,7 +293,7 @@ export function CostForm() {
       <CardHeader>
         <CardTitle>Project Costing</CardTitle>
         <CardDescription>
-          Enter the core costs of your project to get started.
+          {loadedQuoteId ? `Editing Quote: ${loadedQuoteId}` : 'Enter the core costs of your project to get started.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -285,7 +306,7 @@ export function CostForm() {
                   <FormItem>
                     <FormLabel>Client</FormLabel>
                      <div className="flex items-center gap-2">
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a client" />
@@ -298,6 +319,7 @@ export function CostForm() {
                             </SelectContent>
                         </Select>
                         <AddClientDialog onClientAdded={(client) => {
+                            setClients(c => [...c, client]);
                             form.setValue('clientId', client.id);
                         }} />
                      </div>
@@ -326,6 +348,7 @@ export function CostForm() {
                             </SelectContent>
                         </Select>
                         <AddProjectDialog clientId={selectedClientId} onProjectAdded={(project) => {
+                            setProjects(p => [...p, project]);
                             form.setValue('projectId', project.id);
                         }} />
                      </div>

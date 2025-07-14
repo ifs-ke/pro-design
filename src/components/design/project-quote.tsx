@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useTransition } from "react";
 import { useStore } from "@/store/cost-store";
-import type { Calculations } from "@/store/cost-store";
+import type { Calculations, Client } from "@/store/cost-store";
 import {
   Card,
   CardContent,
@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { ReceiptText, Info, Milestone, Send, Users } from "lucide-react";
+import { ReceiptText, Info, Milestone, Send, Users, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -21,34 +21,30 @@ import { AiQuoteAnalyst } from "@/components/design/ai-quote-analyst";
 import { QuoteVariance } from "@/components/design/quote-variance";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { publishQuote } from "@/lib/actions";
 
-export function ProjectQuote() {
+interface ProjectQuoteProps {
+    clients: Client[];
+}
+
+export function ProjectQuote({ clients }: ProjectQuoteProps) {
   const { 
     calculations: globalCalculations, 
-    formValues, 
-    publishQuote, 
-    clients,
-    createProject,
-    assignQuoteToProject
-  } = useStore(state => ({
-    calculations: state.calculations,
-    formValues: state.formValues,
-    publishQuote: state.publishQuote,
-    clients: state.clients,
-    createProject: state.createProject,
-    assignQuoteToProject: state.assignQuoteToProject,
-  }));
+    formValues,
+    allocations,
+    loadedQuoteId,
+    resetForm,
+  } = useStore();
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
 
   const [finalQuote, setFinalQuote] = useState<number | string>(globalCalculations.grandTotal);
   
   useEffect(() => {
-    // Only update the final quote from global calculations if it's not being manually edited
-    // or if the base costs have changed, making the old manual quote potentially invalid.
-    if (globalCalculations.grandTotal !== parseFloat(finalQuote.toString()) || globalCalculations.totalBaseCost > parseFloat(finalQuote.toString())) {
-       setFinalQuote(globalCalculations.grandTotal);
-    }
-  }, [globalCalculations.grandTotal, globalCalculations.totalBaseCost]);
+    // This effect now correctly syncs the local finalQuote state with the
+    // Zustand store's grandTotal, especially when a new quote is loaded.
+    setFinalQuote(globalCalculations.grandTotal);
+  }, [globalCalculations.grandTotal]);
 
   const localBreakdown = useMemo((): Calculations => {
     const numericQuote = typeof finalQuote === 'string' ? parseFloat(finalQuote) : finalQuote;
@@ -130,18 +126,22 @@ export function ProjectQuote() {
         });
         return;
     }
-    const { quoteId, wasExisting } = publishQuote(localBreakdown, globalCalculations);
     
-    // If it's a new quote and not assigned to a project, create and assign a project
-    if (!wasExisting && !formValues.projectId) {
-        const clientName = clients.find(c => c.id === formValues.clientId)?.name || "New Client";
-        const newProject = createProject({ name: `Project for ${clientName}`, clientId: formValues.clientId });
-        assignQuoteToProject(quoteId, newProject.id);
-    }
-    
-    toast({
-        title: "Quote Published!",
-        description: `Quote ID ${quoteId} has been saved.`,
+    startTransition(async () => {
+        try {
+            const { quoteId, wasExisting } = await publishQuote(loadedQuoteId, formValues, allocations, localBreakdown, globalCalculations);
+            toast({
+                title: `Quote ${wasExisting ? 'Updated' : 'Published'}!`,
+                description: `Quote ID ${quoteId} has been saved.`,
+            });
+            resetForm();
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "An error occurred",
+                description: "Could not publish the quote. Please try again.",
+            });
+        }
     });
   }
 
@@ -240,9 +240,9 @@ export function ProjectQuote() {
         
         <div className="space-y-4">
           <AiQuoteAnalyst />
-          <Button onClick={handlePublish} className="w-full" disabled={!formValues.clientId}>
-            <Send className="mr-2" />
-            Publish Quote
+          <Button onClick={handlePublish} className="w-full" disabled={!formValues.clientId || isPending}>
+            {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+            {loadedQuoteId ? 'Update Quote' : 'Publish Quote'}
           </Button>
         </div>
 

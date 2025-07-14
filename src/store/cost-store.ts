@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import type * as z from 'zod';
 import type { formSchema } from '@/components/design/cost-form';
@@ -31,96 +30,15 @@ export type Calculations = {
   numberOfPeople?: number;
 };
 
-export type Interaction = {
-    id: string;
-    timestamp: number;
-    type: 'Email' | 'Call' | 'Meeting' | 'Other';
-    notes: string;
-}
-
-export type ClientStatus = 'Lead' | 'Active' | 'On-Hold' | 'Inactive';
-export type ResponsivenessStatus = 'Hot' | 'Warm' | 'Cold';
-
-export type Client = {
-    id: string;
-    name: string;
-    email?: string;
-    phone?: string;
-    createdAt: number;
-    interactions: Interaction[];
-    status: ClientStatus;
-    responsiveness: ResponsivenessStatus;
-}
-
-export type PublishedQuote = {
-    id: string;
-    timestamp: number;
-    clientId: string;
-    status: 'Draft' | 'Sent' | 'Approved' | 'Declined';
-    formValues: FormValues;
-    allocations: Allocation;
-    calculations: Calculations; // This is the FINAL calculation
-    suggestedCalculations: Calculations; // This is the originally suggested calculation
-    projectId?: string;
-}
-
-export type ProjectStatus = 'Planning' | 'In Progress' | 'Completed' | 'On Hold' | 'Cancelled';
-
-export type Property = {
-    id: string;
-    name: string;
-    address?: string;
-    propertyType: 'Residential' | 'Commercial' | 'Other';
-    clientId: string;
-    notes?: string;
-    createdAt: number;
-}
-export type PropertyDataInput = Partial<Omit<Property, 'id' | 'createdAt'>> & Pick<Property, 'name' | 'clientId'>;
-
-export type Project = {
-    id: string;
-    name: string;
-    createdAt: number;
-    clientId?: string;
-    propertyId?: string;
-    scope?: string;
-    timeline?: string;
-    projectType?: 'Residential' | 'Commercial' | 'Hospitality' | 'Other';
-    services?: string;
-    roomCount?: number;
-    otherSpaces?: string;
-    status: ProjectStatus;
-}
-
-type ClientDataInput = Partial<Omit<Client, 'id' | 'createdAt' | 'interactions'>> & Pick<Client, 'name'>;
-export type ProjectDataInput = Partial<Omit<Project, 'id' | 'createdAt'>> & Pick<Project, 'name'>;
-
-
 interface CostState {
   formValues: FormValues;
   allocations: Allocation;
   calculations: Calculations;
-  clients: Client[];
-  properties: Property[];
-  publishedQuotes: PublishedQuote[];
-  projects: Project[];
+  loadedQuoteId: string | null;
   setFormValues: (values: FormValues) => void;
   setAllocations: (allocations: Allocation) => void;
-  addClient: (clientData: ClientDataInput) => Client;
-  updateClient: (id: string, clientData: Partial<ClientDataInput>) => void;
-  deleteClient: (id: string) => void;
-  addInteraction: (clientId: string, interaction: Omit<Interaction, 'id' | 'timestamp'>) => void;
-  publishQuote: (finalCalculations: Calculations, suggestedCalculations: Calculations) => { quoteId: string, wasExisting: boolean }; // Returns the new quote ID and if it was an update
-  updateQuoteStatus: (id: string, status: PublishedQuote['status']) => void;
-  deleteQuote: (id: string) => void;
-  loadQuoteIntoForm: (id: string) => void;
-  createProject: (projectData: ProjectDataInput) => Project;
-  updateProject: (id: string, projectData: ProjectDataInput) => void;
-  deleteProject: (id: string) => void;
-  assignQuoteToProject: (quoteId: string, projectId: string) => void;
-  addProperty: (propertyData: PropertyDataInput) => Property;
-  updateProperty: (id: string, propertyData: Partial<PropertyDataInput>) => void;
-  deleteProperty: (id: string) => void;
+  loadQuoteIntoForm: (quote: any) => void; // `any` because Prisma types are complex
+  resetForm: () => void;
 }
 
 const defaultFormValues: FormValues = {
@@ -258,213 +176,44 @@ const performCalculations = (formValues: FormValues): Calculations => {
 
 export const useStore = create<CostState>()(
     devtools(
-        persist(
-            (set, get) => ({
-                formValues: defaultFormValues,
-                allocations: defaultAllocations,
-                calculations: performCalculations(defaultFormValues),
-                clients: [],
-                publishedQuotes: [],
-                projects: [],
-                properties: [],
+        (set) => ({
+            formValues: defaultFormValues,
+            allocations: defaultAllocations,
+            calculations: performCalculations(defaultFormValues),
+            loadedQuoteId: null,
 
-                setFormValues: (values) => {
+            setFormValues: (values) => {
+                set({
+                    formValues: values,
+                    calculations: performCalculations(values),
+                });
+            },
+
+            setAllocations: (allocations) => {
+                set({ allocations });
+            },
+
+            loadQuoteIntoForm: (quote) => {
+                if (quote && quote.formValues && quote.allocations) {
+                    const formVals = quote.formValues as FormValues;
+                    const allocs = quote.allocations as Allocation;
                     set({
-                        formValues: values,
-                        calculations: performCalculations(values),
+                        formValues: formVals,
+                        allocations: allocs,
+                        calculations: performCalculations(formVals),
+                        loadedQuoteId: quote.id,
                     });
-                },
-
-                setAllocations: (allocations) => {
-                    set({ allocations });
-                },
-
-                addClient: (clientData) => {
-                    const newClient: Client = {
-                        name: clientData.name,
-                        email: clientData.email,
-                        phone: clientData.phone,
-                        id: `CLT-${Date.now().toString()}`,
-                        createdAt: Date.now(),
-                        interactions: [],
-                        status: clientData.status || 'Lead',
-                        responsiveness: clientData.responsiveness || 'Warm',
-                    };
-                    set(state => ({ clients: [...state.clients, newClient] }));
-                    return newClient;
-                },
-
-                updateClient: (id, clientData) => {
-                    set(state => ({
-                        clients: state.clients.map(c => c.id === id ? { ...c, ...clientData } : c)
-                    }));
-                },
-
-                deleteClient: (id) => {
-                    set(state => ({
-                        clients: state.clients.filter(c => c.id !== id),
-                        projects: state.projects.map(p => p.clientId === id ? { ...p, clientId: undefined } : p),
-                        properties: state.properties.filter(p => p.clientId !== id)
-                    }));
-                },
-                
-                addInteraction: (clientId, interaction) => {
-                    const newInteraction: Interaction = {
-                        ...interaction,
-                        id: `INT-${Date.now()}`,
-                        timestamp: Date.now(),
-                    };
-                    set(state => ({
-                        clients: state.clients.map(c => 
-                            c.id === clientId 
-                                ? { ...c, interactions: [...c.interactions, newInteraction] } 
-                                : c
-                        ),
-                    }));
-                },
-
-                publishQuote: (finalCalculations, suggestedCalculations) => {
-                    const { formValues, allocations, publishedQuotes } = get();
-                    const existingQuoteIndex = publishedQuotes.findIndex(q => q.formValues.clientId === formValues.clientId && q.id.startsWith('QT-')); // A simple check if we are editing
-
-                    if (existingQuoteIndex !== -1 && formValues.clientId) {
-                        const existingQuote = publishedQuotes[existingQuoteIndex];
-                         set(state => ({
-                            publishedQuotes: state.publishedQuotes.map((q, index) =>
-                                index === existingQuoteIndex
-                                ? { ...q,
-                                    timestamp: Date.now(),
-                                    formValues: JSON.parse(JSON.stringify(formValues)),
-                                    allocations: JSON.parse(JSON.stringify(allocations)),
-                                    calculations: JSON.parse(JSON.stringify(finalCalculations)),
-                                    suggestedCalculations: JSON.parse(JSON.stringify(suggestedCalculations)),
-                                    projectId: formValues.projectId,
-                                  }
-                                : q
-                            ),
-                        }));
-                        return { quoteId: existingQuote.id, wasExisting: true };
-                    }
-                    
-                    const nextId = `QT-${(publishedQuotes.length + 1).toString().padStart(3, '0')}`;
-                    const newQuote: PublishedQuote = {
-                        id: nextId,
-                        timestamp: Date.now(),
-                        clientId: formValues.clientId || '',
-                        status: 'Draft',
-                        formValues: JSON.parse(JSON.stringify(formValues)),
-                        allocations: JSON.parse(JSON.stringify(allocations)),
-                        calculations: JSON.parse(JSON.stringify(finalCalculations)),
-                        suggestedCalculations: JSON.parse(JSON.stringify(suggestedCalculations)),
-                        projectId: formValues.projectId
-                    };
-                    set({ publishedQuotes: [...publishedQuotes, newQuote] });
-                    return { quoteId: nextId, wasExisting: false };
-                },
-                updateQuoteStatus: (id, status) => {
-                    set(state => ({
-                        publishedQuotes: state.publishedQuotes.map(q => 
-                            q.id === id ? { ...q, status } : q
-                        ),
-                    }));
-                },
-
-                deleteQuote: (id) => {
-                    set(state => ({
-                        publishedQuotes: state.publishedQuotes.filter(q => q.id !== id),
-                    }));
-                },
-                loadQuoteIntoForm: (id) => {
-                    const quoteToLoad = get().publishedQuotes.find(q => q.id === id);
-                    if (quoteToLoad) {
-                        set({
-                            formValues: quoteToLoad.formValues,
-                            allocations: quoteToLoad.allocations,
-                            calculations: quoteToLoad.calculations,
-                        });
-                    }
-                },
-                createProject: (projectData) => {
-                    const { projects } = get();
-                    const newProject: Project = {
-                        id: `PROJ-${Date.now()}`,
-                        createdAt: Date.now(),
-                        name: projectData.name,
-                        clientId: projectData.clientId,
-                        propertyId: projectData.propertyId,
-                        scope: projectData.scope,
-                        timeline: projectData.timeline,
-                        projectType: projectData.projectType,
-                        services: projectData.services,
-                        roomCount: projectData.roomCount,
-                        otherSpaces: projectData.otherSpaces,
-                        status: projectData.status || 'Planning',
-                    };
-                    set({ projects: [...projects, newProject] });
-                    return newProject;
-                },
-                updateProject: (id, projectData) => {
-                    set(state => ({
-                        projects: state.projects.map(p => p.id === id ? { ...p, ...projectData } : p)
-                    }));
-                },
-                deleteProject: (id) => {
-                    set(state => ({
-                        projects: state.projects.filter(p => p.id !== id),
-                        // Unassign from quotes
-                        publishedQuotes: state.publishedQuotes.map(q => q.projectId === id ? { ...q, projectId: undefined } : q)
-                    }));
-                },
-                assignQuoteToProject: (quoteId, projectId) => {
-                    set(state => ({
-                        publishedQuotes: state.publishedQuotes.map(q =>
-                            q.id === quoteId ? { ...q, projectId } : q
-                        ),
-                    }));
-                },
-                addProperty: (propertyData) => {
-                    const newProperty: Property = {
-                        id: `PROP-${Date.now()}`,
-                        createdAt: Date.now(),
-                        ...propertyData,
-                        propertyType: propertyData.propertyType || 'Residential',
-                    };
-                    set(state => ({ properties: [...state.properties, newProperty] }));
-                    return newProperty;
-                },
-                updateProperty: (id, propertyData) => {
-                    set(state => ({
-                        properties: state.properties.map(p => p.id === id ? { ...p, ...propertyData } : p)
-                    }));
-                },
-                deleteProperty: (id) => {
-                    set(state => ({
-                        properties: state.properties.filter(p => p.id !== id),
-                        projects: state.projects.map(p => p.propertyId === id ? { ...p, propertyId: undefined } : p)
-                    }));
                 }
-            }),
-            {
-                name: "cost-store-storage",
-                storage: createJSONStorage(() => localStorage), 
-                partialize: (state) => ({ 
-                    clients: state.clients,
-                    publishedQuotes: state.publishedQuotes,
-                    projects: state.projects,
-                    properties: state.properties,
-                }),
-                onRehydrateStorage: () => (state) => {
-                    if (state) {
-                        state.formValues = defaultFormValues;
-                        state.allocations = defaultAllocations;
-                    }
-                }
+            },
+            resetForm: () => {
+                set({
+                    formValues: defaultFormValues,
+                    allocations: defaultAllocations,
+                    calculations: performCalculations(defaultFormValues),
+                    loadedQuoteId: null,
+                })
             }
-        ),
-        { name: "CostStore" }
+        }),
+        { name: "CostFormStore" }
     )
 );
-
-if (typeof window !== 'undefined') {
-  useStore.persist.rehydrate();
-}

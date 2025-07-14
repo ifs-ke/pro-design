@@ -1,13 +1,9 @@
-
-"use client";
-
-import { useEffect, useState, useMemo } from "react";
-import { useStore } from "@/store/cost-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { Calculator, ArrowRight, Users, FileText, BarChart2, CheckCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { getDashboardMetrics } from '@/lib/actions';
 import {
   ChartContainer,
   ChartTooltip,
@@ -27,59 +23,8 @@ import {
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
-export default function DashboardPage() {
-  const [isHydrated, setIsHydrated] = useState(false);
-  const { publishedQuotes, projects, clients } = useStore();
-
-  useEffect(() => {
-    useStore.persist.rehydrate();
-    setIsHydrated(true);
-  }, []);
-
-  const dashboardMetrics = useMemo(() => {
-    const totalQuotes = publishedQuotes.length;
-    const approvedQuotes = publishedQuotes.filter(q => q.status === 'Approved');
-    const approvedRevenue = approvedQuotes.reduce((sum, q) => sum + q.calculations.grandTotal, 0);
-    const approvalRate = totalQuotes > 0 ? (approvedQuotes.length / totalQuotes) * 100 : 0;
-    
-    const clientStatusCounts = clients.reduce((acc, client) => {
-        acc[client.status] = (acc[client.status] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-
-    const clientStatusData = Object.entries(clientStatusCounts).map(([name, value]) => ({ name, value }));
-    
-    const quoteStatusCounts = publishedQuotes.reduce((acc, quote) => {
-        acc[quote.status] = (acc[quote.status] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-    const quoteStatusData = Object.entries(quoteStatusCounts).map(([name, value]) => ({ name, value, fill: `hsl(var(--chart-${Object.keys(quoteStatusCounts).indexOf(name) + 1}))` }));
-
-    const projectStatusCounts = projects.reduce((acc, project) => {
-        acc[project.status] = (acc[project.status] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-    const projectStatusData = Object.entries(projectStatusCounts).map(([name, value]) => ({ name, value, fill: `hsl(var(--chart-${Object.keys(projectStatusCounts).indexOf(name) + 1}))` }));
-
-
-    return {
-      totalClients: clients.length,
-      totalProjects: projects.length,
-      approvedRevenue,
-      approvalRate,
-      clientStatusData,
-      quoteStatusData,
-      projectStatusData,
-    };
-  }, [publishedQuotes, projects, clients]);
-
-  if (!isHydrated) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-          <div className="text-lg">Loading Dashboard...</div>
-      </div>
-    );
-  }
+export default async function DashboardPage() {
+  const dashboardMetrics = await getDashboardMetrics();
 
   return (
     <div className="flex flex-col gap-8">
@@ -128,7 +73,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{dashboardMetrics.approvalRate.toFixed(1)}%</div>
-                  <p className="text-xs text-muted-foreground">{publishedQuotes.filter(q => q.status === 'Approved').length} of {publishedQuotes.length} quotes</p>
+                  <p className="text-xs text-muted-foreground">{dashboardMetrics.totalApprovedQuotes} of {dashboardMetrics.totalQuotes} quotes</p>
                 </CardContent>
               </Card>
            </CarouselItem>
