@@ -106,6 +106,7 @@ interface CostState {
   allocations: Allocation;
   calculations: Calculations;
   loadedQuoteId: string | null;
+  _hydrated: boolean;
   
   // In-memory "database"
   clients: Client[];
@@ -118,6 +119,7 @@ interface CostState {
   setAllocations: (allocations: Allocation) => void;
   loadQuoteIntoForm: (quoteId: string) => void; 
   resetForm: () => void;
+  setHydrated: () => void;
 
   // "DB" actions
   addClient: (data: { name: string; email?: string; phone?: string }) => Client;
@@ -280,6 +282,7 @@ export const useStore = create<CostState>()(
         allocations: defaultAllocations,
         calculations: performCalculations(defaultFormValues),
         loadedQuoteId: null,
+        _hydrated: false,
 
         // In-memory "database"
         clients: [],
@@ -296,6 +299,10 @@ export const useStore = create<CostState>()(
 
         setAllocations: (allocations) => {
           set({ allocations });
+        },
+        
+        setHydrated: () => {
+            set({ _hydrated: true });
         },
 
         loadQuoteIntoForm: (quoteId: string) => {
@@ -350,7 +357,7 @@ export const useStore = create<CostState>()(
         addInteraction: (clientId, data) => {
             const newInteraction = { ...data, id: crypto.randomUUID(), timestamp: new Date().toISOString() };
             set(state => ({
-                clients: state.clients.map(c => c.id === clientId ? { ...c, interactions: [...c.interactions, newInteraction] } : c)
+                clients: state.clients.map(c => c.id === clientId ? { ...c, interactions: [...(c.interactions || []), newInteraction] } : c)
             }));
         },
 
@@ -458,22 +465,27 @@ export const useStore = create<CostState>()(
       {
         name: 'cost-form-storage', 
         storage: createJSONStorage(() => sessionStorage),
-        // A custom replacer is needed to handle circular references if we persist the whole state
-        // For now, we only persist the form state to avoid this.
         partialize: (state) => ({ 
             formValues: state.formValues,
             allocations: state.allocations,
             loadedQuoteId: state.loadedQuoteId,
+            clients: state.clients,
+            properties: state.properties,
+            projects: state.projects,
+            quotes: state.quotes,
         }),
+        onRehydrateStorage: () => (state) => {
+            if (state) state.setHydrated();
+        },
       }
     ),
     { name: "CostFormStore" }
   )
 );
 
-// Function to hydrate related data for a single item (e.g., add client object to project)
-// This is done on retrieval to mimic relational data fetching.
-const hydrate = (state: CostState) => {
+// This function is kept for conceptual linking, but client components will use the hook.
+const getHydratedState = () => {
+    const state = useStore.getState();
     const clients = state.clients.map(c => ({
         ...c,
         projects: state.projects.filter(p => p.clientId === c.id),
@@ -499,18 +511,9 @@ const hydrate = (state: CostState) => {
         client: state.clients.find(c => c.id === q.clientId),
         project: state.projects.find(p => p.id === q.projectId)
     }));
-
-    return { clients, projects, properties, quotes };
+    
+    return { ...state, clients, projects, properties, quotes };
 };
 
-// We create a separate hook for getting hydrated data to avoid re-rendering loops
-export const useHydratedStore = () => {
-    const state = useStore();
-    const hydratedData = hydrate(state);
-    return { ...state, ...hydratedData };
-}
-
-// And a getter for server actions
-useStore.getState().getHydratedState = () => {
-    return hydrate(useStore.getState());
-}
+// Add the function to the store's state for server-side usage if needed.
+useStore.setState({ getHydratedState });

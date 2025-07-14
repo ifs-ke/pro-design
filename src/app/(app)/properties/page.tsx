@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useHydratedStore } from "@/store/cost-store";
+import { useHydratedStore } from "@/hooks/use-hydrated-store";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Home, User } from "lucide-react";

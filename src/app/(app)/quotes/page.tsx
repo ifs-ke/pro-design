@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText } from "lucide-react";
-import { useHydratedStore } from "@/store/cost-store";
+import { useHydratedStore } from "@/hooks/use-hydrated-store";
 import { QuotesTable } from '@/components/design/quotes-table';
 
 export default function QuotesPage() {

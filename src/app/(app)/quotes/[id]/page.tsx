@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useHydratedStore } from "@/store/cost-store";
+import { useHydratedStore } from "@/hooks/use-hydrated-store";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { CostBreakdown } from "@/components/design/quote-display";
@@ -16,20 +16,13 @@ import type { Calculations, Allocation, FormValues } from "@/store/cost-store";
 export default function QuoteDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const [loading, setLoading] = useState(true);
 
-  const { quote } = useHydratedStore(state => ({
+  const { quote, isLoading } = useHydratedStore(state => ({
       quote: state.quotes.find(q => q.id === id),
       isLoading: !state._hydrated,
   }));
   
-  useEffect(() => {
-    if (quote !== undefined) {
-        setLoading(false);
-    }
-  }, [quote]);
-
-  if (loading) {
+  if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen">
             <div className="text-lg">Loading Quote...</div>
