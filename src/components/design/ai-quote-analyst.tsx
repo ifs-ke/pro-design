@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { useStore } from "@/store/cost-store";
+import type { Calculations } from "@/store/cost-store";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Lightbulb, BarChart, Wand2 } from "lucide-react";
@@ -10,9 +10,11 @@ import { useToast } from "@/hooks/use-toast";
 import { getQuoteInsights, type QuoteInsightsInput, type QuoteInsightsOutput } from "@/ai/flows/quote-insights-flow";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function AiQuoteAnalyst() {
-  const calculations = useStore(state => state.calculations);
+interface AiQuoteAnalystProps {
+    calculations: Calculations;
+}
 
+export function AiQuoteAnalyst({ calculations }: AiQuoteAnalystProps) {
   const [analysis, setAnalysis] = useState<QuoteInsightsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +24,12 @@ export function AiQuoteAnalyst() {
     setIsLoading(true);
     setError(null);
     setAnalysis(null);
+    
+    if (!calculations) {
+        setError("Calculations are not available.");
+        setIsLoading(false);
+        return;
+    }
 
     const input: QuoteInsightsInput = {
         totalBaseCost: calculations.totalBaseCost,
@@ -49,7 +57,7 @@ export function AiQuoteAnalyst() {
 
   return (
     <div className="space-y-4">
-        <Button onClick={handleAnalyzeQuote} disabled={isLoading || calculations.grandTotal === 0} className="w-full">
+        <Button onClick={handleAnalyzeQuote} disabled={isLoading || !calculations || calculations.grandTotal === 0} className="w-full">
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (

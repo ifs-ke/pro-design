@@ -243,7 +243,7 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
         <Separator />
         
         <div className="space-y-4">
-          <AiQuoteAnalyst />
+          <AiQuoteAnalyst calculations={localBreakdown} />
           <Button onClick={handlePublish} className="w-full" disabled={!formValues.clientId || isPending}>
             {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
             {loadedQuoteId ? 'Update Quote' : 'Publish Quote'}
