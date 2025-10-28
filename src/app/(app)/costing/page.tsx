@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { useStore, type Calculations, performCalculations, FormValues } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { useForm, FormProvider } from "react-hook-form";
@@ -21,26 +21,28 @@ export default function CostingPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    values: formValues, // Use `values` to make the form controlled by the Zustand store
+    // The `values` prop makes the form controlled by our Zustand store.
+    // It will automatically update when formValues changes (e.g., loading a quote).
+    values: formValues,
   });
 
-  const watchedFormValues = form.watch();
-  
-  // This effect syncs the form state back to the Zustand store on any change.
+  // Subscribe to form changes and sync them to the Zustand store.
+  // This is the correct way to handle this, as `watch` inside `useEffect`
+  // sets up a subscription without causing re-renders on every value change.
   useEffect(() => {
-    setFormValues(watchedFormValues);
-  }, [watchedFormValues, setFormValues]);
+    const subscription = form.watch((value) => {
+      setFormValues(value as FormValues);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, setFormValues]);
 
-  // When a quote is loaded, Zustand updates formValues, and we reset the form
-  // to ensure react-hook-form is in sync with the new state.
-  useEffect(() => {
-    form.reset(formValues);
-  }, [loadedQuoteId, form, formValues]);
 
   // Derive calculations directly from the store's state for reactivity.
+  // This uses useMemo for optimization, recalculating only when formValues changes.
   const calculations: Calculations = useMemo(() => performCalculations(formValues), [formValues]);
 
   const handleNewQuote = () => {
+    // resetForm is the action from our zustand store
     resetForm();
   }
 
