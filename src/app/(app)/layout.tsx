@@ -47,7 +47,7 @@ export default function AppLayout({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="size-8 text-primary"
+                className="size-6 text-primary"
             >
                 <path d="M15 14c.2-1 .7-1.7 1.5-2.5C17.3 10.7 18 9.9 18 9c0-1.1-.9-2-2-2s-2 .9-2 2" />
                 <path d="M12 14c.2-1 .7-1.7 1.5-2.5C14.3 10.7 15 9.9 15 9c0-1.1-.9-2-2-2s-2 .9-2 2" />
