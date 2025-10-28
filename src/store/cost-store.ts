@@ -219,9 +219,11 @@ export const performCalculations = (formValues: FormValues): Calculations => {
 
     const miscRate = (miscPercentage || 0) / 100;
     
+    // MODIFIED: Salary cost is now a percentage of material and labor costs, not grand total.
     const salaryRate = (numberOfPeople ?? 0) > 0 ? (salaryPercentage || 0) / 100 : 0;
-    
-    const fixedCosts = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost;
+    const salaryCost = (materialCost + laborCost) * salaryRate;
+
+    const fixedCosts = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost + salaryCost;
     
     let grandTotal = 0;
     let tax = 0;
@@ -247,15 +249,16 @@ export const performCalculations = (formValues: FormValues): Calculations => {
     
     let denominator = 1;
     let numerator = fixedCosts;
+    
+    // The percentages for misc and affiliates are calculated on the gross revenue (grandTotal)
+    const percentageRatesOnGross = miscRate + percentageAffiliateRate;
 
     if (businessType === 'vat_registered') {
-        const percentageRates = miscRate + salaryRate + percentageAffiliateRate;
         numerator = (1 + taxRateDecimal) * fixedCosts;
-        denominator = (1 - profitMarginRate) - ((1 + taxRateDecimal) * percentageRates);
+        denominator = (1 - profitMarginRate) - ((1 + taxRateDecimal) * percentageRatesOnGross);
     } else { // sole_proprietor or no_tax
-        const percentageRates = miscRate + salaryRate + percentageAffiliateRate;
         numerator = fixedCosts;
-        denominator = ((1 - taxRateDecimal) * (1 - profitMarginRate)) - percentageRates;
+        denominator = ((1 - taxRateDecimal) * (1 - profitMarginRate)) - percentageRatesOnGross;
     }
 
     if (denominator > 0) {
@@ -270,7 +273,6 @@ export const performCalculations = (formValues: FormValues): Calculations => {
     tax = grandTotal - subtotal;
 
     const miscCost = grandTotal * miscRate;
-    const salaryCost = grandTotal * salaryRate;
     const percentageAffiliateCost = grandTotal * percentageAffiliateRate;
 
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
@@ -285,7 +287,7 @@ export const performCalculations = (formValues: FormValues): Calculations => {
       operationalCost,
       affiliateCost,
       miscCost,
-      salaryCost,
+      salaryCost, // Now correctly calculated before grandTotal
       totalBaseCost,
       profit: finalProfit > 0 ? finalProfit : 0,
       subtotal: subtotal,

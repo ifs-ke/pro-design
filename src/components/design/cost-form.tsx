@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm, useFieldArray, FormProvider, useFormContext } from "react-hook-form";
@@ -589,7 +590,7 @@ export function CostForm({ calculations }: CostFormProps) {
                     <Cog className="size-5 text-primary" />
                     <div className="flex flex-col items-start">
                         <span className="font-semibold">Operations</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.operationalCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.operationalCost + calculations.salaryCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -679,7 +680,7 @@ export function CostForm({ calculations }: CostFormProps) {
                               />
                               </FormControl>
                               <div className="text-right text-sm text-muted-foreground">
-                                Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.salaryCost)}</span>
+                                Calculated Amount (% of material & labor): <span className="font-medium text-foreground">{formatCurrency(calculations.salaryCost)}</span>
                               </div>
                               <FormMessage />
                           </FormItem>
@@ -726,7 +727,7 @@ export function CostForm({ calculations }: CostFormProps) {
                             />
                             </FormControl>
                             <div className="text-right text-sm text-muted-foreground">
-                              Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.miscCost)}</span>
+                              Calculated Amount (% of grand total): <span className="font-medium text-foreground">{formatCurrency(calculations.miscCost)}</span>
                             </div>
                             <FormMessage />
                         </FormItem>
