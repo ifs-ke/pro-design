@@ -13,7 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { Allocation, Calculations } from "@/store/cost-store";
 import { formatCurrency } from "@/lib/utils";
-import { PiggyBank, Lightbulb, Heart, Info, Users } from "lucide-react";
+import { PiggyBank, Lightbulb, Heart, Info, Users, ShieldCheck } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -49,7 +49,9 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
     taxRate,
     taxType,
     salaryCost,
-    numberOfPeople
+    numberOfPeople,
+    nssfCost,
+    shifCost,
   } = calculations;
 
   // For clarity:
@@ -81,6 +83,15 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
                 </p>
                 <p>{formatCurrency(salaryCost)}</p>
             </div>
+             {(nssfCost > 0 || shifCost > 0) && (
+                <div className="flex justify-between">
+                    <p className="text-muted-foreground flex items-center">
+                        <ShieldCheck className="size-3 mr-1.5" />
+                        Statutory Deductibles
+                    </p>
+                    <p>{formatCurrency(nssfCost + shifCost)}</p>
+                </div>
+            )}
         </div>
         <Separator />
          <div className="space-y-2 text-sm">

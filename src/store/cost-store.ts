@@ -20,6 +20,8 @@ export type Calculations = {
   affiliateCost: number;
   miscCost: number;
   salaryCost: number;
+  nssfCost: number;
+  shifCost: number;
   totalBaseCost: number;
   profit: number;
   subtotal: number; // Net Revenue (Base Cost + Profit)
@@ -179,6 +181,9 @@ const defaultFormValues: FormValues = {
   miscPercentage: 0,
   salaryPercentage: 0,
   numberOfPeople: 1,
+  enableNSSF: false,
+  enableSHIF: false,
+  grossSalary: 0,
 };
 
 const defaultAllocations: Allocation = {
@@ -198,7 +203,10 @@ export const performCalculations = (formValues: FormValues): Calculations => {
       businessType,
       miscPercentage,
       salaryPercentage,
-      numberOfPeople
+      numberOfPeople,
+      enableNSSF,
+      enableSHIF,
+      grossSalary,
     } = formValues;
 
     const materialCost = materials?.reduce((acc, item) => acc + ((Number(item.quantity) || 0) * (Number(item.cost) || 0)), 0) ?? 0;
@@ -219,11 +227,37 @@ export const performCalculations = (formValues: FormValues): Calculations => {
 
     const miscRate = (miscPercentage || 0) / 100;
     
-    // MODIFIED: Salary cost is now a percentage of material and labor costs, not grand total.
     const salaryRate = (numberOfPeople ?? 0) > 0 ? (salaryPercentage || 0) / 100 : 0;
     const salaryCost = (materialCost + laborCost) * salaryRate;
 
-    const fixedCosts = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost + salaryCost;
+    // --- Deductibles Calculation ---
+    const currentGrossSalary = (grossSalary || 0) * (numberOfPeople || 0);
+    let nssfCost = 0;
+    if (enableNSSF && currentGrossSalary > 0) {
+        const tier1Limit = 7000;
+        const tier2Limit = 36000;
+        const nssfRate = 0.06;
+
+        const tier1Contribution = Math.min(currentGrossSalary, tier1Limit) * nssfRate;
+        
+        let tier2Contribution = 0;
+        if (currentGrossSalary > tier1Limit) {
+            const tier2Pensionable = Math.min(currentGrossSalary, tier2Limit) - tier1Limit;
+            tier2Contribution = Math.max(0, tier2Pensionable) * nssfRate;
+        }
+        // Total employer contribution
+        nssfCost = tier1Contribution + tier2Contribution;
+    }
+
+    let shifCost = 0;
+    if (enableSHIF && currentGrossSalary > 0) {
+        const shifRate = 0.0275;
+        shifCost = currentGrossSalary * shifRate;
+    }
+    // --- End Deductibles ---
+
+
+    const fixedCosts = materialCost + laborCost + fixedOperationalCost + fixedAffiliateCost + salaryCost + nssfCost + shifCost;
     
     let grandTotal = 0;
     let tax = 0;
@@ -250,7 +284,6 @@ export const performCalculations = (formValues: FormValues): Calculations => {
     let denominator = 1;
     let numerator = fixedCosts;
     
-    // The percentages for misc and affiliates are calculated on the gross revenue (grandTotal)
     const percentageRatesOnGross = miscRate + percentageAffiliateRate;
 
     if (businessType === 'vat_registered') {
@@ -277,7 +310,7 @@ export const performCalculations = (formValues: FormValues): Calculations => {
 
     const affiliateCost = fixedAffiliateCost + percentageAffiliateCost;
     const operationalCost = fixedOperationalCost;
-    const totalBaseCost = materialCost + laborCost + operationalCost + affiliateCost + miscCost + salaryCost;
+    const totalBaseCost = materialCost + laborCost + operationalCost + affiliateCost + miscCost + salaryCost + nssfCost + shifCost;
     
     const finalProfit = subtotal - totalBaseCost;
     
@@ -287,7 +320,9 @@ export const performCalculations = (formValues: FormValues): Calculations => {
       operationalCost,
       affiliateCost,
       miscCost,
-      salaryCost, // Now correctly calculated before grandTotal
+      salaryCost,
+      nssfCost,
+      shifCost,
       totalBaseCost,
       profit: finalProfit > 0 ? finalProfit : 0,
       subtotal: subtotal,

@@ -49,6 +49,7 @@ import {
   UserPlus,
   FolderPlus,
   Loader2,
+  ShieldCheck,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
@@ -66,6 +67,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Switch } from "../ui/switch";
 
 const materialItemSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -115,6 +117,9 @@ export const formSchema = z.object({
   miscPercentage: z.coerce.number().min(0, "Misc. percentage cannot be negative."),
   salaryPercentage: z.coerce.number().min(0, "Salary percentage cannot be negative."),
   numberOfPeople: z.coerce.number().min(0, "Number of people cannot be negative.").optional(),
+  enableNSSF: z.boolean().optional(),
+  enableSHIF: z.boolean().optional(),
+  grossSalary: z.coerce.number().min(0, "Gross salary cannot be negative.").optional(),
 });
 
 function AddClientDialog({ onClientAdded }: { onClientAdded: (client: Client) => void }) {
@@ -845,6 +850,92 @@ export function CostForm({ calculations }: CostFormProps) {
                   </Button>
                 </AccordionContent>
               </AccordionItem>
+
+               {/* Deductibles Section */}
+              <AccordionItem value="deductibles">
+                <AccordionTrigger>
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="size-5 text-primary" />
+                    <div className="flex flex-col items-start">
+                        <span className="font-semibold">Statutory Deductibles</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.nssfCost + calculations.shifCost)}</span>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-6 pt-4">
+                    <Alert>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Calculation Basis</AlertTitle>
+                        <AlertDescription>
+                            Deductibles are calculated based on the monthly gross salary per person involved in the project. These amounts are added to your total base cost.
+                        </AlertDescription>
+                    </Alert>
+                    
+                    <FormField
+                        control={form.control}
+                        name="grossSalary"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Monthly Gross Salary (Per Person)</FormLabel>
+                            <FormControl>
+                            <Input type="number" placeholder="e.g., 50000" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+
+                    <div className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="enableNSSF"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">NSSF</FormLabel>
+                                        <FormDescription>
+                                            National Social Security Fund (Tier I & II).
+                                        </FormDescription>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className="font-bold text-primary">{formatCurrency(calculations.nssfCost)}</span>
+                                        <FormControl>
+                                            <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                    </div>
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="enableSHIF"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">SHIF</FormLabel>
+                                        <FormDescription>
+                                            Social Health Insurance Fund (2.75%).
+                                        </FormDescription>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className="font-bold text-primary">{formatCurrency(calculations.shifCost)}</span>
+                                        <FormControl>
+                                            <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                    </div>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                </AccordionContent>
+              </AccordionItem>
+
             </Accordion>
             
             <div className="border-t pt-6 space-y-6">
