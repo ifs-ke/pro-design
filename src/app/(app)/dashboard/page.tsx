@@ -75,7 +75,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-8">
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome Back!</h1>
-        <p className="text-muted-foreground mt-1">Here&apos;s a quick overview of your business.</p>
+        <p className="text-muted-foreground mt-1">Here's a quick overview of your business.</p>
       </header>
         
       <Carousel
