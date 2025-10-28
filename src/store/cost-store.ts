@@ -1,4 +1,5 @@
 
+
 import { create } from 'zustand';
 import type * as z from 'zod';
 import type { formSchema } from '@/components/design/cost-form';
@@ -139,6 +140,8 @@ interface CostState {
   quotes: Quote[];
 
   // Form actions
+  setFormValues: (values: Partial<FormValues>) => void;
+  setAllocations: (values: Allocation) => void;
   loadQuoteIntoForm: (quoteId: string) => void; 
   resetForm: () => void;
   setHydrated: () => void;
@@ -313,6 +316,16 @@ export const useStore = create<CostState>()(
         
         setHydrated: () => {
             set({ _hydrated: true });
+        },
+
+        setFormValues: (values) => {
+            set(state => ({
+                formValues: { ...state.formValues, ...values }
+            }));
+        },
+
+        setAllocations: (values) => {
+            set({ allocations: values });
         },
 
         loadQuoteIntoForm: (quoteId: string) => {

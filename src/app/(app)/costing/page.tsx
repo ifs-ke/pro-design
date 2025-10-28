@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useStore, type Calculations, performCalculations, FormValues } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { useForm, FormProvider } from "react-hook-form";
@@ -16,33 +16,32 @@ import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 
 export default function CostingPage() {
-  const { formValues, resetForm, loadedQuoteId } = useStore();
+  const { formValues, setFormValues, resetForm, loadedQuoteId } = useStore();
   const isLoading = !useIsHydrated();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: formValues,
+    values: formValues, // Use `values` to make the form controlled by the Zustand store
   });
 
   const watchedFormValues = form.watch();
-  const [calculations, setCalculations] = useState<Calculations>(() => performCalculations(form.getValues()));
-
+  
+  // This effect syncs the form state back to the Zustand store on any change.
   useEffect(() => {
-    const newCalculations = performCalculations(watchedFormValues);
-    setCalculations(newCalculations);
-  }, [watchedFormValues]);
+    setFormValues(watchedFormValues);
+  }, [watchedFormValues, setFormValues]);
 
+  // When a quote is loaded, Zustand updates formValues, and we reset the form
+  // to ensure react-hook-form is in sync with the new state.
   useEffect(() => {
-    // When a quote is loaded from the store, reset the form
-    if (loadedQuoteId) {
-        form.reset(formValues);
-    }
+    form.reset(formValues);
   }, [loadedQuoteId, form, formValues]);
 
+  // Derive calculations directly from the store's state for reactivity.
+  const calculations: Calculations = useMemo(() => performCalculations(formValues), [formValues]);
 
   const handleNewQuote = () => {
     resetForm();
-    form.reset(useStore.getState().formValues);
   }
 
   if (isLoading) {
