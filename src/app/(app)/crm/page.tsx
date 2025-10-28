@@ -1,13 +1,14 @@
 
 'use client';
 
-import { useStore } from "@/store/cost-store";
+import { useStore, HydratedClient } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { ClientCard } from "@/components/design/client-card";
 import { ClientFormDialog } from "@/components/design/client-form";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Users } from "lucide-react";
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -20,8 +21,31 @@ const containerVariants = {
 };
 
 export default function CrmPage() {
-    const { clients } = useStore((state) => state.getHydratedData());
+    const { clients, projects, quotes, properties } = useStore();
     const isLoading = !useIsHydrated();
+
+    const hydratedClients: HydratedClient[] = useMemo(() => {
+        const hydratedQuotes = quotes.map(q => ({
+            ...q,
+            client: clients.find(c => c.id === q.clientId),
+            project: projects.find(p => p.id === q.projectId),
+        }));
+
+        const hydratedProjects = projects.map(p => ({
+            ...p,
+            client: clients.find(c => c.id === p.clientId),
+            property: properties.find(prop => prop.id === p.propertyId),
+            quotes: hydratedQuotes.filter(q => q.projectId === p.id),
+        }));
+        
+        return clients.map(c => ({
+            ...c,
+            projects: hydratedProjects.filter(p => p.clientId === c.id),
+            quotes: hydratedQuotes.filter(q => q.clientId === c.id),
+            properties: properties.filter(p => p.clientId === c.id),
+        })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    }, [clients, projects, quotes, properties]);
 
     if (isLoading) {
         return (
@@ -43,7 +67,7 @@ export default function CrmPage() {
                 </ClientFormDialog>
             </header>
 
-            {clients.length === 0 ? (
+            {hydratedClients.length === 0 ? (
                 <div className="text-center p-12 border-dashed rounded-lg">
                     <Users className="mx-auto size-12 text-muted-foreground mb-4" />
                     <h3 className="text-xl font-semibold">No Clients Found</h3>
@@ -56,7 +80,7 @@ export default function CrmPage() {
                   initial="hidden"
                   animate="visible"
                 >
-                    {clients.map(client => (
+                    {hydratedClients.map(client => (
                         <ClientCard key={client.id} client={client} />
                     ))}
                 </motion.div>

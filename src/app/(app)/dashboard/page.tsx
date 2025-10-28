@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useStore } from "@/store/cost-store";
+import { useStore, DashboardMetrics } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,50 @@ import {
   CarouselDots
 } from "@/components/ui/carousel";
 import { DashboardCharts } from "@/components/design/dashboard-charts";
+import { useMemo } from "react";
 
 
 export default function DashboardPage() {
-  const { dashboardMetrics } = useStore((state) => state.getHydratedData());
+  const { clients, projects, quotes } = useStore();
   const isLoading = !useIsHydrated();
+
+  const dashboardMetrics: DashboardMetrics | null = useMemo(() => {
+    if (isLoading) return null;
+
+    const approvedQuotes = quotes.filter(q => q.status === 'Approved');
+    const approvedRevenue = approvedQuotes.reduce((sum, q) => sum + (q.calculations as any).grandTotal, 0);
+    const approvalRate = quotes.length > 0 ? (approvedQuotes.length / quotes.length) * 100 : 0;
+
+    const clientStatusCounts: Record<string, number> = clients.reduce((acc: Record<string, number>, client) => {
+        acc[client.status] = (acc[client.status] || 0) + 1;
+        return acc;
+    }, {});
+    const clientStatusData = Object.entries(clientStatusCounts).map(([name, value]) => ({ name, value }));
+    
+    const quoteStatusCounts: Record<string, number> = quotes.reduce((acc: Record<string, number>, quote) => {
+        acc[quote.status] = (acc[quote.status] || 0) + 1;
+        return acc;
+    }, {});
+    const quoteStatusData = Object.entries(quoteStatusCounts).map(([name, value]) => ({ name, value }));
+
+    const projectStatusCounts: Record<string, number> = projects.reduce((acc: Record<string, number>, project) => {
+        acc[project.status] = (acc[project.status] || 0) + 1;
+        return acc;
+    }, {});
+    const projectStatusData = Object.entries(projectStatusCounts).map(([name, value]) => ({ name, value }));
+
+    return {
+      totalClients: clients.length,
+      totalProjects: projects.length,
+      totalQuotes: quotes.length,
+      approvedRevenue,
+      approvalRate,
+      totalApprovedQuotes: approvedQuotes.length,
+      clientStatusData,
+      projectStatusData,
+      quoteStatusData,
+    };
+  }, [isLoading, clients, projects, quotes]);
 
 
   if (isLoading || !dashboardMetrics) {

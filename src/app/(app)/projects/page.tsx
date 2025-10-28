@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useStore } from "@/store/cost-store";
+import { useStore, HydratedProject } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { PlusCircle, Building } from "lucide-react";
 import { ProjectFormDialog } from "@/components/design/project-form";
 import { ProjectCard } from "@/components/design/project-card";
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -22,8 +23,23 @@ const containerVariants = {
 };
 
 export default function ProjectsPage() {
-  const { projects, clients, properties } = useStore((state) => state.getHydratedData());
+  const { projects, clients, properties, quotes } = useStore();
   const isLoading = !useIsHydrated();
+
+  const hydratedProjects: HydratedProject[] = useMemo(() => {
+    const hydratedQuotes = quotes.map(q => ({
+        ...q,
+        client: clients.find(c => c.id === q.clientId),
+        project: projects.find(p => p.id === q.projectId),
+    }));
+
+    return projects.map(p => ({
+        ...p,
+        client: clients.find(c => c.id === p.clientId),
+        property: properties.find(prop => prop.id === p.propertyId),
+        quotes: hydratedQuotes.filter(q => q.projectId === p.id),
+    })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [projects, clients, properties, quotes]);
 
 
   if (isLoading) {
@@ -49,7 +65,7 @@ export default function ProjectsPage() {
         </ProjectFormDialog>
       </header>
 
-      {projects.length === 0 ? (
+      {hydratedProjects.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
             <CardHeader>
             <Building className="mx-auto size-12 text-muted-foreground mb-4" />
@@ -74,7 +90,7 @@ export default function ProjectsPage() {
           initial="hidden"
           animate="visible"
         >
-            {projects.map(project => (
+            {hydratedProjects.map(project => (
                 <ProjectCard key={project.id} project={project} clients={clients} properties={properties} />
             ))}
         </motion.div>

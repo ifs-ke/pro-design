@@ -12,23 +12,26 @@ import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import type { Calculations, Allocation, FormValues, HydratedQuote } from "@/store/cost-store";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 export default function QuoteDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const { getHydratedData } = useStore();
+  const { quotes, clients, projects } = useStore();
   const isLoading = !useIsHydrated();
   
-  const [quote, setQuote] = useState<HydratedQuote | undefined>(undefined);
+  const quote: HydratedQuote | undefined = useMemo(() => {
+    if (isLoading) return undefined;
+    
+    const foundQuote = quotes.find(q => q.id === id);
+    if (!foundQuote) return undefined;
 
-  useEffect(() => {
-    if (!isLoading) {
-        const { quotes } = getHydratedData();
-        const foundQuote = quotes.find(q => q.id === id);
-        setQuote(foundQuote);
+    return {
+        ...foundQuote,
+        client: clients.find(c => c.id === foundQuote.clientId),
+        project: projects.find(p => p.id === foundQuote.projectId),
     }
-  }, [id, isLoading, getHydratedData]);
+  }, [id, isLoading, quotes, clients, projects]);
 
 
   if (isLoading) {

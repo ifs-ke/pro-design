@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useForm, useFieldArray, FormProvider } from "react-hook-form";
+import { useForm, useFieldArray, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useMemo } from "react";
 import { useStore, performCalculations } from "@/store/cost-store";
-import type { Client, Project, Calculations } from "@/store/cost-store";
+import type { Client, Project, Calculations, FormValues } from "@/store/cost-store";
 import {
   FormControl,
   FormField,
@@ -185,7 +185,7 @@ function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onP
         startTransition(() => {
             const newProject = addProject({ name, clientId });
             onProjectAdded(newProject as Project);
-            setName("");
+setName("");
             setOpen(false);
         });
     };
@@ -221,30 +221,26 @@ function AddProjectDialog({ clientId, onProjectAdded }: { clientId?: string, onP
 }
 
 interface CostFormProps {
-    onCalculationsChange: (calculations: Calculations) => void;
+  onCalculationsChange: (calculations: Calculations) => void;
 }
 
 export function CostForm({ onCalculationsChange }: CostFormProps) {
-  const { formValues, loadedQuoteId, getHydratedData } = useStore(state => ({
-    formValues: state.formValues,
+  const { loadedQuoteId, clients, projects } = useStore(state => ({
     loadedQuoteId: state.loadedQuoteId,
-    getHydratedData: state.getHydratedData
+    clients: state.clients,
+    projects: state.projects,
   }));
   
-  const { clients, projects } = getHydratedData();
+  const form = useFormContext<FormValues>();
+  const watchedFormValues = form.watch();
+  
+  const localCalculations = useMemo(() => {
+    return performCalculations(watchedFormValues);
+  }, [watchedFormValues]);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: formValues,
-  });
-  
-  const [localCalculations, setLocalCalculations] = useState<Calculations>(() => performCalculations(form.getValues()));
-  
-  // When formValues from store changes (e.g. loading a quote or resetting), reset the form
   useEffect(() => {
-    form.reset(formValues);
-  }, [formValues, form]);
-
+    onCalculationsChange(localCalculations);
+  }, [localCalculations, onCalculationsChange]);
 
   const [showDescription, setShowDescription] = useState<{ [index: number]: boolean, } | undefined>({});
 
@@ -270,24 +266,25 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
   } = useFieldArray({ control: form.control, name: "affiliates" });
 
 
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-        const newCalculations = performCalculations(value as z.infer<typeof formSchema>);
-        setLocalCalculations(newCalculations);
-        onCalculationsChange(newCalculations);
-    });
-    return () => subscription.unsubscribe();
-  }, [form, onCalculationsChange]);
-
-
   const businessType = form.watch('businessType');
   const selectedClientId = form.watch('clientId');
 
-  const clientProjects = projects.filter(p => p.clientId === selectedClientId);
+  const clientProjects = useMemo(() => projects.filter(p => p.clientId === selectedClientId), [projects, selectedClientId]);
   
   const handleAddMaterial = () => {
     appendMaterial({ name: "", quantity: 1, cost: 0, description: "" }, { shouldFocus: false });
   };
+  
+  useEffect(() => {
+    // When the selected client changes, if the current project doesn't belong to them, reset it.
+    const currentProjectId = form.getValues('projectId');
+    if (currentProjectId) {
+      const projectIsValidForClient = clientProjects.some(p => p.id === currentProjectId);
+      if (!projectIsValidForClient) {
+        form.setValue('projectId', '');
+      }
+    }
+  }, [selectedClientId, clientProjects, form]);
 
   return (
     <Card>
@@ -298,7 +295,6 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <FormProvider {...form}>
           <form className="space-y-4">
              <FormField
                 control={form.control}
@@ -978,7 +974,6 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
                 )}
             </div>
           </form>
-        </FormProvider>
       </CardContent>
     </Card>
   );

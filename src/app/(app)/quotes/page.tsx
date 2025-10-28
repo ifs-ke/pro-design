@@ -5,13 +5,22 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText } from "lucide-react";
-import { useStore } from "@/store/cost-store";
+import { useStore, HydratedQuote } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { QuotesTable } from '@/components/design/quotes-table';
+import { useMemo } from 'react';
 
 export default function QuotesPage() {
-  const { quotes, projects, clients } = useStore((state) => state.getHydratedData());
+  const { quotes, projects, clients } = useStore();
   const isLoading = !useIsHydrated();
+
+  const hydratedQuotes: HydratedQuote[] = useMemo(() => {
+    return quotes.map(q => ({
+        ...q,
+        client: clients.find(c => c.id === q.clientId),
+        project: projects.find(p => p.id === q.projectId),
+    })).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [quotes, projects, clients]);
 
   if (isLoading) {
     return (
@@ -56,7 +65,7 @@ export default function QuotesPage() {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <QuotesTable quotes={quotes} projects={projects} clients={clients} />
+              <QuotesTable quotes={hydratedQuotes} projects={projects} clients={clients} />
             </div>
           </CardContent>
         </Card>

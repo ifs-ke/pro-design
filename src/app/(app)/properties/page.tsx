@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useStore } from "@/store/cost-store";
+import { useStore, HydratedProperty } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { PlusCircle, Home, User } from "lucide-react";
 import { PropertyFormDialog } from "@/components/design/property-form";
 import { PropertyCard } from "@/components/design/property-card";
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -21,8 +22,17 @@ const containerVariants = {
 };
 
 export default function PropertiesPage() {
-  const { properties, clients } = useStore((state) => state.getHydratedData());
+  const { properties, clients, projects } = useStore();
   const isLoading = !useIsHydrated();
+
+  const hydratedProperties: HydratedProperty[] = useMemo(() => {
+    return properties.map(p => ({
+        ...p,
+        client: clients.find(c => c.id === p.clientId),
+        projects: projects.filter(proj => proj.propertyId === p.id),
+    })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [properties, clients, projects]);
+
 
   if (isLoading) {
     return (
@@ -55,7 +65,7 @@ export default function PropertiesPage() {
                 </CardHeader>
              </Card>
         )}
-      {clients.length > 0 && properties.length === 0 ? (
+      {clients.length > 0 && hydratedProperties.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
             <CardHeader>
             <Home className="mx-auto size-12 text-muted-foreground mb-4" />
@@ -70,7 +80,7 @@ export default function PropertiesPage() {
           initial="hidden"
           animate="visible"
         >
-            {properties.map(property => (
+            {hydratedProperties.map(property => (
                 <PropertyCard key={property.id} property={property} clients={clients} />
             ))}
         </motion.div>

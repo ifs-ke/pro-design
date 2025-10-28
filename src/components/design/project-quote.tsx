@@ -33,7 +33,6 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
     allocations,
     loadedQuoteId,
     resetForm,
-    formValues,
   } = useStore();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -57,6 +56,7 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
     }
 
     const { totalBaseCost, materialCost, laborCost, operationalCost, affiliateCost, miscCost, salaryCost } = calculations;
+    const formValues = form.getValues();
     const { businessType, taxRate: vatRate, numberOfPeople } = formValues;
 
     let newSubtotal: number;
@@ -104,7 +104,7 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
         businessType: formValues.businessType,
         numberOfPeople: numberOfPeople
     };
-  }, [finalQuote, calculations, formValues]);
+  }, [finalQuote, calculations, form]);
 
 
   const handleQuoteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,6 +139,7 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
                 description: `Quote ID ${quoteId} has been saved.`,
             });
             resetForm();
+            form.reset(useStore.getState().formValues);
         } catch (error) {
             toast({
                 variant: "destructive",
@@ -244,7 +245,7 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
         
         <div className="space-y-4">
           <AiQuoteAnalyst calculations={localBreakdown} />
-          <Button onClick={handlePublish} className="w-full" disabled={!formValues.clientId || isPending}>
+          <Button onClick={handlePublish} className="w-full" disabled={!form.getValues().clientId || isPending}>
             {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
             {loadedQuoteId ? 'Update Quote' : 'Publish Quote'}
           </Button>

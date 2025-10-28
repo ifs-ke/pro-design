@@ -113,7 +113,7 @@ export interface HydratedQuote extends Quote {
     project?: Project;
 }
 
-type DashboardMetrics = {
+export type DashboardMetrics = {
     totalClients: number;
     totalProjects: number;
     approvedRevenue: number;
@@ -125,20 +125,10 @@ type DashboardMetrics = {
     totalQuotes: number;
 };
 
-interface HydratedData {
-    clients: HydratedClient[];
-    properties: HydratedProperty[];
-    projects: HydratedProject[];
-    quotes: HydratedQuote[];
-    dashboardMetrics: DashboardMetrics;
-}
-
-
 interface CostState {
   // Form state
   formValues: FormValues;
   allocations: Allocation;
-  calculations: Calculations | null;
   loadedQuoteId: string | null;
   _hydrated: boolean;
   
@@ -149,13 +139,9 @@ interface CostState {
   quotes: Quote[];
 
   // Form actions
-  setCalculations: (calculations: Calculations) => void;
-  setAllocations: (allocations: Allocation) => void;
   loadQuoteIntoForm: (quoteId: string) => void; 
   resetForm: () => void;
   setHydrated: () => void;
-  getHydratedData: () => HydratedData;
-
 
   // "DB" actions
   addClient: (data: { name: string; email?: string; phone?: string }) => Client;
@@ -317,7 +303,6 @@ export const useStore = create<CostState>()(
       (set, get) => ({
         formValues: defaultFormValues,
         allocations: defaultAllocations,
-        calculations: null,
         loadedQuoteId: null,
         _hydrated: false,
 
@@ -325,83 +310,9 @@ export const useStore = create<CostState>()(
         properties: [],
         projects: [],
         quotes: [],
-
-        setCalculations: (calculations) => {
-          set({ calculations });
-        },
-
-        setAllocations: (allocations) => {
-          set({ allocations });
-        },
         
         setHydrated: () => {
             set({ _hydrated: true });
-        },
-
-        getHydratedData: () => {
-            const { clients, properties, projects, quotes } = get();
-            
-            const hydratedQuotes: HydratedQuote[] = quotes.map(q => ({
-                ...q,
-                client: clients.find(c => c.id === q.clientId),
-                project: projects.find(p => p.id === q.projectId),
-            })).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-            const hydratedProjects: HydratedProject[] = projects.map(p => ({
-                ...p,
-                client: clients.find(c => c.id === p.clientId),
-                property: properties.find(prop => prop.id === p.propertyId),
-                quotes: hydratedQuotes.filter(q => q.projectId === p.id),
-            })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-            const hydratedProperties: HydratedProperty[] = properties.map(p => ({
-                ...p,
-                client: clients.find(c => c.id === p.clientId),
-                projects: hydratedProjects.filter(proj => proj.propertyId === p.id),
-            })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            
-            const hydratedClients: HydratedClient[] = clients.map(c => ({
-                ...c,
-                projects: hydratedProjects.filter(p => p.clientId === c.id),
-                quotes: hydratedQuotes.filter(q => q.clientId === c.id),
-                properties: hydratedProperties.filter(p => p.clientId === c.id),
-            })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-            const approvedQuotes = quotes.filter(q => q.status === 'Approved');
-            const approvedRevenue = approvedQuotes.reduce((sum, q) => sum + (q.calculations as any).grandTotal, 0);
-            const approvalRate = quotes.length > 0 ? (approvedQuotes.length / quotes.length) * 100 : 0;
-            const clientStatusCounts = clients.reduce((acc: Record<string, number>, client) => {
-                acc[client.status] = (acc[client.status] || 0) + 1;
-                return acc;
-            }, {});
-            const quoteStatusCounts = quotes.reduce((acc: Record<string, number>, quote) => {
-                acc[quote.status] = (acc[quote.status] || 0) + 1;
-                return acc;
-            }, {});
-            const projectStatusCounts = projects.reduce((acc: Record<string, number>, project) => {
-                acc[project.status] = (acc[project.status] || 0) + 1;
-                return acc;
-            }, {});
-
-            const dashboardMetrics: DashboardMetrics = {
-              totalClients: clients.length,
-              totalProjects: projects.length,
-              approvedRevenue,
-              approvalRate,
-              clientStatusData: Object.entries(clientStatusCounts).map(([name, value]) => ({ name, value })),
-              quoteStatusData: Object.entries(quoteStatusCounts).map(([name, value]) => ({ name, value })),
-              projectStatusData: Object.entries(projectStatusCounts).map(([name, value]) => ({ name, value })),
-              totalApprovedQuotes: approvedQuotes.length,
-              totalQuotes: quotes.length,
-            };
-
-            return {
-                clients: hydratedClients,
-                properties: hydratedProperties,
-                projects: hydratedProjects,
-                quotes: hydratedQuotes,
-                dashboardMetrics
-            }
         },
 
         loadQuoteIntoForm: (quoteId: string) => {
@@ -418,7 +329,6 @@ export const useStore = create<CostState>()(
           set({
             formValues: defaultFormValues,
             allocations: defaultAllocations,
-            calculations: null,
             loadedQuoteId: null,
           });
         },
