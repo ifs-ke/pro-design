@@ -28,7 +28,8 @@ export default function CostingPage() {
   const [calculations, setCalculations] = useState<Calculations>(() => performCalculations(form.getValues()));
 
   useEffect(() => {
-    setCalculations(performCalculations(watchedFormValues));
+    const newCalculations = performCalculations(watchedFormValues);
+    setCalculations(newCalculations);
   }, [watchedFormValues]);
 
   useEffect(() => {
