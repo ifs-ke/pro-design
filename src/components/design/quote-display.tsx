@@ -56,6 +56,7 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
 
   // For clarity:
   const netRevenue = subtotal; // Revenue before tax
+  const hasDeductibles = (nssfCost || 0) > 0 || (shifCost || 0) > 0;
 
   return (
     <Card className="h-full flex flex-col">
@@ -79,11 +80,11 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
              <div className="flex justify-between">
                 <p className="text-muted-foreground flex items-center">
                     <Users className="size-3 mr-1.5" />
-                    Salaries {numberOfPeople ? `(for ${numberOfPeople})` : ''}
+                    Salaries
                 </p>
                 <p>{formatCurrency(salaryCost)}</p>
             </div>
-             {(nssfCost > 0 || shifCost > 0) && (
+             {hasDeductibles && (
                 <div className="flex justify-between">
                     <p className="text-muted-foreground flex items-center">
                         <ShieldCheck className="size-3 mr-1.5" />

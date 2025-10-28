@@ -117,7 +117,7 @@ export const formSchema = z.object({
   profitMargin: z.coerce.number().min(0, "Profit margin cannot be negative."),
   miscPercentage: z.coerce.number().min(0, "Misc. percentage cannot be negative."),
   salaryPercentage: z.coerce.number().min(0, "Salary percentage cannot be negative."),
-  numberOfPeople: z.coerce.number().min(0, "Number of people cannot be negative.").optional(),
+  numberOfPeople: z.coerce.number().min(1, "At least one person is required.").optional(),
   enableNSSF: z.boolean().optional(),
   enableSHIF: z.boolean().optional(),
   grossSalary: z.coerce.number().min(0, "Gross salary cannot be negative.").optional(),
@@ -596,115 +596,197 @@ export function CostForm({ calculations }: CostFormProps) {
                     <Cog className="size-5 text-primary" />
                     <div className="flex flex-col items-start">
                         <span className="font-semibold">Operations</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.operationalCost + calculations.salaryCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.operationalCost + calculations.salaryCost + calculations.nssfCost + calculations.shifCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="space-y-4 pt-2">
-                  <Label>Fixed Operational Costs</Label>
-                  {operationFields.map((field, index) => (
-                    <div
-                      key={field.id}
-                      className="grid grid-cols-[1fr_auto_auto] gap-2 items-end"
-                    >
-                      <FormField
-                        control={form.control}
-                        name={`operations.${index}.name`}
-                        render={({ field }) => (
-                           <FormItem>
-                             <FormLabel className={index !== 0 ? 'sr-only' : ''}>Operation Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Permits" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`operations.${index}.cost`}
-                        render={({ field }) => (
-                          <FormItem>
-                             <FormLabel className={index !== 0 ? 'sr-only' : ''}>Cost (Ksh)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="250"
-                                {...field}
-                                className="w-28"
-                              />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeOperation(index)}
-                         className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
+                <AccordionContent className="space-y-6 pt-4">
+                  <div>
+                    <Label className="font-medium">Fixed Operational Costs</Label>
+                    <div className="mt-2 space-y-2">
+                        {operationFields.map((field, index) => (
+                            <div
+                            key={field.id}
+                            className="grid grid-cols-[1fr_auto_auto] gap-2 items-end"
+                            >
+                            <FormField
+                                control={form.control}
+                                name={`operations.${index}.name`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="sr-only">Operation Name</FormLabel>
+                                    <FormControl>
+                                    <Input placeholder="e.g., Permits" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`operations.${index}.cost`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="sr-only">Cost (Ksh)</FormLabel>
+                                    <FormControl>
+                                    <Input
+                                        type="number"
+                                        placeholder="250"
+                                        {...field}
+                                        className="w-28"
+                                    />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeOperation(index)}
+                                className="text-muted-foreground hover:text-destructive"
+                            >
+                                <Trash2 className="size-4" />
+                            </Button>
+                            </div>
+                        ))}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => appendOperation({ name: "", cost: 0 })}
+                        >
+                            <PlusCircle className="mr-2" /> Add Fixed Cost
+                        </Button>
                     </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => appendOperation({ name: "", cost: 0 })}
-                  >
-                    <PlusCircle className="mr-2" /> Add Operation Cost
-                  </Button>
+                  </div>
                   
                   <Separator />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                    <FormField
-                          control={form.control}
-                          name="salaryPercentage"
-                          render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                              <div className="flex justify-between items-center">
-                                  <FormLabel className="flex items-center gap-2">
-                                    <Users className="size-4" />
-                                    Salaries
-                                  </FormLabel>
-                                  <span className="font-bold text-primary">
-                                      {field.value?.toFixed(2) ?? 0}%
-                                  </span>
-                              </div>
-                              <FormControl>
-                              <Slider
-                                  min={0}
-                                  max={100}
-                                  step={1}
-                                  value={[field.value || 0]}
-                                  onValueChange={(value) => field.onChange(value[0])}
-                                  className="py-2"
-                              />
-                              </FormControl>
-                              <div className="text-right text-sm text-muted-foreground">
-                                Calculated Amount (% of material & labor): <span className="font-medium text-foreground">{formatCurrency(calculations.salaryCost)}</span>
-                              </div>
-                              <FormMessage />
-                          </FormItem>
-                          )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="numberOfPeople"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Number of People</FormLabel>
-                            <FormControl>
-                              <Input type="number" placeholder="2" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  <div>
+                     <Label className="font-medium">Salaries & Deductibles</Label>
+                     <div className="mt-2 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                            <FormField
+                                control={form.control}
+                                name="salaryPercentage"
+                                render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                    <div className="flex justify-between items-center">
+                                        <FormLabel className="flex items-center gap-2">
+                                            <Users className="size-4" />
+                                            Salaries
+                                        </FormLabel>
+                                        <span className="font-bold text-primary">
+                                            {field.value?.toFixed(2) ?? 0}%
+                                        </span>
+                                    </div>
+                                    <FormControl>
+                                    <Slider
+                                        min={0}
+                                        max={100}
+                                        step={1}
+                                        value={[field.value || 0]}
+                                        onValueChange={(value) => field.onChange(value[0])}
+                                        className="py-2"
+                                    />
+                                    </FormControl>
+                                    <FormDescription>
+                                        Calculated as a percentage of Material & Labor cost.
+                                    </FormDescription>
+                                    <div className="text-right text-sm text-muted-foreground">
+                                        Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.salaryCost)}</span>
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                        <Alert>
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>Statutory Deductibles</AlertTitle>
+                            <AlertDescription>
+                                The following costs are calculated based on the monthly gross salary per person and are added to your total base cost.
+                            </AlertDescription>
+                        </Alert>
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="numberOfPeople"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Number of People</FormLabel>
+                                    <FormControl>
+                                    <Input type="number" placeholder="1" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="grossSalary"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Gross Salary / Person</FormLabel>
+                                    <FormControl>
+                                    <Input type="number" placeholder="e.g., 50000" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                         <div className="space-y-2">
+                            <FormField
+                                control={form.control}
+                                name="enableNSSF"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>NSSF</FormLabel>
+                                            <FormDescription className="text-xs">
+                                                National Social Security Fund (Tier I & II).
+                                            </FormDescription>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className="font-bold text-primary text-sm">{formatCurrency(calculations.nssfCost)}</span>
+                                            <FormControl>
+                                                <Switch
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="enableSHIF"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>SHIF</FormLabel>
+                                            <FormDescription className="text-xs">
+                                                Social Health Insurance Fund (2.75%).
+                                            </FormDescription>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className="font-bold text-primary text-sm">{formatCurrency(calculations.shifCost)}</span>
+                                            <FormControl>
+                                                <Switch
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                     </div>
                   </div>
 
                   <Separator />
@@ -732,8 +814,11 @@ export function CostForm({ calculations }: CostFormProps) {
                                 className="py-2"
                             />
                             </FormControl>
+                            <FormDescription>
+                                Calculated as a percentage of the final grand total.
+                            </FormDescription>
                             <div className="text-right text-sm text-muted-foreground">
-                              Calculated Amount (% of grand total): <span className="font-medium text-foreground">{formatCurrency(calculations.miscCost)}</span>
+                              Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.miscCost)}</span>
                             </div>
                             <FormMessage />
                         </FormItem>
@@ -851,92 +936,6 @@ export function CostForm({ calculations }: CostFormProps) {
                   </Button>
                 </AccordionContent>
               </AccordionItem>
-
-               {/* Deductibles Section */}
-              <AccordionItem value="deductibles">
-                <AccordionTrigger>
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="size-5 text-primary" />
-                    <div className="flex flex-col items-start">
-                        <span className="font-semibold">Statutory Deductibles</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.nssfCost + calculations.shifCost)}</span>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="space-y-6 pt-4">
-                    <Alert>
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Calculation Basis</AlertTitle>
-                        <AlertDescription>
-                            Deductibles are calculated based on the monthly gross salary per person involved in the project. These amounts are added to your total base cost.
-                        </AlertDescription>
-                    </Alert>
-                    
-                    <FormField
-                        control={form.control}
-                        name="grossSalary"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Monthly Gross Salary (Per Person)</FormLabel>
-                            <FormControl>
-                            <Input type="number" placeholder="e.g., 50000" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-
-                    <div className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="enableNSSF"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                    <div className="space-y-0.5">
-                                        <FormLabel className="text-base">NSSF</FormLabel>
-                                        <FormDescription>
-                                            National Social Security Fund (Tier I & II).
-                                        </FormDescription>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-bold text-primary">{formatCurrency(calculations.nssfCost)}</span>
-                                        <FormControl>
-                                            <Switch
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        </FormControl>
-                                    </div>
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="enableSHIF"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                    <div className="space-y-0.5">
-                                        <FormLabel className="text-base">SHIF</FormLabel>
-                                        <FormDescription>
-                                            Social Health Insurance Fund (2.75%).
-                                        </FormDescription>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-bold text-primary">{formatCurrency(calculations.shifCost)}</span>
-                                        <FormControl>
-                                            <Switch
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        </FormControl>
-                                    </div>
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                </AccordionContent>
-              </AccordionItem>
-
             </Accordion>
             
             <div className="border-t pt-6 space-y-6">

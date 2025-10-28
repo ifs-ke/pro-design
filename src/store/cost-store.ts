@@ -227,32 +227,33 @@ export const performCalculations = (formValues: FormValues): Calculations => {
 
     const miscRate = (miscPercentage || 0) / 100;
     
-    const salaryRate = (numberOfPeople ?? 0) > 0 ? (salaryPercentage || 0) / 100 : 0;
+    const salaryRate = (salaryPercentage || 0) / 100;
     const salaryCost = (materialCost + laborCost) * salaryRate;
 
     // --- Deductibles Calculation ---
-    const currentGrossSalary = (grossSalary || 0) * (numberOfPeople || 0);
+    const numPeople = numberOfPeople || 0;
+    const monthlyGrossSalary = grossSalary || 0;
     let nssfCost = 0;
-    if (enableNSSF && currentGrossSalary > 0) {
+    if (enableNSSF && monthlyGrossSalary > 0 && numPeople > 0) {
         const tier1Limit = 7000;
         const tier2Limit = 36000;
         const nssfRate = 0.06;
 
-        const tier1Contribution = Math.min(currentGrossSalary, tier1Limit) * nssfRate;
+        const tier1Contribution = Math.min(monthlyGrossSalary, tier1Limit) * nssfRate;
         
         let tier2Contribution = 0;
-        if (currentGrossSalary > tier1Limit) {
-            const tier2Pensionable = Math.min(currentGrossSalary, tier2Limit) - tier1Limit;
+        if (monthlyGrossSalary > tier1Limit) {
+            const tier2Pensionable = Math.min(monthlyGrossSalary, tier2Limit) - tier1Limit;
             tier2Contribution = Math.max(0, tier2Pensionable) * nssfRate;
         }
-        // Total employer contribution
-        nssfCost = tier1Contribution + tier2Contribution;
+        // Total employer contribution per person, multiplied by number of people
+        nssfCost = (tier1Contribution + tier2Contribution) * numPeople;
     }
 
     let shifCost = 0;
-    if (enableSHIF && currentGrossSalary > 0) {
+    if (enableSHIF && monthlyGrossSalary > 0 && numPeople > 0) {
         const shifRate = 0.0275;
-        shifCost = currentGrossSalary * shifRate;
+        shifCost = (monthlyGrossSalary * shifRate) * numPeople;
     }
     // --- End Deductibles ---
 
@@ -332,7 +333,7 @@ export const performCalculations = (formValues: FormValues): Calculations => {
       taxType,
       profitMargin: finalProfit > 0 && subtotal > 0 ? (finalProfit / subtotal) * 100 : 0,
       businessType: formValues.businessType,
-      numberOfPeople: numberOfPeople,
+      numberOfPeople: formValues.numberOfPeople,
     };
 }
 

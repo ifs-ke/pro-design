@@ -55,9 +55,9 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
         return calculations;
     }
 
-    const { totalBaseCost, materialCost, laborCost, operationalCost, affiliateCost, miscCost, salaryCost } = calculations;
+    const { totalBaseCost, materialCost, laborCost, operationalCost, affiliateCost, salaryCost, nssfCost, shifCost } = calculations;
     const formValues = form.getValues();
-    const { businessType, taxRate: vatRate, numberOfPeople } = formValues;
+    const { businessType, taxRate: vatRate, miscPercentage } = formValues;
 
     let newSubtotal: number;
     let newTax: number;
@@ -72,8 +72,6 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
     } else if (businessType === 'sole_proprietor') { 
         newTaxType = 'TOT';
         newTaxRate = 3;
-        // The final quote is the gross revenue. TOT is 3% of this.
-        // Net = Gross * (1 - 0.03)
         newTax = numericQuote * (newTaxRate / 100);
         newSubtotal = numericQuote - newTax;
     } else { // no_tax
@@ -83,12 +81,17 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
         newSubtotal = numericQuote;
     }
     
-    const newProfit = newSubtotal - totalBaseCost;
+    // Recalculate misc cost based on the new final quote
+    const miscRate = (miscPercentage || 0) / 100;
+    const newMiscCost = numericQuote * miscRate;
+    const newTotalBaseCost = totalBaseCost - calculations.miscCost + newMiscCost;
+
+    const newProfit = newSubtotal - newTotalBaseCost;
     const newProfitMargin = newProfit > 0 && newSubtotal > 0 ? (newProfit / newSubtotal) * 100 : 0;
 
     return {
         grandTotal: numericQuote,
-        totalBaseCost: totalBaseCost,
+        totalBaseCost: newTotalBaseCost,
         profit: newProfit,
         subtotal: newSubtotal,
         tax: newTax,
@@ -99,10 +102,12 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
         laborCost,
         operationalCost,
         affiliateCost,
-        miscCost,
         salaryCost,
+        nssfCost,
+        shifCost,
+        miscCost: newMiscCost,
         businessType: formValues.businessType,
-        numberOfPeople: numberOfPeople
+        numberOfPeople: formValues.numberOfPeople,
     };
   }, [finalQuote, calculations, form]);
 
