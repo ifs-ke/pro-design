@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore, type Calculations, performCalculations, FormValues } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { useForm, FormProvider } from "react-hook-form";
@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 
 export default function CostingPage() {
-  const { formValues, resetForm } = useStore();
+  const { formValues, resetForm, loadedQuoteId } = useStore();
   const isLoading = !useIsHydrated();
 
   const form = useForm<FormValues>({
@@ -25,7 +25,19 @@ export default function CostingPage() {
   });
 
   const watchedFormValues = form.watch();
-  const [calculations, setCalculations] = useState<Calculations>(() => performCalculations(watchedFormValues));
+  const [calculations, setCalculations] = useState<Calculations>(() => performCalculations(form.getValues()));
+
+  useEffect(() => {
+    setCalculations(performCalculations(watchedFormValues));
+  }, [watchedFormValues]);
+
+  useEffect(() => {
+    // When a quote is loaded from the store, reset the form
+    if (loadedQuoteId) {
+        form.reset(formValues);
+    }
+  }, [loadedQuoteId, form, formValues]);
+
 
   const handleNewQuote = () => {
     resetForm();
@@ -59,7 +71,7 @@ export default function CostingPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
         <div className="lg:col-span-3 space-y-8">
-          <CostForm onCalculationsChange={setCalculations} />
+          <CostForm calculations={calculations} />
         </div>
 
         <div className="lg:col-span-2 space-y-8 sticky top-8">

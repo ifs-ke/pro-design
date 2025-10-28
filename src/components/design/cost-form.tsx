@@ -221,10 +221,10 @@ setName("");
 }
 
 interface CostFormProps {
-  onCalculationsChange: (calculations: Calculations) => void;
+  calculations: Calculations;
 }
 
-export function CostForm({ onCalculationsChange }: CostFormProps) {
+export function CostForm({ calculations }: CostFormProps) {
   const { loadedQuoteId, clients, projects } = useStore(state => ({
     loadedQuoteId: state.loadedQuoteId,
     clients: state.clients,
@@ -232,15 +232,6 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
   }));
   
   const form = useFormContext<FormValues>();
-  const watchedFormValues = form.watch();
-  
-  const localCalculations = useMemo(() => {
-    return performCalculations(watchedFormValues);
-  }, [watchedFormValues]);
-
-  useEffect(() => {
-    onCalculationsChange(localCalculations);
-  }, [localCalculations, onCalculationsChange]);
 
   const [showDescription, setShowDescription] = useState<{ [index: number]: boolean, } | undefined>({});
 
@@ -368,7 +359,7 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
                     <Package className="size-5 text-primary" />
                     <div className="flex flex-col items-start">
                         <span className="font-semibold">Materials</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(localCalculations.materialCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.materialCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -487,7 +478,7 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
                     <HardHat className="size-5 text-primary" />
                      <div className="flex flex-col items-start">
                         <span className="font-semibold">Labor / Vendors</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(localCalculations.laborCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.laborCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -598,7 +589,7 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
                     <Cog className="size-5 text-primary" />
                     <div className="flex flex-col items-start">
                         <span className="font-semibold">Operations</span>
-                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(localCalculations.operationalCost)}</span>
+                        <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.operationalCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -688,7 +679,7 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
                               />
                               </FormControl>
                               <div className="text-right text-sm text-muted-foreground">
-                                Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(localCalculations.salaryCost)}</span>
+                                Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.salaryCost)}</span>
                               </div>
                               <FormMessage />
                           </FormItem>
@@ -735,7 +726,7 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
                             />
                             </FormControl>
                             <div className="text-right text-sm text-muted-foreground">
-                              Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(localCalculations.miscCost)}</span>
+                              Calculated Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.miscCost)}</span>
                             </div>
                             <FormMessage />
                         </FormItem>
@@ -751,7 +742,7 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
                     <Handshake className="size-5 text-primary" />
                     <div className="flex flex-col items-start">
                       <span className="font-semibold">Affiliates / Partners</span>
-                      <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(localCalculations.affiliateCost)}</span>
+                      <span className="text-sm text-muted-foreground font-normal">Total: {formatCurrency(calculations.affiliateCost)}</span>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -955,7 +946,7 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
                                     <Milestone className="size-3"/>
                                     Suggested Quote
                                 </Label>
-                                <p className="font-bold text-lg text-primary">{formatCurrency(localCalculations.grandTotal)}</p>
+                                <p className="font-bold text-lg text-primary">{formatCurrency(calculations.grandTotal)}</p>
                             </div>
                             <FormMessage />
                         </FormItem>
@@ -963,7 +954,7 @@ export function CostForm({ onCalculationsChange }: CostFormProps) {
                     />
                 </div>
                 
-                {(localCalculations.profitMargin ?? 0) < 18 && localCalculations.grandTotal > 0 && (
+                {(calculations.profitMargin ?? 0) < 18 && calculations.grandTotal > 0 && (
                 <Alert variant="destructive" className="bg-amber-100 border-amber-300 text-amber-900">
                     <AlertTriangle className="h-4 w-4 !text-amber-700" />
                     <AlertTitle>Low Profit Margin</AlertTitle>
