@@ -70,6 +70,7 @@ export default function AppLayout({
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href}>
                   <SidebarMenuButton
+                    size="lg"
                     isActive={pathname.startsWith(item.href)}
                     tooltip={{ children: item.label }}
                   >
@@ -88,8 +89,8 @@ export default function AppLayout({
       </Sidebar>
       <SidebarInset>
         <main className="p-4 sm:p-6 lg:p-8 relative">
-            <div className="absolute top-4 right-4 z-20 md:hidden">
-                <SidebarTrigger />
+            <div className="absolute top-4 right-4 z-20">
+                <SidebarTrigger className="md:hidden" />
             </div>
             <div className="mx-auto w-full max-w-7xl">
                 {children}
