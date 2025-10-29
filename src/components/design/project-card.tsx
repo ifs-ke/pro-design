@@ -28,11 +28,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ProjectFormDialog } from "./project-form";
 import { deleteProject } from "@/lib/actions";
+import type { HydratedProject, Client, Property } from "@/store/cost-store";
 
 interface ProjectCardProps {
-    project: any;
-    clients: any[];
-    properties: any[];
+    project: HydratedProject;
+    clients: Client[];
+    properties: Property[];
 }
 
 const cardVariants = {
@@ -51,8 +52,8 @@ const statusVariant: { [key: string]: "default" | "secondary" | "outline" | "suc
 export function ProjectCard({ project, clients, properties }: ProjectCardProps) {
     const [showAlert, setShowAlert] = useState(false);
 
-    const approvedQuotes = project.quotes?.filter((q: any) => q.status === 'Approved') || [];
-    const totalApprovedValue = approvedQuotes.reduce((acc: number, q: any) => acc + (q.calculations as any).grandTotal, 0);
+    const approvedQuotes = project.quotes?.filter((q) => q.status === 'Approved') || [];
+    const totalApprovedValue = approvedQuotes.reduce((acc: number, q) => acc + (q.calculations as any).grandTotal, 0);
 
     return (
         <motion.div variants={cardVariants}>
@@ -67,12 +68,14 @@ export function ProjectCard({ project, clients, properties }: ProjectCardProps) 
                             <div className="space-y-1 mt-2">
                                 {project.client && (
                                     <CardDescription className="flex items-center gap-2">
-                                        <User className="size-4"/> {project.client.name}
+                                        <User className="size-4"/> 
+                                        <Link href="/crm" className="hover:underline">{project.client.name}</Link>
                                     </CardDescription>
                                 )}
                                 {project.property && (
                                     <CardDescription className="flex items-center gap-2">
-                                        <HomeIcon className="size-4"/> {project.property.name}
+                                        <HomeIcon className="size-4"/> 
+                                        <Link href="/properties" className="hover:underline">{project.property.name}</Link>
                                     </CardDescription>
                                 )}
                             </div>
@@ -180,7 +183,7 @@ export function ProjectCard({ project, clients, properties }: ProjectCardProps) 
                         <h4 className="text-sm font-semibold text-muted-foreground mb-2">Linked Quotes ({project.quotes?.length || 0})</h4>
                         {project.quotes?.length > 0 ? (
                             <ul className="space-y-2">
-                                {project.quotes.map((q: any) => (
+                                {project.quotes.map((q) => (
                                     <li key={q.id} className="text-sm flex items-center justify-between">
                                         <Link href={`/quotes/${q.id}`} className="flex items-center gap-2 hover:underline">
                                             <FileText className="size-4 text-muted-foreground"/>

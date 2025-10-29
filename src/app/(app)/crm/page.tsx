@@ -1,14 +1,13 @@
 
 'use client';
 
-import { useStore, HydratedClient } from "@/store/cost-store";
+import { useStore } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { ClientCard } from "@/components/design/client-card";
 import { ClientFormDialog } from "@/components/design/client-form";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Users } from "lucide-react";
 import { motion } from "framer-motion";
-import { useMemo } from "react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -21,31 +20,8 @@ const containerVariants = {
 };
 
 export default function CrmPage() {
-    const { clients, projects, quotes, properties } = useStore();
+    const { hydratedClients } = useStore();
     const isLoading = !useIsHydrated();
-
-    const hydratedClients: HydratedClient[] = useMemo(() => {
-        const hydratedQuotes = quotes.map(q => ({
-            ...q,
-            client: clients.find(c => c.id === q.clientId),
-            project: projects.find(p => p.id === q.projectId),
-        }));
-
-        const hydratedProjects = projects.map(p => ({
-            ...p,
-            client: clients.find(c => c.id === p.clientId),
-            property: properties.find(prop => prop.id === p.propertyId),
-            quotes: hydratedQuotes.filter(q => q.projectId === p.id),
-        }));
-        
-        return clients.map(c => ({
-            ...c,
-            projects: hydratedProjects.filter(p => p.clientId === c.id),
-            quotes: hydratedQuotes.filter(q => q.clientId === c.id),
-            properties: properties.filter(p => p.clientId === c.id),
-        })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    }, [clients, projects, quotes, properties]);
 
     if (isLoading) {
         return (

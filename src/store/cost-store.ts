@@ -1,9 +1,9 @@
 
-
 import { create } from 'zustand';
 import type * as z from 'zod';
 import type { formSchema } from '@/components/design/cost-form';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
+import { createSelector } from 'reselect';
 
 export type FormValues = z.infer<typeof formSchema>;
 
@@ -140,6 +140,12 @@ interface CostState {
   properties: Property[];
   projects: Project[];
   quotes: Quote[];
+
+  // Hydrated data (derived state)
+  hydratedClients: HydratedClient[];
+  hydratedProperties: HydratedProperty[];
+  hydratedProjects: HydratedProject[];
+  hydratedQuotes: HydratedQuote[];
 
   // Form actions
   setFormValues: (values: Partial<FormValues>) => void;
@@ -337,6 +343,63 @@ export const performCalculations = (formValues: FormValues): Calculations => {
     };
 }
 
+// --- Centralized Selectors ---
+const selectClients = (state: CostState) => state.clients;
+const selectProjects = (state: CostState) => state.projects;
+const selectProperties = (state: CostState) => state.properties;
+const selectQuotes = (state: CostState) => state.quotes;
+
+const selectHydratedQuotes = createSelector(
+  [selectQuotes, selectClients, selectProjects],
+  (quotes, clients, projects) => {
+    const clientMap = new Map(clients.map(c => [c.id, c]));
+    const projectMap = new Map(projects.map(p => [p.id, p]));
+    return quotes.map(q => ({
+      ...q,
+      client: clientMap.get(q.clientId),
+      project: q.projectId ? projectMap.get(q.projectId) : undefined,
+    })).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+);
+
+const selectHydratedProjects = createSelector(
+  [selectProjects, selectClients, selectProperties, selectHydratedQuotes],
+  (projects, clients, properties, hydratedQuotes) => {
+    const clientMap = new Map(clients.map(c => [c.id, c]));
+    const propertyMap = new Map(properties.map(p => [p.id, p]));
+    return projects.map(p => ({
+      ...p,
+      client: clientMap.get(p.clientId),
+      property: p.propertyId ? propertyMap.get(p.propertyId) : undefined,
+      quotes: hydratedQuotes.filter(q => q.projectId === p.id),
+    })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+);
+
+const selectHydratedProperties = createSelector(
+  [selectProperties, selectClients, selectHydratedProjects],
+  (properties, clients, hydratedProjects) => {
+    const clientMap = new Map(clients.map(c => [c.id, c]));
+    return properties.map(p => ({
+      ...p,
+      client: clientMap.get(p.clientId),
+      projects: hydratedProjects.filter(proj => proj.propertyId === p.id),
+    })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+);
+
+const selectHydratedClients = createSelector(
+  [selectClients, selectHydratedProjects, selectHydratedQuotes, selectHydratedProperties],
+  (clients, hydratedProjects, hydratedQuotes, hydratedProperties) => {
+    return clients.map(c => ({
+      ...c,
+      projects: hydratedProjects.filter(p => p.clientId === c.id),
+      quotes: hydratedQuotes.filter(q => q.clientId === c.id),
+      properties: hydratedProperties.filter(p => p.clientId === c.id),
+    })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+);
+
 
 export const useStore = create<CostState>()(
   devtools(
@@ -351,6 +414,12 @@ export const useStore = create<CostState>()(
         properties: [],
         projects: [],
         quotes: [],
+
+        // Initialize derived state
+        hydratedClients: [],
+        hydratedProperties: [],
+        hydratedProjects: [],
+        hydratedQuotes: [],
         
         setHydrated: () => {
             set({ _hydrated: true });
@@ -523,8 +592,44 @@ export const useStore = create<CostState>()(
         onRehydrateStorage: () => (state) => {
           if (state) state.setHydrated();
         },
+        merge: (persistedState, currentState) => {
+          const state = persistedState as CostState;
+          const hydratedState = {
+            ...currentState,
+            ...state,
+            hydratedClients: selectHydratedClients(state),
+            hydratedProperties: selectHydratedProperties(state),
+            hydratedProjects: selectHydratedProjects(state),
+            hydratedQuotes: selectHydratedQuotes(state),
+          };
+          return hydratedState;
+        },
       }
     ),
     { name: "CostFormStore" }
   )
+);
+
+// Subscribe to store changes to update derived state
+useStore.subscribe(
+  (state) => {
+    const newHydratedClients = selectHydratedClients(state);
+    const newHydratedProperties = selectHydratedProperties(state);
+    const newHydratedProjects = selectHydratedProjects(state);
+    const newHydratedQuotes = selectHydratedQuotes(state);
+
+    if (
+      useStore.getState().hydratedClients !== newHydratedClients ||
+      useStore.getState().hydratedProperties !== newHydratedProperties ||
+      useStore.getState().hydratedProjects !== newHydratedProjects ||
+      useStore.getState().hydratedQuotes !== newHydratedQuotes
+    ) {
+      useStore.setState({
+        hydratedClients: newHydratedClients,
+        hydratedProperties: newHydratedProperties,
+        hydratedProjects: newHydratedProjects,
+        hydratedQuotes: newHydratedQuotes,
+      });
+    }
+  }
 );

@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Edit, Trash2, User, Home, Building, MapPin } from "lucide-react";
@@ -26,10 +27,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PropertyFormDialog } from "./property-form";
 import { deleteProperty } from "@/lib/actions";
+import type { HydratedProperty, Client } from "@/store/cost-store";
 
 interface PropertyCardProps {
-    property: any;
-    clients: any[];
+    property: HydratedProperty;
+    clients: Client[];
 }
 
 const cardVariants = {
@@ -53,7 +55,8 @@ export function PropertyCard({ property, clients }: PropertyCardProps) {
                             <div className="space-y-1 mt-2">
                                 {property.client && (
                                     <CardDescription className="flex items-center gap-2">
-                                        <User className="size-4"/> {property.client.name}
+                                        <User className="size-4"/>
+                                        <Link href="/crm" className="hover:underline">{property.client.name}</Link>
                                     </CardDescription>
                                 )}
                                 {property.address && (
@@ -111,12 +114,12 @@ export function PropertyCard({ property, clients }: PropertyCardProps) {
                         <h4 className="text-sm font-semibold text-muted-foreground mb-2">Linked Projects ({property.projects?.length || 0})</h4>
                         {property.projects?.length > 0 ? (
                             <ul className="space-y-2">
-                                {property.projects.map((p: any) => (
+                                {property.projects.map((p) => (
                                     <li key={p.id} className="text-sm flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
+                                        <Link href="/projects" className="flex items-center gap-2 hover:underline">
                                             <Building className="size-4 text-muted-foreground"/>
                                             <span>{p.name}</span>
-                                        </div>
+                                        </Link>
                                         <Badge variant="outline" className="capitalize">{p.status}</Badge>
                                     </li>
                                 ))}

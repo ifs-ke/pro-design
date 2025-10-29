@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
-import { MoreHorizontal, Edit, Trash2, Building, FileText } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, Building, FileText, HomeIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,9 +29,10 @@ import { Badge } from "@/components/ui/badge";
 import { FollowUpTracker } from "@/components/design/follow-up-tracker";
 import { ClientFormDialog } from "./client-form";
 import { deleteClient } from "@/lib/actions";
+import type { HydratedClient } from "@/store/cost-store";
 
 interface ClientCardProps {
-    client: any;
+    client: HydratedClient;
 }
 
 const responsivenessVariant: { [key: string]: "success" | "secondary" | "destructive" } = {
@@ -106,28 +107,44 @@ export function ClientCard({ client }: ClientCardProps) {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
                         <div>
-                            <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><Building className="text-primary"/> Projects ({client.projects?.length || 0})</h4>
+                             <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><HomeIcon className="text-primary"/> Properties ({client.properties?.length || 0})</h4>
+                            {client.properties?.length > 0 ? (
+                                <ul className="space-y-1 text-sm text-muted-foreground">
+                                    {client.properties.map((p) => (
+                                      <li key={p.id}>
+                                        <Link href={`/properties`} className="hover:underline">{p.name}</Link>
+                                      </li>
+                                    ))}
+                                </ul>
+                            ) : <p className="text-sm text-muted-foreground">No properties yet.</p>}
+                        </div>
+                        <div>
+                             <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><Building className="text-primary"/> Projects ({client.projects?.length || 0})</h4>
                             {client.projects?.length > 0 ? (
                                 <ul className="space-y-1 text-sm text-muted-foreground">
-                                    {client.projects.map((p: any) => <li key={p.id}>{p.name}</li>)}
+                                    {client.projects.map((p) => (
+                                      <li key={p.id}>
+                                         <Link href={`/projects`} className="hover:underline">{p.name}</Link>
+                                      </li>
+                                    ))}
                                 </ul>
                             ) : <p className="text-sm text-muted-foreground">No projects yet.</p>}
                         </div>
-                        <div>
-                            <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><FileText className="text-primary"/> Quotes ({client.quotes?.length || 0})</h4>
-                            {client.quotes?.length > 0 ? (
-                                <ul className="space-y-1 text-sm text-muted-foreground">
-                                    {client.quotes.map((q: any) => (
-                                        <li key={q.id}>
-                                            <Link href={`/quotes/${q.id}`} className="hover:underline flex justify-between">
-                                                <span>{q.id.substring(0,8)}...</span>
-                                                <span className="font-medium text-foreground">{formatCurrency((q.calculations as any).grandTotal)}</span>
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : <p className="text-sm text-muted-foreground">No quotes yet.</p>}
-                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <h4 className="font-semibold text-sm flex items-center gap-2"><FileText className="text-primary"/> Quotes ({client.quotes?.length || 0})</h4>
+                        {client.quotes?.length > 0 ? (
+                            <ul className="space-y-1 text-sm text-muted-foreground max-h-24 overflow-y-auto">
+                                {client.quotes.map((q) => (
+                                    <li key={q.id}>
+                                        <Link href={`/quotes/${q.id}`} className="hover:underline flex justify-between">
+                                            <span>{q.id.substring(0,8)}...</span>
+                                            <span className="font-medium text-foreground">{formatCurrency((q.calculations as any).grandTotal)}</span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : <p className="text-sm text-muted-foreground">No quotes yet.</p>}
                     </div>
                     <div className="mt-auto pt-4 border-t">
                         <FollowUpTracker client={client} />

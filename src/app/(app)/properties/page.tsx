@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useStore, HydratedProperty } from "@/store/cost-store";
+import { useStore } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { PlusCircle, Home, User } from "lucide-react";
 import { PropertyFormDialog } from "@/components/design/property-form";
 import { PropertyCard } from "@/components/design/property-card";
 import { motion } from "framer-motion";
-import { useMemo } from "react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -22,17 +21,8 @@ const containerVariants = {
 };
 
 export default function PropertiesPage() {
-  const { properties, clients, projects } = useStore();
+  const { clients, hydratedProperties } = useStore();
   const isLoading = !useIsHydrated();
-
-  const hydratedProperties: HydratedProperty[] = useMemo(() => {
-    return properties.map(p => ({
-        ...p,
-        client: clients.find(c => c.id === p.clientId),
-        projects: projects.filter(proj => proj.propertyId === p.id),
-    })).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [properties, clients, projects]);
-
 
   if (isLoading) {
     return (

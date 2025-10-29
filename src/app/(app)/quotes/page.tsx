@@ -5,11 +5,9 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText, Download } from "lucide-react";
-import { useStore, HydratedQuote } from "@/store/cost-store";
+import { useStore, type HydratedQuote } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { QuotesTable } from '@/components/design/quotes-table';
-import { useMemo } from 'react';
-import { formatCurrency } from '@/lib/utils';
 
 function downloadCSV(data: HydratedQuote[], filename: string) {
   const headers = ['Quote ID', 'Client Name', 'Project Name', 'Date', 'Status', 'Grand Total'];
@@ -34,16 +32,8 @@ function downloadCSV(data: HydratedQuote[], filename: string) {
 
 
 export default function QuotesPage() {
-  const { quotes, projects, clients } = useStore();
+  const { quotes, projects, clients, hydratedQuotes } = useStore();
   const isLoading = !useIsHydrated();
-
-  const hydratedQuotes: HydratedQuote[] = useMemo(() => {
-    return quotes.map(q => ({
-        ...q,
-        client: clients.find(c => c.id === q.clientId),
-        project: projects.find(p => p.id === q.projectId),
-    })).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [quotes, projects, clients]);
 
   const handleExport = () => {
     downloadCSV(hydratedQuotes, `quotes-export-${new Date().toISOString().split('T')[0]}.csv`);
