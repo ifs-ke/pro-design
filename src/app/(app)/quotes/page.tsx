@@ -4,11 +4,34 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, FileText } from "lucide-react";
+import { PlusCircle, FileText, Download } from "lucide-react";
 import { useStore, HydratedQuote } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { QuotesTable } from '@/components/design/quotes-table';
 import { useMemo } from 'react';
+import { formatCurrency } from '@/lib/utils';
+
+function downloadCSV(data: HydratedQuote[], filename: string) {
+  const headers = ['Quote ID', 'Client Name', 'Project Name', 'Date', 'Status', 'Grand Total'];
+  const rows = data.map(q => [
+    q.id,
+    `"${q.client?.name || 'N/A'}"`,
+    `"${q.project?.name || 'N/A'}"`,
+    new Date(q.timestamp).toLocaleDateString(),
+    q.status,
+    (q.calculations as any).grandTotal
+  ].join(','));
+
+  const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 
 export default function QuotesPage() {
   const { quotes, projects, clients } = useStore();
@@ -21,6 +44,10 @@ export default function QuotesPage() {
         project: projects.find(p => p.id === q.projectId),
     })).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [quotes, projects, clients]);
+
+  const handleExport = () => {
+    downloadCSV(hydratedQuotes, `quotes-export-${new Date().toISOString().split('T')[0]}.csv`);
+  }
 
   if (isLoading) {
     return (
@@ -37,12 +64,18 @@ export default function QuotesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Quotes</h1>
           <p className="text-muted-foreground mt-1">Manage all your client quotes in one place.</p>
         </div>
-        <Link href="/costing">
-          <Button size="sm">
-            <PlusCircle className="mr-2" />
-            Create New Quote
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={handleExport} disabled={quotes.length === 0}>
+                <Download className="mr-2" />
+                Export to CSV
+            </Button>
+            <Link href="/costing">
+              <Button size="sm">
+                <PlusCircle className="mr-2" />
+                Create New Quote
+              </Button>
+            </Link>
+        </div>
       </header>
 
       {quotes.length === 0 ? (
