@@ -89,9 +89,7 @@ export default function AppLayout({
       </Sidebar>
       <SidebarInset>
         <main className="p-4 sm:p-6 lg:p-8 relative">
-            <div className="flex items-center justify-between md:hidden mb-4 -mt-2">
-                {/* This space is for alignment, can be empty or have a logo */}
-                <div className="w-10"></div>
+            <div className="flex items-center justify-end md:hidden mb-4 -mt-2">
                 <SidebarTrigger className="md:hidden" />
             </div>
             <div className="mx-auto w-full max-w-7xl">
