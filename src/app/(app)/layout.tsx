@@ -47,7 +47,7 @@ export default function AppLayout({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="size-6 text-primary"
+                className="text-primary"
             >
                 <path d="M15 14c.2-1 .7-1.7 1.5-2.5C17.3 10.7 18 9.9 18 9c0-1.1-.9-2-2-2s-2 .9-2 2" />
                 <path d="M12 14c.2-1 .7-1.7 1.5-2.5C14.3 10.7 15 9.9 15 9c0-1.1-.9-2-2-2s-2 .9-2 2" />
@@ -89,7 +89,9 @@ export default function AppLayout({
       </Sidebar>
       <SidebarInset>
         <main className="p-4 sm:p-6 lg:p-8 relative">
-            <div className="absolute top-4 right-4 z-20">
+            <div className="flex items-center justify-between md:hidden mb-4 -mt-2">
+                {/* This space is for alignment, can be empty or have a logo */}
+                <div className="w-10"></div>
                 <SidebarTrigger className="md:hidden" />
             </div>
             <div className="mx-auto w-full max-w-7xl">
