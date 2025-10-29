@@ -172,7 +172,7 @@ export function MaterialSuggester() {
                                 <AccordionTrigger className="text-left hover:no-underline">
                                     <div className="flex items-center gap-4">
                                         <Image 
-                                            src={`https://placehold.co/64x64.png`}
+                                            src={`https://picsum.photos/seed/${index+1}/64/64`}
                                             alt={item.materialName}
                                             width={64}
                                             height={64}

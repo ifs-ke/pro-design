@@ -281,7 +281,9 @@ function QuoteRow({ quote, projects, clients }: { quote: any, projects: any[], c
                   </div>
               </div>
             </TableCell>
-            <TableCell className="font-medium hidden md:table-cell">{quote.id}</TableCell>
+            <TableCell className="font-medium hidden md:table-cell">
+                <Link href={`/quotes/${quote.id}`} className="hover:underline">{quote.id}</Link>
+            </TableCell>
             <TableCell className="hidden md:table-cell">{clientName}</TableCell>
             <TableCell className="hidden md:table-cell">{new Date(quote.timestamp).toLocaleDateString()}</TableCell>
             <TableCell className="hidden md:table-cell">{projectName}</TableCell>
