@@ -42,12 +42,12 @@ export default function DashboardPage() {
     const projectStatusData = Object.entries(projectStatusCounts).map(([name, value]) => ({ name, value }));
 
     return {
-      totalClients: clients.length,
-      totalProjects: projects.length,
-      totalQuotes: quotes.length,
+      totalClients: clients.length || 0,
+      totalProjects: projects.length || 0,
+      totalQuotes: quotes.length || 0,
       approvedRevenue,
       approvalRate,
-      totalApprovedQuotes: approvedQuotes.length,
+      totalApprovedQuotes: approvedQuotes.length || 0,
       clientStatusData,
       projectStatusData,
       quoteStatusData,

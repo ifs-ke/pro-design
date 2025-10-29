@@ -4,6 +4,20 @@ import type * as z from 'zod';
 import type { formSchema } from '@/components/design/cost-form';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import { createSelector } from 'reselect';
+import { 
+    upsertQuote as upsertQuoteAction,
+    deleteQuote as deleteQuoteAction,
+    assignQuoteToProject as assignQuoteToProjectAction,
+    createClient as createClientAction,
+    updateClient as updateClientAction,
+    deleteClient as deleteClientAction,
+    createProperty as createPropertyAction,
+    updateProperty as updatePropertyAction,
+    deleteProperty as deletePropertyAction,
+    createProject as createProjectAction,
+    updateProject as updateProjectAction,
+    deleteProject as deleteProjectAction,
+} from '@/lib/actions';
 
 export type FormValues = z.infer<typeof formSchema>;
 
@@ -147,6 +161,9 @@ interface CostState {
   hydratedProjects: HydratedProject[];
   hydratedQuotes: HydratedQuote[];
 
+  // Data hydration action
+  setData: (data: { clients: Client[], properties: Property[], projects: Project[], quotes: Quote[] }) => void;
+
   // Form actions
   setFormValues: (values: Partial<FormValues>) => void;
   setAllocations: (values: Allocation) => void;
@@ -155,23 +172,23 @@ interface CostState {
   setHydrated: () => void;
 
   // "DB" actions
-  addClient: (data: { name: string; email?: string; phone?: string }) => Client;
-  updateClient: (id: string, data: Partial<Omit<Client, 'id' | 'createdAt'>>) => void;
-  deleteClient: (id: string) => void;
+  addClient: (data: { name: string; email?: string; phone?: string }) => Promise<Client>;
+  updateClient: (id: string, data: Partial<Omit<Client, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
   addInteraction: (clientId: string, data: { type: Interaction['type']; notes: string }) => void;
   
-  addProperty: (data: Partial<Omit<Property, 'id' | 'createdAt' | 'updatedAt'>>) => Property;
-  updateProperty: (id: string, data: Partial<Omit<Property, 'id' | 'createdAt'>>) => void;
-  deleteProperty: (id: string) => void;
+  addProperty: (data: Partial<Omit<Property, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<Property>;
+  updateProperty: (id: string, data: Partial<Omit<Property, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteProperty: (id: string) => Promise<void>;
 
-  addProject: (data: Partial<Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'status'>>) => Project;
-  updateProject: (id: string, data: Partial<Omit<Project, 'id' | 'createdAt'>>) => void;
-  deleteProject: (id: string) => void;
+  addProject: (data: Partial<Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'status'>>) => Promise<Project>;
+  updateProject: (id: string, data: Partial<Omit<Project, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
 
-  publishQuote: (quoteId: string | null, formValues: FormValues, allocations: Allocation, finalCalculations: Calculations, suggestedCalculations: Calculations) => { quoteId: string, wasExisting: boolean };
-  updateQuoteStatus: (id: string, status: Quote['status']) => void;
-  deleteQuote: (id: string) => void;
-  assignQuoteToProject: (quoteId: string, projectId: string) => void;
+  publishQuote: (quoteId: string | null, formValues: FormValues, allocations: Allocation, finalCalculations: Calculations, suggestedCalculations: Calculations) => Promise<{ quoteId: string, wasExisting: boolean }>;
+  updateQuoteStatus: (id: string, status: Quote['status']) => Promise<void>;
+  deleteQuote: (id: string) => Promise<void>;
+  assignQuoteToProject: (quoteId: string, projectId: string) => Promise<void>;
 }
 
 const defaultFormValues: FormValues = {
@@ -425,6 +442,10 @@ export const useStore = create<CostState>()(
             set({ _hydrated: true });
         },
 
+        setData: (data) => {
+            set(data);
+        },
+
         setFormValues: (values) => {
             set(state => ({
                 formValues: { ...state.formValues, ...values }
@@ -453,7 +474,7 @@ export const useStore = create<CostState>()(
           });
         },
 
-        addClient: (data) => {
+        addClient: async (data) => {
             const newClient: Client = {
                 ...data,
                 id: crypto.randomUUID(),
@@ -464,20 +485,28 @@ export const useStore = create<CostState>()(
                 interactions: [],
             };
             set(state => ({ clients: [...state.clients, newClient] }));
+            // This needs a form, so we can't call the action directly.
+            // await createClientAction(newClient);
             return newClient;
         },
-        updateClient: (id, data) => {
+        updateClient: async (id, data) => {
             set(state => ({
                 clients: state.clients.map(c => c.id === id ? { ...c, ...data, updatedAt: new Date().toISOString() } : c)
             }));
+            // This needs a form, so we can't call the action directly.
+            // const updatedClient = get().clients.find(c => c.id === id);
+            // if (updatedClient) {
+            //   await updateClientAction(id, updatedClient);
+            // }
         },
-        deleteClient: (id) => {
+        deleteClient: async (id) => {
             set(state => ({
                 clients: state.clients.filter(c => c.id !== id),
                 projects: state.projects.filter(p => p.clientId !== id),
                 properties: state.properties.filter(p => p.clientId !== id),
                 quotes: state.quotes.filter(q => q.clientId !== id),
             }));
+            await deleteClientAction(id);
         },
         addInteraction: (clientId, data) => {
             const newInteraction: Interaction = { ...data, id: crypto.randomUUID(), timestamp: new Date().toISOString() };
@@ -486,7 +515,7 @@ export const useStore = create<CostState>()(
             }));
         },
 
-        addProperty: (data) => {
+        addProperty: async (data) => {
             const newProperty: Property = {
                 id: crypto.randomUUID(),
                 createdAt: new Date().toISOString(),
@@ -494,21 +523,29 @@ export const useStore = create<CostState>()(
                 ...data
             } as Property;
             set(state => ({ properties: [...state.properties, newProperty] }));
+             // This needs a form, so we can't call the action directly.
+            // await createPropertyAction(newProperty);
             return newProperty;
         },
-        updateProperty: (id, data) => {
+        updateProperty: async (id, data) => {
             set(state => ({
                 properties: state.properties.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p)
             }));
+             // This needs a form, so we can't call the action directly.
+            // const updatedProperty = get().properties.find(p => p.id === id);
+            // if (updatedProperty) {
+            //   await updatePropertyAction(id, updatedProperty);
+            // }
         },
-        deleteProperty: (id) => {
+        deleteProperty: async (id) => {
             set(state => ({
                 properties: state.properties.filter(p => p.id !== id),
                 projects: state.projects.map(p => p.propertyId === id ? { ...p, propertyId: undefined } : p)
             }));
+            await deletePropertyAction(id);
         },
 
-        addProject: (data) => {
+        addProject: async (data) => {
             const newProject: Project = {
                 id: crypto.randomUUID(),
                 status: 'Planning',
@@ -517,45 +554,53 @@ export const useStore = create<CostState>()(
                 ...data
             } as Project;
             set(state => ({ projects: [...state.projects, newProject] }));
+            // This needs a form, so we can't call the action directly.
+            // await createProjectAction(newProject);
             return newProject;
         },
-        updateProject: (id, data) => {
+        updateProject: async (id, data) => {
             set(state => ({
                 projects: state.projects.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p)
             }));
+            // This needs a form, so we can't call the action directly.
+            // const updatedProject = get().projects.find(p => p.id === id);
+            // if (updatedProject) {
+            //   await updateProjectAction(id, updatedProject);
+            // }
         },
-        deleteProject: (id) => {
+        deleteProject: async (id) => {
             set(state => ({
                 projects: state.projects.filter(p => p.id !== id),
                 quotes: state.quotes.map(q => q.projectId === id ? { ...q, projectId: null } : q)
             }));
+            await deleteProjectAction(id);
         },
 
-        publishQuote: (quoteId, formValues, allocations, finalCalculations, suggestedCalculations) => {
+        publishQuote: async (quoteId, formValues, allocations, finalCalculations, suggestedCalculations) => {
+            let quoteToSave: Quote;
+            let wasExisting = false;
+
             if (quoteId) {
-                let updatedQuote: Quote | null = null;
+                const existingQuote = get().quotes.find(q => q.id === quoteId);
+                if (!existingQuote) throw new Error("Quote not found");
+                
+                quoteToSave = {
+                    ...existingQuote,
+                    formValues,
+                    allocations,
+                    calculations: finalCalculations,
+                    suggestedCalculations,
+                    timestamp: new Date().toISOString(),
+                    status: 'Draft',
+                    clientId: formValues.clientId,
+                    projectId: formValues.projectId || null,
+                };
+                wasExisting = true;
                 set(state => ({
-                    quotes: state.quotes.map(q => {
-                        if (q.id === quoteId) {
-                            updatedQuote = {
-                                ...q,
-                                formValues,
-                                allocations,
-                                calculations: finalCalculations,
-                                suggestedCalculations,
-                                timestamp: new Date().toISOString(),
-                                status: 'Draft',
-                                clientId: formValues.clientId,
-                                projectId: formValues.projectId || null,
-                            };
-                            return updatedQuote;
-                        }
-                        return q;
-                    })
+                    quotes: state.quotes.map(q => q.id === quoteId ? quoteToSave : q)
                 }));
-                return { quoteId, wasExisting: true };
             } else {
-                const newQuote: Quote = {
+                quoteToSave = {
                     id: `QT-${Date.now().toString().slice(-6)}`,
                     clientId: formValues.clientId,
                     projectId: formValues.projectId || null,
@@ -566,32 +611,40 @@ export const useStore = create<CostState>()(
                     status: 'Draft',
                     timestamp: new Date().toISOString(),
                 };
-                set(state => ({ quotes: [...state.quotes, newQuote] }));
-                return { quoteId: newQuote.id, wasExisting: false };
+                wasExisting = false;
+                set(state => ({ quotes: [...state.quotes, quoteToSave] }));
+            }
+
+            await upsertQuoteAction(quoteToSave);
+
+            return { quoteId: quoteToSave.id, wasExisting };
+        },
+        updateQuoteStatus: async (id, status) => {
+            const quote = get().quotes.find(q => q.id === id);
+            if (quote) {
+                const updatedQuote = { ...quote, status: status as Quote['status'] };
+                set(state => ({
+                    quotes: state.quotes.map(q => q.id === id ? updatedQuote : q)
+                }));
+                await upsertQuoteAction(updatedQuote);
             }
         },
-        updateQuoteStatus: (id, status) => {
-            set(state => ({
-                quotes: state.quotes.map(q => q.id === id ? { ...q, status: status as Quote['status'] } : q)
-            }));
-        },
-        deleteQuote: (id) => {
+        deleteQuote: async (id: string) => {
             set(state => ({
                 quotes: state.quotes.filter(q => q.id !== id)
             }));
+            await deleteQuoteAction(id);
         },
-        assignQuoteToProject: (quoteId, projectId) => {
+        assignQuoteToProject: async (quoteId, projectId) => {
             set(state => ({
                 quotes: state.quotes.map(q => q.id === quoteId ? { ...q, projectId } : q)
             }));
+            await assignQuoteToProjectAction(quoteId, projectId);
         },
       }),
       {
         name: 'design-cost-pro-storage',
         storage: createJSONStorage(() => localStorage),
-        onRehydrateStorage: () => (state) => {
-          if (state) state.setHydrated();
-        },
         merge: (persistedState, currentState) => {
           const state = persistedState as CostState;
           const hydratedState = {

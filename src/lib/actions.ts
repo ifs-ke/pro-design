@@ -1,122 +1,466 @@
+'use server';
 
-'use server'
+import { z } from 'zod';
+import prisma from './db';
+import { revalidatePath } from 'next/cache';
 
-import { useStore } from '@/store/cost-store';
-import type { Allocation, Calculations, FormValues } from "@/store/cost-store";
+const clientSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters.'),
+  email: z.string().email('Invalid email address.'),
+  phone: z.string().optional(),
+});
 
-// This is a server-side representation of what would be database actions.
-// In this implementation, they will interact with the Zustand store via server-side logic,
-// which is not the standard pattern but will work for this self-contained example.
-// For a real app, these would be Prisma/Drizzle/etc. calls.
+const propertySchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters.'),
+  address: z.string().min(5, 'Address must be at least 5 characters.'),
+  clientId: z.string(),
+});
 
-export async function getClients() {
-  return useStore.getState().clients;
+const projectSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters."),
+    clientId: z.string(),
+    propertyId: z.string().optional(),
+    scope: z.string().optional(),
+    timeline: z.string().optional(),
+    projectType: z.string().optional(),
+    services: z.string().optional(),
+    roomCount: z.number().optional(),
+    otherSpaces: z.string().optional(),
+});
+
+const quoteSchema = z.object({
+  id: z.string(),
+  clientId: z.string(),
+  projectId: z.string().nullable(),
+  formValues: z.any(),
+  allocations: z.any(),
+  calculations: z.any(),
+  suggestedCalculations: z.any(),
+  status: z.string(),
+  timestamp: z.string(),
+});
+
+export async function createClient(prevState: any, formData: FormData) {
+  const validatedFields = clientSchema.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    phone: formData.get('phone'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      type: 'error' as const,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Create Client.',
+    };
+  }
+
+  const { name, email, phone } = validatedFields.data;
+
+  try {
+    await prisma.client.create({
+      data: {
+        name,
+        email,
+        phone,
+      },
+    });
+
+    revalidatePath('/crm');
+    return {
+      type: 'success' as const,
+      message: `Created client ${name}`,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to Create Client.',
+    };
+  }
 }
 
-export async function updateClient(id: string, data: any) {
-  useStore.getState().updateClient(id, data);
+export async function updateClient(id: string, prevState: any, formData: FormData) {
+    const validatedFields = clientSchema.safeParse({
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            type: 'error' as const,
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Missing Fields. Failed to Update Client.',
+        };
+    }
+
+    const { name, email, phone } = validatedFields.data;
+
+    try {
+        await prisma.client.update({
+            where: { id },
+            data: {
+                name,
+                email,
+                phone,
+            },
+        });
+
+        revalidatePath('/crm');
+        return {
+            type: 'success' as const,
+            message: `Updated client ${name}`,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to Update Client.',
+        };
+    }
 }
 
 export async function deleteClient(id: string) {
-  useStore.getState().deleteClient(id);
+    try {
+        await prisma.client.delete({ where: { id } });
+        revalidatePath('/crm');
+        return {
+            type: 'success' as const,
+            message: `Deleted client.`,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to Delete Client.',
+        };
+    }
 }
 
-export async function getProperties() {
-    return useStore.getState().properties;
+export async function createProperty(prevState: any, formData: FormData) {
+  const validatedFields = propertySchema.safeParse({
+    name: formData.get('name'),
+    address: formData.get('address'),
+    clientId: formData.get('clientId'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      type: 'error' as const,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Create Property.',
+    };
+  }
+
+  const { name, address, clientId } = validatedFields.data;
+
+  try {
+    await prisma.property.create({
+      data: {
+        name,
+        address,
+        clientId,
+      },
+    });
+
+    revalidatePath('/properties');
+    return {
+      type: 'success' as const,
+      message: `Created property at ${address}`,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to Create Property.',
+    };
+  }
 }
 
-export async function createProperty(data: any) {
-    const newProperty = useStore.getState().addProperty(data);
-    return newProperty;
-}
+export async function updateProperty(
+  id: string,
+  prevState: any,
+  formData: FormData
+) {
+  const validatedFields = propertySchema.safeParse({
+    name: formData.get('name'),
+    address: formData.get('address'),
+    clientId: formData.get('clientId'),
+  });
 
-export async function updateProperty(id: string, data: any) {
-    useStore.getState().updateProperty(id, data);
+  if (!validatedFields.success) {
+    return {
+      type: 'error' as const,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Update Property.',
+    };
+  }
+
+  const { name, address, clientId } = validatedFields.data;
+
+  try {
+    await prisma.property.update({
+      where: {
+        id,
+      },
+      data: {
+        name,
+        address,
+        clientId,
+      },
+    });
+
+    revalidatePath('/properties');
+    return {
+      type: 'success' as const,
+      message: `Updated property at ${address}`,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to Update Property.',
+    };
+  }
 }
 
 export async function deleteProperty(id: string) {
-    useStore.getState().deleteProperty(id);
+  try {
+    await prisma.property.delete({
+      where: {
+        id,
+      },
+    });
+
+    revalidatePath('/properties');
+    return {
+      type: 'success' as const,
+      message: `Deleted property. `,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to Delete Property.',
+    };
+  }
 }
 
-export async function getProjects() {
-    return useStore.getState().projects;
+export async function createProject(prevState: any, formData: FormData) {
+    const roomCount = formData.get('roomCount');
+    const validatedFields = projectSchema.safeParse({
+        name: formData.get('name'),
+        clientId: formData.get('clientId'),
+        propertyId: formData.get('propertyId'),
+        scope: formData.get('scope'),
+        timeline: formData.get('timeline'),
+        projectType: formData.get('projectType'),
+        services: formData.get('services'),
+        roomCount: roomCount ? Number(roomCount) : undefined,
+        otherSpaces: formData.get('otherSpaces'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            type: 'error' as const,
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Missing Fields. Failed to Create Project.',
+        };
+    }
+
+    const { name, clientId, propertyId, scope, timeline, projectType, services, roomCount: validatedRoomCount, otherSpaces } = validatedFields.data;
+
+    try {
+        await prisma.project.create({
+            data: {
+                name,
+                clientId,
+                propertyId,
+                scope,
+                timeline,
+                projectType,
+                services,
+                roomCount: validatedRoomCount,
+                otherSpaces,
+                status: 'Planning',
+            },
+        });
+
+        revalidatePath('/projects');
+        return {
+            type: 'success' as const,
+            message: `Created project ${name}`,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to Create Project.',
+        };
+    }
 }
 
-export async function updateProject(id: string, data: any) {
-    useStore.getState().updateProject(id, data);
+export async function updateProject(id: string, prevState: any, formData: FormData) {
+    const roomCount = formData.get('roomCount');
+    const validatedFields = projectSchema.safeParse({
+        name: formData.get('name'),
+        clientId: formData.get('clientId'),
+        propertyId: formData.get('propertyId'),
+        scope: formData.get('scope'),
+        timeline: formData.get('timeline'),
+        projectType: formData.get('projectType'),
+        services: formData.get('services'),
+        roomCount: roomCount ? Number(roomCount) : undefined,
+        otherSpaces: formData.get('otherSpaces'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            type: 'error' as const,
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Missing Fields. Failed to Update Project.',
+        };
+    }
+
+    const { name, clientId, propertyId, scope, timeline, projectType, services, roomCount: validatedRoomCount, otherSpaces } = validatedFields.data;
+
+    try {
+        await prisma.project.update({
+            where: { id },
+            data: {
+                name,
+                clientId,
+                propertyId,
+                scope,
+                timeline,
+                projectType,
+                services,
+                roomCount: validatedRoomCount,
+                otherSpaces,
+            },
+        });
+
+        revalidatePath('/projects');
+        return {
+            type: 'success' as const,
+            message: `Updated project ${name}`,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to Update Project.',
+        };
+    }
 }
 
 export async function deleteProject(id: string) {
-    useStore.getState().deleteProject(id);
+    try {
+        await prisma.project.delete({ where: { id } });
+        revalidatePath('/projects');
+        return {
+            type: 'success' as const,
+            message: `Deleted project.`,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to Delete Project.',
+        };
+    }
 }
 
-export async function getQuotes() {
-  return useStore.getState().quotes;
-}
 
-export async function getQuoteById(id: string) {
-    return useStore.getState().quotes.find(q => q.id === id) || null;
-}
+export async function upsertQuote(quoteData: any) {
+  const validatedFields = quoteSchema.safeParse(quoteData);
 
+  if (!validatedFields.success) {
+    return {
+      type: 'error' as const,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to save Quote.',
+    };
+  }
 
-export async function publishQuote(
-  quoteId: string | null,
-  formValues: FormValues,
-  allocations: Allocation,
-  finalCalculations: Calculations,
-  suggestedCalculations: Calculations
-) {
-  const result = useStore.getState().publishQuote(quoteId, formValues, allocations, finalCalculations, suggestedCalculations);
-  return result;
-}
+  const { id, ...data } = validatedFields.data;
+  const dataForDb = { ...data, timestamp: new Date(data.timestamp) };
 
-export async function updateQuoteStatus(id: string, status: string) {
-    useStore.getState().updateQuoteStatus(id, status);
+  try {
+    await prisma.quote.upsert({
+      where: { id },
+      update: dataForDb,
+      create: { id, ...dataForDb },
+    });
+
+    revalidatePath('/quotes');
+    revalidatePath(`/quotes/${id}`);
+    return {
+      type: 'success' as const,
+      message: `Quote ${id} saved.`,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to save Quote.',
+    };
+  }
 }
 
 export async function deleteQuote(id: string) {
-    useStore.getState().deleteQuote(id);
+    try {
+        await prisma.quote.delete({ where: { id } });
+        revalidatePath('/quotes');
+        return {
+            type: 'success' as const,
+            message: `Deleted quote.`,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to Delete Quote.',
+        };
+    }
 }
 
 export async function assignQuoteToProject(quoteId: string, projectId: string) {
-    useStore.getState().assignQuoteToProject(quoteId, projectId);
+    try {
+        await prisma.quote.update({
+            where: { id: quoteId },
+            data: { projectId: projectId },
+        });
+
+        revalidatePath('/quotes');
+        revalidatePath(`/quotes/${quoteId}`);
+        revalidatePath('/projects');
+        return {
+            type: 'success' as const,
+            message: `Assigned quote to project.`,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to assign Quote to Project.',
+        };
+    }
 }
 
+export async function getProjects() {
+  return await prisma.project.findMany({ include: { client: true, property: true } });
+}
 
-export async function getDashboardMetrics() {
-    const { clients, projects, quotes } = useStore.getState();
+export async function getClients() {
+  return await prisma.client.findMany();
+}
 
-    const approvedQuotes = quotes.filter(q => q.status === 'Approved');
-    const approvedRevenue = approvedQuotes.reduce((sum, q) => sum + (q.calculations as any).grandTotal, 0);
-    const approvalRate = quotes.length > 0 ? (approvedQuotes.length / quotes.length) * 100 : 0;
+export async function getProperties() {
+  return await prisma.property.findMany({ include: { client: true } });
+}
 
-    const clientStatusCounts: Record<string, number> = clients.reduce((acc: Record<string, number>, client) => {
-        acc[client.status] = (acc[client.status] || 0) + 1;
-        return acc;
-    }, {});
-    const clientStatusData = Object.entries(clientStatusCounts).map(([name, value]) => ({ name, value }));
-    
-    const quoteStatusCounts: Record<string, number> = quotes.reduce((acc: Record<string, number>, quote) => {
-        acc[quote.status] = (acc[quote.status] || 0) + 1;
-        return acc;
-    }, {});
-    const quoteStatusData = Object.entries(quoteStatusCounts).map(([name, value]) => ({ name, value }));
-
-    const projectStatusCounts: Record<string, number> = projects.reduce((acc: Record<string, number>, project) => {
-        acc[project.status] = (acc[project.status] || 0) + 1;
-        return acc;
-    }, {});
-    const projectStatusData = Object.entries(projectStatusCounts).map(([name, value]) => ({ name, value }));
-
-    return {
-      totalClients: clients.length,
-      totalProjects: projects.length,
-      approvedRevenue,
-      approvalRate,
-      clientStatusData,
-      quoteStatusData,
-      projectStatusData,
-      totalApprovedQuotes: approvedQuotes.length,
-      totalQuotes: quotes.length,
-    };
+export async function getQuotes() {
+  return await prisma.quote.findMany({ include: { client: true, project: true } });
 }
