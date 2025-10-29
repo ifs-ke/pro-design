@@ -329,6 +329,9 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"main">
 >(({ className, ...props }, ref) => {
+  const { isMobile } = useSidebar();
+  if (isMobile === undefined) return null;
+  
   return (
     <main
       ref={ref}
@@ -772,5 +775,7 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
 
     
