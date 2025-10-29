@@ -21,7 +21,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { QuoteVariance } from "@/components/design/quote-variance";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { publishQuote } from "@/lib/actions";
 import { useFormContext } from "react-hook-form";
 
 interface ProjectQuoteProps {
@@ -30,6 +29,7 @@ interface ProjectQuoteProps {
 
 export function ProjectQuote({ calculations }: ProjectQuoteProps) {
   const { 
+    publishQuote,
     allocations,
     loadedQuoteId,
     resetForm,

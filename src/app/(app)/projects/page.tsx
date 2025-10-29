@@ -33,6 +33,9 @@ export default function ProjectsPage() {
     );
   }
 
+  // Defensive check to ensure hydratedProjects is always an array
+  const projects = hydratedProjects || [];
+
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -48,7 +51,7 @@ export default function ProjectsPage() {
         </ProjectFormDialog>
       </header>
 
-      {hydratedProjects.length === 0 ? (
+      {projects.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
             <CardHeader>
             <Building className="mx-auto size-12 text-muted-foreground mb-4" />
@@ -73,7 +76,7 @@ export default function ProjectsPage() {
           initial="hidden"
           animate="visible"
         >
-            {hydratedProjects.map(project => (
+            {projects.map(project => (
                 <ProjectCard key={project.id} project={project} clients={clients} properties={properties} />
             ))}
         </motion.div>

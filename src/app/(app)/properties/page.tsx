@@ -32,6 +32,9 @@ export default function PropertiesPage() {
     );
   }
 
+  // Defensive check to ensure hydratedProperties is always an array
+  const properties = hydratedProperties || [];
+
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -55,7 +58,7 @@ export default function PropertiesPage() {
                 </CardHeader>
              </Card>
         )}
-      {clients.length > 0 && hydratedProperties.length === 0 ? (
+      {clients.length > 0 && properties.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
             <CardHeader>
             <Home className="mx-auto size-12 text-muted-foreground mb-4" />
@@ -70,7 +73,7 @@ export default function PropertiesPage() {
           initial="hidden"
           animate="visible"
         >
-            {hydratedProperties.map(property => (
+            {properties.map(property => (
                 <PropertyCard key={property.id} property={property} clients={clients} />
             ))}
         </motion.div>

@@ -450,17 +450,33 @@ export async function assignQuoteToProject(quoteId: string, projectId: string) {
 }
 
 export async function getProjects() {
-  return await prisma.project.findMany({ include: { client: true, property: true } });
+  try {
+    return await prisma.project.findMany({ include: { client: true, property: true } });
+  } catch (error) {
+    throw new Error("Failed to fetch projects.");
+  }
 }
 
 export async function getClients() {
-  return await prisma.client.findMany();
+  try {
+    return await prisma.client.findMany();
+  } catch (error) {
+    throw new Error("Failed to fetch clients.");
+  }
 }
 
 export async function getProperties() {
-  return await prisma.property.findMany({ include: { client: true } });
+  try {
+    return await prisma.property.findMany({ include: { client: true } });
+  } catch (error) {
+    throw new Error("Failed to fetch properties.");
+  }
 }
 
 export async function getQuotes() {
-  return await prisma.quote.findMany({ include: { client: true, project: true } });
+  try {
+    return await prisma.quote.findMany({ include: { client: true, project: true } });
+  } catch (error) {
+    throw new Error("Failed to fetch quotes.");
+  }
 }

@@ -15,6 +15,7 @@ function StoreInitializer({ clients, properties, projects, quotes }: StoreInitia
   const initialized = useRef(false);
   if (!initialized.current) {
     useStore.getState().setData({ clients, properties, projects, quotes });
+    useStore.getState().setHydrated(); // Signal that hydration is complete
     initialized.current = true;
   }
   return null;

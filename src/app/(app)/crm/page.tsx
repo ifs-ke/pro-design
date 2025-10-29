@@ -31,6 +31,9 @@ export default function CrmPage() {
         );
     }
 
+    // Defensive check to ensure hydratedClients is always an array
+    const clients = hydratedClients || [];
+
     return (
         <div className="flex flex-col gap-8">
             <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -43,7 +46,7 @@ export default function CrmPage() {
                 </ClientFormDialog>
             </header>
 
-            {hydratedClients.length === 0 ? (
+            {clients.length === 0 ? (
                 <div className="text-center p-12 border-dashed rounded-lg">
                     <Users className="mx-auto size-12 text-muted-foreground mb-4" />
                     <h3 className="text-xl font-semibold">No Clients Found</h3>
@@ -56,7 +59,7 @@ export default function CrmPage() {
                   initial="hidden"
                   animate="visible"
                 >
-                    {hydratedClients.map(client => (
+                    {clients.map(client => (
                         <ClientCard key={client.id} client={client} />
                     ))}
                 </motion.div>

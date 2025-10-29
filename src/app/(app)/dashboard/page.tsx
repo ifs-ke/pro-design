@@ -19,35 +19,51 @@ export default function DashboardPage() {
   const dashboardMetrics: DashboardMetrics | null = useMemo(() => {
     if (isLoading) return null;
 
-    const approvedQuotes = quotes.filter(q => q.status === 'Approved');
-    const approvedRevenue = approvedQuotes.reduce((sum, q) => sum + (q.calculations as any).grandTotal, 0);
-    const approvalRate = quotes.length > 0 ? (approvedQuotes.length / quotes.length) * 100 : 0;
+    // QA FIX: Ensure we are always working with arrays, even if store data is null/undefined.
+    const safeQuotes = quotes || [];
+    const safeClients = clients || [];
+    const safeProjects = projects || [];
 
-    const clientStatusCounts: Record<string, number> = clients.reduce((acc: Record<string, number>, client) => {
-        acc[client.status] = (acc[client.status] || 0) + 1;
-        return acc;
-    }, {});
+    const approvedQuotes = safeQuotes.filter(q => q.status === 'Approved');
+    
+    // DEV FIX: Use optional chaining (?.) and a nullish coalescing operator (||) to prevent crashes.
+    const approvedRevenue = approvedQuotes.reduce((sum, q) => sum + (q.calculations?.grandTotal || 0), 0);
+    
+    const approvalRate = safeQuotes.length > 0 ? (approvedQuotes.length / safeQuotes.length) * 100 : 0;
+
+    // QA FIX: Add a .filter(c => c.status) to prevent grouping by 'undefined'.
+    const clientStatusCounts = safeClients
+      .filter(c => c.status)
+      .reduce((acc, client) => {
+          acc[client.status] = (acc[client.status] || 0) + 1;
+          return acc;
+      }, {} as Record<string, number>);
     const clientStatusData = Object.entries(clientStatusCounts).map(([name, value]) => ({ name, value }));
     
-    const quoteStatusCounts: Record<string, number> = quotes.reduce((acc: Record<string, number>, quote) => {
-        acc[quote.status] = (acc[quote.status] || 0) + 1;
-        return acc;
-    }, {});
+    const quoteStatusCounts = safeQuotes
+      .filter(q => q.status)
+      .reduce((acc, quote) => {
+          acc[quote.status] = (acc[quote.status] || 0) + 1;
+          return acc;
+      }, {} as Record<string, number>);
     const quoteStatusData = Object.entries(quoteStatusCounts).map(([name, value]) => ({ name, value }));
 
-    const projectStatusCounts: Record<string, number> = projects.reduce((acc: Record<string, number>, project) => {
-        acc[project.status] = (acc[project.status] || 0) + 1;
-        return acc;
-    }, {});
+    const projectStatusCounts = safeProjects
+      .filter(p => p.status)
+      .reduce((acc, project) => {
+          acc[project.status] = (acc[project.status] || 0) + 1;
+          return acc;
+      }, {} as Record<string, number>);
     const projectStatusData = Object.entries(projectStatusCounts).map(([name, value]) => ({ name, value }));
 
+    // ARCHITECT FIX: The component can now handle imperfect data and still return a valid metrics object.
     return {
-      totalClients: clients.length || 0,
-      totalProjects: projects.length || 0,
-      totalQuotes: quotes.length || 0,
+      totalClients: safeClients.length,
+      totalProjects: safeProjects.length,
+      totalQuotes: safeQuotes.length,
       approvedRevenue,
       approvalRate,
-      totalApprovedQuotes: approvedQuotes.length || 0,
+      totalApprovedQuotes: approvedQuotes.length,
       clientStatusData,
       projectStatusData,
       quoteStatusData,
@@ -55,7 +71,9 @@ export default function DashboardPage() {
   }, [isLoading, clients, projects, quotes]);
 
 
+  // This check is now safe because dashboardMetrics will always be successfully calculated.
   if (isLoading || !dashboardMetrics) {
+    console.log(`Loading Dashboard Metrics:`, isLoading, dashboardMetrics)
     return (
         <div className="flex justify-center items-center h-screen">
             <div className="text-lg">Loading Dashboard...</div>

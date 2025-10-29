@@ -44,7 +44,6 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoreHorizontal, Trash2, Edit, CheckCircle, Briefcase, FileText } from "lucide-react";
 import { useStore, type HydratedQuote, type Client, type Project } from "@/store/cost-store";
-import { deleteQuote, updateQuoteStatus, assignQuoteToProject } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -64,12 +63,13 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: HydratedQuot
     const { toast } = useToast();
     const clientForQuote = clients.find(c => c.id === quote.clientId);
     const addProject = useStore((state) => state.addProject);
+    const assignQuoteToProject = useStore((state) => state.assignQuoteToProject);
 
 
     const handleAssign = () => {
         if (selectedProject) {
             startTransition(async () => {
-                await assignQuoteToProject(quote.id, selectedProject);
+                assignQuoteToProject(quote.id, selectedProject);
                 toast({ title: "Quote Assigned" });
                 setOpen(false);
             });
@@ -79,8 +79,8 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: HydratedQuot
     const handleCreateAndAssign = () => {
         if (newProjectName && quote.clientId) {
             startTransition(async () => {
-                const newProject = addProject({ name: newProjectName, clientId: quote.clientId });
-                await assignQuoteToProject(quote.id, newProject.id);
+                const newProject = await addProject({ name: newProjectName, clientId: quote.clientId });
+                assignQuoteToProject(quote.id, newProject.id);
                 toast({ title: "Project Created & Assigned" });
                 setNewProjectName("");
                 setIsCreating(false);
@@ -166,7 +166,7 @@ const itemVariants = {
 };
 
 function QuoteRow({ quote, projects, clients }: { quote: HydratedQuote, projects: Project[], clients: Client[] }) {
-    const { loadQuoteIntoForm } = useStore();
+    const { loadQuoteIntoForm, deleteQuote, updateQuoteStatus } = useStore();
     const router = useRouter();
     const { toast } = useToast();
     const [showAlert, setShowAlert] = useState(false);
@@ -178,7 +178,7 @@ function QuoteRow({ quote, projects, clients }: { quote: HydratedQuote, projects
     
     const [isPending, startTransition] = useTransition();
 
-    const handleUpdateStatus = (status: Quote['status']) => {
+    const handleUpdateStatus = (status: HydratedQuote['status']) => {
         startTransition(async () => {
             await updateQuoteStatus(quote.id, status);
             toast({title: `Quote status set to ${status}`});

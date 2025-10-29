@@ -35,8 +35,11 @@ export default function QuotesPage() {
   const { quotes, projects, clients, hydratedQuotes } = useStore();
   const isLoading = !useIsHydrated();
 
+  // Defensive check to ensure hydratedQuotes is always an array
+  const quotesData = hydratedQuotes || [];
+
   const handleExport = () => {
-    downloadCSV(hydratedQuotes, `quotes-export-${new Date().toISOString().split('T')[0]}.csv`);
+    downloadCSV(quotesData, `quotes-export-${new Date().toISOString().split('T')[0]}.csv`);
   }
 
   if (isLoading) {
@@ -88,7 +91,7 @@ export default function QuotesPage() {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <QuotesTable quotes={hydratedQuotes} projects={projects} clients={clients} />
+              <QuotesTable quotes={quotesData} projects={projects} clients={clients} />
             </div>
           </CardContent>
         </Card>
