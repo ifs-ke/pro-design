@@ -6,16 +6,8 @@ import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Calculator, ArrowRight, Users, FileText, BarChart2, CheckCircle } from "lucide-react";
+import { Calculator, ArrowRight, Users, FileText, BarChart2, CheckCircle, Building, Banknote } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  CarouselDots
-} from "@/components/ui/carousel";
 import { DashboardCharts } from "@/components/design/dashboard-charts";
 import { useMemo } from "react";
 
@@ -78,55 +70,48 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mt-1">Here's a quick overview of your business.</p>
       </header>
         
-      <Carousel
-        opts={{
-          align: "start",
-          loop: true,
-        }}
-        className="w-full"
-      >
-        <CarouselContent className="-ml-2 md:-ml-4">
-           <CarouselItem className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
-             <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Approved Revenue</CardTitle>
-                  <span className="text-muted-foreground">KES</span>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(dashboardMetrics.approvedRevenue)}</div>
-                  <p className="text-xs text-muted-foreground">Total from approved quotes</p>
-                </CardContent>
-              </Card>
-           </CarouselItem>
-           <CarouselItem className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Clients</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dashboardMetrics.totalClients}</div>
-                   <p className="text-xs text-muted-foreground">{dashboardMetrics.totalProjects} total projects</p>
-                </CardContent>
-              </Card>
-           </CarouselItem>
-           <CarouselItem className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
-               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Quote Approval Rate</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dashboardMetrics.approvalRate.toFixed(1)}%</div>
-                  <p className="text-xs text-muted-foreground">{dashboardMetrics.totalApprovedQuotes} of {dashboardMetrics.totalQuotes} quotes</p>
-                </CardContent>
-              </Card>
-           </CarouselItem>
-        </CarouselContent>
-        <CarouselPrevious className="hidden sm:flex -left-4" />
-        <CarouselNext className="hidden sm:flex -right-4" />
-        <CarouselDots className="mt-4" />
-      </Carousel>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approved Revenue</CardTitle>
+            <Banknote className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(dashboardMetrics.approvedRevenue)}</div>
+            <p className="text-xs text-muted-foreground">Total from approved quotes</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Clients</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardMetrics.totalClients}</div>
+            <p className="text-xs text-muted-foreground">Total clients managed</p>
+          </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Projects</CardTitle>
+                <Building className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{dashboardMetrics.totalProjects}</div>
+                <p className="text-xs text-muted-foreground">Ongoing and completed</p>
+            </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Quote Approval Rate</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardMetrics.approvalRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground">{dashboardMetrics.totalApprovedQuotes} of {dashboardMetrics.totalQuotes} quotes approved</p>
+          </CardContent>
+        </Card>
+      </div>
       
       <DashboardCharts
         clientStatusData={dashboardMetrics.clientStatusData}

@@ -278,6 +278,10 @@ const CarouselDots = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const { selectedIndex, scrollSnaps, scrollTo } = useCarousel();
 
+  if (scrollSnaps.length <= 1) {
+    return null;
+  }
+
   return (
     <div
       ref={ref}
