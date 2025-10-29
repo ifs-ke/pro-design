@@ -18,6 +18,7 @@ import {
 import { Home, FileText, Calculator, Building, Users, HomeIcon } from "lucide-react";
 import { ThemeToggle } from "@/components/design/theme-toggle";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { use } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: HomeIcon },
@@ -30,10 +31,14 @@ const navItems = [
 
 export default function AppLayout({
   children,
+  params
 }: {
   children: React.ReactNode;
+  params: any;
 }) {
   const pathname = usePathname();
+  // Ensure params are resolved before rendering children
+  use(params);
 
   return (
     <ThemeProvider
@@ -96,9 +101,9 @@ export default function AppLayout({
         </Sidebar>
         <SidebarInset>
           <main className="p-4 sm:p-6 lg:p-8 relative">
-              <div className="flex items-center justify-end md:hidden mb-4 -mt-2">
-                  <SidebarTrigger className="md:hidden" />
-              </div>
+             <div className="flex items-center justify-end md:hidden mb-4 -mt-2">
+                <SidebarTrigger />
+            </div>
               <div className="mx-auto w-full max-w-7xl">
                   {children}
               </div>
