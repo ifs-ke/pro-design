@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition } from "react";
@@ -17,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { AiQuoteAnalyst } from "@/components/design/ai-quote-analyst";
 import { QuoteVariance } from "@/components/design/quote-variance";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -249,7 +249,6 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
         <Separator />
         
         <div className="space-y-4">
-          <AiQuoteAnalyst calculations={localBreakdown} />
           <Button onClick={handlePublish} className="w-full" disabled={!form.getValues().clientId || isPending}>
             {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
             {loadedQuoteId ? 'Update Quote' : 'Publish Quote'}

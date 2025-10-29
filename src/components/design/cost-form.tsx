@@ -55,7 +55,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { MaterialSuggester } from "@/components/design/material-suggester";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -474,7 +473,6 @@ export function CostForm({ calculations }: CostFormProps) {
                       <PlusCircle className="mr-2" /> Add Material
                     </Button>
                   </div>
-                  <MaterialSuggester />
                 </AccordionContent>
               </AccordionItem>
 
