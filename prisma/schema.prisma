@@ -1,84 +1,69 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["dataProxy"]
-}
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
 }
 
 model Client {
-  id              String        @id @default(cuid())
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  name            String
-  email           String?
-  phone           String?
-  status          String        @default("Lead") // Lead, Active, OnHold, Inactive
-  responsiveness  String        @default("Warm") // Hot, Warm, Cold
-  interactions    Interaction[]
-  properties      Property[]
-  projects        Project[]
-  quotes          Quote[]
-}
-
-model Interaction {
-  id         String   @id @default(cuid())
-  timestamp  DateTime @default(now())
-  clientId   String
-  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  type       String // Email, Call, Meeting, Other
-  notes      String
+  id         String     @id @default(cuid())
+  name       String
+  email      String     @unique
+  phone      String?
+  properties Property[]
+  projects   Project[]
+  quotes     Quote[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 }
 
 model Property {
-  id           String    @id @default(cuid())
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  name         String
-  address      String?
-  propertyType String    @default("Residential") // Residential, Commercial, Other
-  notes        String?
-  clientId     String
-  client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  projects     Project[]
+  id        String    @id @default(cuid())
+  name      String
+  address   String
+  client    Client    @relation(fields: [clientId], references: [id])
+  clientId  String
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Project {
   id          String    @id @default(cuid())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
   name        String
-  clientId    String?
-  client      Client?   @relation(fields: [clientId], references: [id])
-  propertyId  String?
+  client      Client    @relation(fields: [clientId], references: [id])
+  clientId    String
   property    Property? @relation(fields: [propertyId], references: [id])
+  propertyId  String?
   quotes      Quote[]
   scope       String?
   timeline    String?
-  projectType String?   @default("Residential") // Residential, Commercial, Hospitality, Other
+  status      String?
+  projectType String?
   services    String?
   roomCount   Int?
   otherSpaces String?
-  status      String    @default("Planning") // Planning, InProgress, Completed, OnHold, Cancelled
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Quote {
   id        String   @id @default(cuid())
-  timestamp DateTime @default(now())
-  status    String   @default("Draft") // Draft, Sent, Approved, Declined
-  clientId  String?
-  client    Client?  @relation(fields: [clientId], references: [id])
-  projectId String?
+  client    Client   @relation(fields: [clientId], references: [id])
+  clientId  String
   project   Project? @relation(fields: [projectId], references: [id])
+  projectId String?
+  status    String
 
-  // JSON fields to store complex, nested data from the form
-  formValues            String
-  allocations           String
-  calculations          String
-  suggestedCalculations String
+  formValues            Json
+  allocations           Json
+  calculations          Json
+  suggestedCalculations Json
+
+  timestamp DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

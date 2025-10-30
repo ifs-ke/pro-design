@@ -8,6 +8,7 @@
     pkgs.nodejs_20
     pkgs.zulu
     pkgs.corepack_23
+    pkgs.openssl
   ];
   # Sets environment variables in the workspace
   env = {};
@@ -16,7 +17,6 @@
   services.firebase.emulators = {
     detect = true;
     projectId = "demo-app";
-    services = ["auth" "firestore"];
   };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"

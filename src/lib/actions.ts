@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -453,7 +454,8 @@ export async function getProjects() {
   try {
     return await prisma.project.findMany({ include: { client: true, property: true } });
   } catch (error) {
-    throw new Error("Failed to fetch projects.");
+    console.error('Failed to fetch projects:', error);
+    throw new Error('Failed to fetch projects.');
   }
 }
 
@@ -461,7 +463,8 @@ export async function getClients() {
   try {
     return await prisma.client.findMany();
   } catch (error) {
-    throw new Error("Failed to fetch clients.");
+    console.error('Failed to fetch clients:', error);
+    throw new Error('Failed to fetch clients.');
   }
 }
 
@@ -469,7 +472,8 @@ export async function getProperties() {
   try {
     return await prisma.property.findMany({ include: { client: true } });
   } catch (error) {
-    throw new Error("Failed to fetch properties.");
+    console.error('Failed to fetch properties:', error);
+    throw new Error('Failed to fetch properties.');
   }
 }
 
@@ -477,6 +481,7 @@ export async function getQuotes() {
   try {
     return await prisma.quote.findMany({ include: { client: true, project: true } });
   } catch (error) {
-    throw new Error("Failed to fetch quotes.");
+    console.error('Failed to fetch quotes:', error);
+    throw new Error('Failed to fetch quotes.');
   }
 }
