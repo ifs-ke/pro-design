@@ -24,7 +24,7 @@ model Property {
   id        String    @id @default(cuid())
   name      String
   address   String
-  client    Client    @relation(fields: [clientId], references: [id])
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId  String
   projects  Project[]
   createdAt DateTime  @default(now())
@@ -34,9 +34,9 @@ model Property {
 model Project {
   id          String    @id @default(cuid())
   name        String
-  client      Client    @relation(fields: [clientId], references: [id])
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId    String
-  property    Property? @relation(fields: [propertyId], references: [id])
+  property    Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
   propertyId  String?
   quotes      Quote[]
   scope       String?
@@ -52,9 +52,9 @@ model Project {
 
 model Quote {
   id        String   @id @default(cuid())
-  client    Client   @relation(fields: [clientId], references: [id])
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId  String
-  project   Project? @relation(fields: [projectId], references: [id])
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   projectId String?
   status    String
 

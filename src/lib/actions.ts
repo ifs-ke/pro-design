@@ -273,7 +273,7 @@ export async function createProject(prevState: any, formData: FormData) {
     const { name, clientId, propertyId, scope, timeline, projectType, services, roomCount: validatedRoomCount, otherSpaces } = validatedFields.data;
 
     try {
-        await prisma.project.create({
+        const newProject = await prisma.project.create({
             data: {
                 name,
                 clientId,
@@ -292,6 +292,7 @@ export async function createProject(prevState: any, formData: FormData) {
         return {
             type: 'success' as const,
             message: `Created project ${name}`,
+            project: newProject,
         };
     } catch (e) {
         console.error(e);
@@ -327,7 +328,7 @@ export async function updateProject(id: string, prevState: any, formData: FormDa
     const { name, clientId, propertyId, scope, timeline, projectType, services, roomCount: validatedRoomCount, otherSpaces } = validatedFields.data;
 
     try {
-        await prisma.project.update({
+        const updatedProject = await prisma.project.update({
             where: { id },
             data: {
                 name,
@@ -346,6 +347,7 @@ export async function updateProject(id: string, prevState: any, formData: FormDa
         return {
             type: 'success' as const,
             message: `Updated project ${name}`,
+            project: updatedProject,
         };
     } catch (e) {
         console.error(e);

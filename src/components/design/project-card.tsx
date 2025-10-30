@@ -1,12 +1,12 @@
 
 'use client'
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash2, User, HomeIcon, Building, Calendar, ClipboardList, Home, Settings, BedDouble, Square, FileText } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, User, HomeIcon, Building, Calendar, ClipboardList, Home, Settings, BedDouble, Square, FileText, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ProjectFormDialog } from "./project-form";
 import { deleteProject } from "@/lib/actions";
+import { useToast } from "@/hooks/use-toast";
+import { useStore } from "@/store/cost-store";
 import type { HydratedProject, Client, Property } from "@/store/cost-store";
 
 interface ProjectCardProps {
@@ -51,9 +53,25 @@ const statusVariant: { [key: string]: "default" | "secondary" | "outline" | "suc
 
 export function ProjectCard({ project, clients, properties }: ProjectCardProps) {
     const [showAlert, setShowAlert] = useState(false);
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+    const removeProject = useStore((state) => state.removeProject);
 
     const approvedQuotes = project.quotes?.filter((q) => q.status === 'Approved') || [];
     const totalApprovedValue = approvedQuotes.reduce((acc: number, q) => acc + (q.calculations as any).grandTotal, 0);
+
+    const handleDelete = () => {
+        startTransition(async () => {
+            const result = await deleteProject(project.id);
+            if (result.type === 'success') {
+                removeProject(project.id);
+                toast({ title: "Project Deleted" });
+                setShowAlert(false);
+            } else {
+                toast({ variant: 'destructive', title: "Error", description: result.message });
+            }
+        });
+    };
 
     return (
         <motion.div variants={cardVariants}>
@@ -106,7 +124,10 @@ export function ProjectCard({ project, clients, properties }: ProjectCardProps) 
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => deleteProject(project.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                    <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
+                                        {isPending && <Loader2 className="mr-2 animate-spin"/>} 
+                                        Delete
+                                    </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>

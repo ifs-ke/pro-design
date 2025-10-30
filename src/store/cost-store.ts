@@ -563,10 +563,10 @@ export const useStore = create<CostState>()(
                 projects: state.projects.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p)
             }));
             // This needs a form, so we can't call the action directly.
-            // const updatedProject = get().projects.find(p => p.id === id);
-            // if (updatedProject) {
-            //   await updateProjectAction(id, updatedProject);
-            // }
+             const updatedProject = get().projects.find(p => p.id === id);
+             if (updatedProject) {
+               await updateProjectAction(id, updatedProject);
+            }
         },
         deleteProject: async (id) => {
             set(state => ({
