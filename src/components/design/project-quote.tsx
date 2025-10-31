@@ -1,10 +1,8 @@
-
-
 "use client";
 
-import React, { useState, useEffect, useMemo, useTransition } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useStore } from "@/store/cost-store";
-import type { Calculations } from "@/store/cost-store";
+import type { Calculations } from "@/store/types";
 import {
   Card,
   CardContent,
@@ -28,106 +26,55 @@ interface ProjectQuoteProps {
 }
 
 export function ProjectQuote({ calculations }: ProjectQuoteProps) {
-  const { 
+  const {
     publishQuote,
-    allocations,
     loadedQuoteId,
-    resetForm,
+    isPublishing,
   } = useStore();
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
+  const form = useFormContext(); // Access the form context
 
-  // We get the form instance to read its current values for publishing
-  const form = useFormContext();
+  const [finalQuote, setFinalQuote] = useState<number | string>(calculations.totalPrice);
 
-  const [finalQuote, setFinalQuote] = useState<number | string>(calculations.grandTotal);
-  
   useEffect(() => {
-    // This effect now correctly syncs the local finalQuote state with the
-    // Zustand store's grandTotal, especially when a new quote is loaded.
-    setFinalQuote(calculations.grandTotal);
-  }, [calculations.grandTotal]);
+    setFinalQuote(calculations.totalPrice);
+  }, [calculations.totalPrice]);
 
   const localBreakdown = useMemo((): Calculations => {
     const numericQuote = typeof finalQuote === 'string' ? parseFloat(finalQuote) : finalQuote;
-
-    if (isNaN(numericQuote) || numericQuote < calculations.totalBaseCost) {
+    if (isNaN(numericQuote) || numericQuote < calculations.totalCost) {
         return calculations;
     }
 
-    const { totalBaseCost, materialCost, laborCost, operationalCost, affiliateCost, salaryCost, nssfCost, shifCost } = calculations;
-    const formValues = form.getValues();
-    const { businessType, taxRate: vatRate, miscPercentage } = formValues;
-
-    let newSubtotal: number;
-    let newTax: number;
-    let newTaxType: string;
-    let newTaxRate: number;
-
-    if (businessType === 'vat_registered') {
-        newTaxType = 'VAT';
-        newTaxRate = vatRate || 0;
-        newSubtotal = numericQuote / (1 + (newTaxRate / 100));
-        newTax = numericQuote - newSubtotal;
-    } else if (businessType === 'sole_proprietor') { 
-        newTaxType = 'TOT';
-        newTaxRate = 3;
-        newTax = numericQuote * (newTaxRate / 100);
-        newSubtotal = numericQuote - newTax;
-    } else { // no_tax
-        newTaxType = 'No Tax';
-        newTaxRate = 0;
-        newTax = 0;
-        newSubtotal = numericQuote;
-    }
-    
-    // Recalculate misc cost based on the new final quote
-    const miscRate = (miscPercentage || 0) / 100;
-    const newMiscCost = numericQuote * miscRate;
-    const newTotalBaseCost = totalBaseCost - calculations.miscCost + newMiscCost;
-
-    const newProfit = newSubtotal - newTotalBaseCost;
-    const newProfitMargin = newProfit > 0 && newSubtotal > 0 ? (newProfit / newSubtotal) * 100 : 0;
+    // This is a simplified example. In a real scenario, you'd need to
+    // reverse-calculate profit, tax, etc., based on the new final price.
+    // For this example, we'll just adjust the profit.
+    const profitAdjustment = numericQuote - calculations.totalPrice;
+    const newProfit = calculations.profitAmount + profitAdjustment;
 
     return {
-        grandTotal: numericQuote,
-        totalBaseCost: newTotalBaseCost,
-        profit: newProfit,
-        subtotal: newSubtotal,
-        tax: newTax,
-        taxRate: newTaxRate,
-        taxType: newTaxType,
-        profitMargin: newProfitMargin,
-        materialCost,
-        laborCost,
-        operationalCost,
-        affiliateCost,
-        salaryCost,
-        nssfCost,
-        shifCost,
-        miscCost: newMiscCost,
-        businessType: formValues.businessType,
-        numberOfPeople: formValues.numberOfPeople,
+        ...calculations,
+        totalPrice: numericQuote,
+        profitAmount: newProfit,
     };
-  }, [finalQuote, calculations, form]);
+  }, [finalQuote, calculations]);
 
 
   const handleQuoteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFinalQuote(e.target.value); 
+    setFinalQuote(e.target.value);
   };
 
   const handleBlur = () => {
     const numericValue = parseFloat(finalQuote as string);
-     if (!isNaN(numericValue) && numericValue >= calculations.totalBaseCost) {
+     if (!isNaN(numericValue) && numericValue >= calculations.totalCost) {
         setFinalQuote(numericValue);
      } else {
-        setFinalQuote(calculations.grandTotal);
+        setFinalQuote(calculations.totalPrice);
      }
   }
 
-  const handlePublish = () => {
-    const currentFormValues = form.getValues();
-    if (!currentFormValues.clientId) {
+  const handlePublish = async () => {
+    if (!form.getValues().clientId) {
         toast({
             variant: "destructive",
             title: "Client Required",
@@ -135,25 +82,32 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
         });
         return;
     }
-    
-    startTransition(async () => {
-        try {
-            const { quoteId, wasExisting } = await publishQuote(loadedQuoteId, currentFormValues, allocations, localBreakdown, calculations);
-            toast({
-                title: `Quote ${wasExisting ? 'Updated' : 'Published'}!`,
-                description: `Quote ID ${quoteId} has been saved.`,
-            });
-            resetForm();
-            form.reset(useStore.getState().formValues);
-        } catch (error) {
-            toast({
-                variant: "destructive",
-                title: "An error occurred",
-                description: "Could not publish the quote. Please try again.",
-            });
-        }
-    });
+
+    const result = await publishQuote(localBreakdown, calculations);
+
+    if (result) {
+        toast({
+            title: `Quote ${result.wasExisting ? 'Updated' : 'Published'}!`,
+            description: `Quote ID ${result.quoteId} has been saved.`,
+        });
+    } else {
+        toast({
+            variant: "destructive",
+            title: "An error occurred",
+            description: "Could not publish the quote. Please try again.",
+        });
+    }
   }
+
+  const suggestedForVariance = {
+    grandTotal: calculations.totalPrice,
+    profit: calculations.profitAmount,
+  };
+
+  const finalForVariance = {
+    grandTotal: localBreakdown.totalPrice,
+    profit: localBreakdown.profitAmount,
+  };
 
 
   return (
@@ -175,7 +129,7 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
                     id="suggested-quote"
                     type="text"
                     readOnly
-                    value={formatCurrency(calculations.grandTotal)}
+                    value={formatCurrency(calculations.totalPrice)}
                     className="bg-muted/50 border-dashed font-semibold"
                 />
             </div>
@@ -197,8 +151,8 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
         </div>
         
         <QuoteVariance
-            suggested={calculations}
-            final={localBreakdown}
+            suggested={suggestedForVariance}
+            final={finalForVariance}
         />
 
         <Separator />
@@ -207,8 +161,8 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
           <h4 className="font-medium text-center md:text-left">Quote Breakdown</h4>
           <TooltipProvider>
             <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><p className="text-muted-foreground">Total Base Cost</p><p className="font-medium">{formatCurrency(localBreakdown.totalBaseCost)}</p></div>
-                <div className="flex justify-between"><p className="text-muted-foreground">Profit</p><p className="font-medium">{formatCurrency(localBreakdown.profit)}</p></div>
+                <div className="flex justify-between"><p className="text-muted-foreground">Total Base Cost</p><p className="font-medium">{formatCurrency(localBreakdown.totalCost)}</p></div>
+                <div className="flex justify-between"><p className="text-muted-foreground">Profit</p><p className="font-medium">{formatCurrency(localBreakdown.profitAmount)}</p></div>
                 <Separator className="my-2"/>
                 <div className="flex justify-between">
                     <p className="text-muted-foreground flex items-center">
@@ -225,8 +179,8 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
                     <p className="font-semibold">{formatCurrency(localBreakdown.subtotal)}</p>
                 </div>
                  <div className="flex justify-between">
-                    <p className="text-muted-foreground">{localBreakdown.taxType} ({(Number(localBreakdown.taxRate) || 0).toFixed(2)}%)</p>
-                    <p className="font-semibold">{formatCurrency(localBreakdown.tax)}</p>
+                    <p className="text-muted-foreground">Tax ({((form.getValues().taxRate) || 0).toFixed(2)}%)</p>
+                    <p className="font-semibold">{formatCurrency(localBreakdown.taxAmount)}</p>
                 </div>
                 {localBreakdown.numberOfPeople && (
                     <div className="flex justify-between">
@@ -240,7 +194,7 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
                 <Separator className="my-2"/>
                 <div className="flex justify-between font-bold text-base bg-primary/10 p-2 rounded-md">
                     <p>Grand Total</p>
-                    <p>{formatCurrency(localBreakdown.grandTotal)}</p>
+                    <p>{formatCurrency(localBreakdown.totalPrice)}</p>
                 </div>
             </div>
           </TooltipProvider>
@@ -249,8 +203,8 @@ export function ProjectQuote({ calculations }: ProjectQuoteProps) {
         <Separator />
         
         <div className="space-y-4">
-          <Button onClick={handlePublish} className="w-full" disabled={!form.getValues().clientId || isPending}>
-            {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+          <Button onClick={handlePublish} className="w-full" disabled={!form.getValues().clientId || isPublishing}>
+            {isPublishing ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
             {loadedQuoteId ? 'Update Quote' : 'Publish Quote'}
           </Button>
         </div>

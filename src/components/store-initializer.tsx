@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect } from 'react';
 import { useStore } from '@/store/cost-store';
 import type { Client, Property, Project, Quote } from '@/store/cost-store';
 
@@ -12,12 +12,14 @@ interface StoreInitializerProps {
 }
 
 function StoreInitializer({ clients, properties, projects, quotes }: StoreInitializerProps) {
-  const initialized = useRef(false);
-  if (!initialized.current) {
+  // The useEffect hook ensures that this side effect (updating the store)
+  // runs after the component has mounted, not during the render.
+  // The empty dependency array [] ensures it only runs once.
+  useEffect(() => {
     useStore.getState().setData({ clients, properties, projects, quotes });
     useStore.getState().setHydrated(); // Signal that hydration is complete
-    initialized.current = true;
-  }
+  }, []);
+
   return null;
 }
 

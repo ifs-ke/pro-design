@@ -3,7 +3,7 @@
 
 import { useStore } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Home, User } from "lucide-react";
 import { PropertyFormDialog } from "@/components/design/property-form";
@@ -49,7 +49,7 @@ export default function PropertiesPage() {
           </Button>
         </PropertyFormDialog>
       </header>
-        {clients.length === 0 && (
+        {clients.length === 0 ? (
              <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
                  <CardHeader>
                     <User className="mx-auto size-12 text-muted-foreground mb-4" />
@@ -57,27 +57,31 @@ export default function PropertiesPage() {
                     <CardDescription>You must create a client before you can add a property.</CardDescription>
                 </CardHeader>
              </Card>
+        ) : properties.length === 0 ? (
+            <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
+                <CardHeader>
+                <Home className="mx-auto size-12 text-muted-foreground mb-4" />
+                <CardTitle>No Properties Yet</CardTitle>
+                <CardDescription>Click "Create Property" to get started.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <PropertyFormDialog clients={clients}>
+                        <Button>Create Property</Button>
+                    </PropertyFormDialog>
+                </CardContent>
+            </Card>
+        ) : (
+            <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            >
+                {properties.map(property => (
+                    <PropertyCard key={property.id} property={property} clients={clients} />
+                ))}
+            </motion.div>
         )}
-      {clients.length > 0 && properties.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
-            <CardHeader>
-            <Home className="mx-auto size-12 text-muted-foreground mb-4" />
-            <CardTitle>No Properties Yet</CardTitle>
-            <CardDescription>Click "Create Property" to get started.</CardDescription>
-            </CardHeader>
-        </Card>
-      ) : clients.length > 0 ? (
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-            {properties.map(property => (
-                <PropertyCard key={property.id} property={property} clients={clients} />
-            ))}
-        </motion.div>
-      ): null}
     </div>
   );
 }

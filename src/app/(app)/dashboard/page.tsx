@@ -19,19 +19,16 @@ export default function DashboardPage() {
   const dashboardMetrics: DashboardMetrics | null = useMemo(() => {
     if (isLoading) return null;
 
-    // QA FIX: Ensure we are always working with arrays, even if store data is null/undefined.
     const safeQuotes = quotes || [];
     const safeClients = clients || [];
     const safeProjects = projects || [];
 
     const approvedQuotes = safeQuotes.filter(q => q.status === 'Approved');
     
-    // DEV FIX: Use optional chaining (?.) and a nullish coalescing operator (||) to prevent crashes.
     const approvedRevenue = approvedQuotes.reduce((sum, q) => sum + (q.calculations?.grandTotal || 0), 0);
     
     const approvalRate = safeQuotes.length > 0 ? (approvedQuotes.length / safeQuotes.length) * 100 : 0;
 
-    // QA FIX: Add a .filter(c => c.status) to prevent grouping by 'undefined'.
     const clientStatusCounts = safeClients
       .filter(c => c.status)
       .reduce((acc, client) => {
@@ -56,7 +53,6 @@ export default function DashboardPage() {
       }, {} as Record<string, number>);
     const projectStatusData = Object.entries(projectStatusCounts).map(([name, value]) => ({ name, value }));
 
-    // ARCHITECT FIX: The component can now handle imperfect data and still return a valid metrics object.
     return {
       totalClients: safeClients.length,
       totalProjects: safeProjects.length,
@@ -68,12 +64,10 @@ export default function DashboardPage() {
       projectStatusData,
       quoteStatusData,
     };
-  }, [isLoading, clients, projects, quotes]);
+  }, [clients, projects, quotes]);
 
 
-  // This check is now safe because dashboardMetrics will always be successfully calculated.
   if (isLoading || !dashboardMetrics) {
-    console.log(`Loading Dashboard Metrics:`, isLoading, dashboardMetrics)
     return (
         <div className="flex justify-center items-center h-screen">
             <div className="text-lg">Loading Dashboard...</div>

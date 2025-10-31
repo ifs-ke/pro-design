@@ -12,6 +12,7 @@ DesignCost Pro is an all-in-one tool designed to streamline the business operati
 - **Costing Tool:** An intuitive and powerful calculator to build detailed project cost breakdowns, including materials, labor, operational costs, taxes, and profit margins.
 - **Profit Allocator:** A unique tool to visualize and distribute your project profits into different business areas like savings, development, and CSR.
 - **Quote Generation:** Publish polished, professional quotes directly from your costings.
+- **AI-Powered Material Suggestions:** An intelligent tool that provides dynamic suggestions for material alternatives based on budget constraints, analyzing price and availability to offer recommendations with pros and cons.
 - **Client Relationship Management (CRM):** A central hub to manage all your clients, track communications, and view their associated projects and properties.
 -**Project & Property Management:** Organize and track all your ongoing projects and link them to specific client properties.
 - **Data Export:** Export your quotes to CSV for offline analysis or use in other business tools.
@@ -47,13 +48,13 @@ To get the project running locally, follow these steps:
 1.  **Install Dependencies:**
     Open a terminal in the project's root directory and run:
     ```bash
-    npm install
+    pnpm install
     ```
 
 2.  **Run the Development Server:**
     After the installation is complete, start the Next.js development server:
     ```bash
-    npm run dev
+    pnpm dev
     ```
 
 3.  **Open the Application:**

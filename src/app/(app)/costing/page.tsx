@@ -1,86 +1,145 @@
+'use client';
 
-"use client";
+import { useEffect, useRef, useState } from 'react';
+import { useStore } from '@/store/cost-store';
+import type { Calculations, FormValues } from '@/store/types';
+import { useIsHydrated } from '@/hooks/use-hydrated-store';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { formSchema } from '@/store/types';
 
-import { useEffect, useMemo, useSyncExternalStore } from "react";
-import { useStore, type Calculations, performCalculations, FormValues } from "@/store/cost-store";
-import { useIsHydrated } from "@/hooks/use-hydrated-store";
-import { useForm, FormProvider } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { formSchema } from "@/components/design/cost-form";
-
-
-import { CostForm } from "@/components/design/cost-form";
-import { ProfitAllocator } from "@/components/design/profit-allocator";
-import { ProjectQuote } from "@/components/design/project-quote";
-import { Button } from "@/components/ui/button";
-import { RefreshCcw } from "lucide-react";
+import { CostForm } from '@/components/design/cost-form';
+import { ProfitAllocator } from '@/components/design/profit-allocator';
+import { ProjectQuote } from '@/components/design/project-quote';
+import { Button } from '@/components/ui/button';
+import { RefreshCcw } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function CostingPage() {
-  const { formValues, setFormValues, resetForm, loadedQuoteId } = useStore();
+  const {
+    formValues,
+    setFormValues,
+    resetForm,
+    isPublishing,
+    calculate,
+  } = useStore();
   const isLoading = !useIsHydrated();
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isResetDialogOpen, setResetDialogOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    // The `values` prop makes the form controlled by our Zustand store.
-    // It will automatically update when formValues changes (e.g., loading a quote).
-    values: formValues,
+    // The form is now uncontrolled internally by react-hook-form,
+    // which is more performant for complex forms.
+    defaultValues: formValues, // Initialize with store's values
   });
 
-  // Subscribe to form changes and sync them to the Zustand store.
-  // This is the correct way to handle this, as `watch` inside `useEffect`
-  // sets up a subscription without causing re-renders on every value change.
+  // Effect to reset the form when the store's formValues change
+  // (e.g. loading a quote).
+  useEffect(() => {
+    form.reset(formValues);
+  }, [formValues, form]);
+
+  // Effect to subscribe to form changes and sync them to the Zustand store
+  // with a debounce.
   useEffect(() => {
     const subscription = form.watch((value) => {
-      setFormValues(value as FormValues);
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      debounceTimeoutRef.current = setTimeout(() => {
+        setFormValues(value as FormValues);
+      }, 300); // 300ms debounce
     });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
   }, [form, setFormValues]);
 
 
-  // Derive calculations directly from the store's state for reactivity.
-  // This uses useMemo for optimization, recalculating only when formValues changes.
-  const calculations: Calculations = useMemo(() => performCalculations(formValues), [formValues]);
+  const calculations: Calculations = calculate(formValues);
 
-  const handleNewQuote = () => {
-    // resetForm is the action from our zustand store
+  const handleNewQuoteClick = () => {
+    setResetDialogOpen(true);
+  };
+
+  const handleConfirmReset = () => {
     resetForm();
-  }
+    setResetDialogOpen(false);
+  };
 
   if (isLoading) {
     return (
-        <div className="flex justify-center items-center h-screen">
-            <div className="text-lg">Loading Costing Tool...</div>
-        </div>
+      <div className='flex justify-center items-center h-screen'>
+        <div className='text-lg'>Loading Costing Tool...</div>
+      </div>
     );
   }
 
   return (
     <FormProvider {...form}>
-      <header className="mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
+      <header className='mb-8 flex flex-col sm:flex-row justify-between items-start gap-4'>
         <div>
-            <h1 className="text-4xl lg:text-5xl font-bold text-foreground tracking-tight">
+          <h1 className='text-4xl lg:text-5xl font-bold text-foreground tracking-tight'>
             Costing Tool
-            </h1>
-            <p className="text-muted-foreground mt-2 text-lg">
+          </h1>
+          <p className='text-muted-foreground mt-2 text-lg'>
             Your all-in-one pricing tool for interior design projects.
-            </p>
+          </p>
         </div>
-        <Button onClick={handleNewQuote} variant="outline">
-            <RefreshCcw className="mr-2"/>
-            Start New Quote
+        <Button
+          onClick={handleNewQuoteClick}
+          variant='outline'
+          disabled={isPublishing}
+        >
+          <RefreshCcw className='mr-2' />
+          Start New Quote
         </Button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-        <div className="lg:col-span-3 space-y-8">
+      <div className='grid grid-cols-1 lg:grid-cols-5 gap-8 items-start'>
+        <div className='lg:col-span-3 space-y-8'>
           <CostForm calculations={calculations} />
         </div>
 
-        <div className="lg:col-span-2 space-y-8 sticky top-8">
-          <ProfitAllocator profit={calculations.profit} />
-          <ProjectQuote calculations={calculations} />
+        <div className='lg:col-span-2 space-y-8'>
+          <div className='sticky top-8 space-y-8'>
+            <ProfitAllocator profitAmount={calculations.profitAmount} />
+            <ProjectQuote calculations={calculations} />
+          </div>
         </div>
       </div>
+
+      <AlertDialog open={isResetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear all the current form data. Your saved quotes will
+              not be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReset}>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </FormProvider>
   );
 }

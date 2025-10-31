@@ -1,36 +1,21 @@
 
-'use client'
+'use client';
 
-import { useState, useTransition } from "react";
-import { motion } from "framer-motion";
-import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash2, User, HomeIcon, Building, Calendar, ClipboardList, Home, Settings, BedDouble, Square, FileText, Loader2 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { ProjectFormDialog } from "./project-form";
-import { deleteProject } from "@/lib/actions";
-import { useToast } from "@/hooks/use-toast";
-import { useStore } from "@/store/cost-store";
-import type { HydratedProject, Client, Property } from "@/store/cost-store";
+import { useState, useTransition } from 'react';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ProjectFormDialog } from './project-form';
+import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { useStore } from '@/store/cost-store';
+import type { HydratedProject, Client, Property } from '@/store/types';
+import { Loader2, Trash2, AlertTriangle, Calendar, MapPin, Users, Building, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ProjectCardProps {
     project: HydratedProject;
@@ -43,183 +28,106 @@ const cardVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const statusVariant: { [key: string]: "default" | "secondary" | "outline" | "success" | "destructive" } = {
-  "Planning": "secondary",
-  "InProgress": "default",
-  "Completed": "success",
-  "OnHold": "outline",
-  "Cancelled": "destructive",
+const statusVariant: { [key: string]: 'default' | 'secondary' | 'outline' | 'success' | 'destructive' } = {
+  'Planning': 'secondary',
+  'InProgress': 'default',
+  'Completed': 'success',
+  'OnHold': 'outline',
+  'Cancelled': 'destructive',
 };
 
 export function ProjectCard({ project, clients, properties }: ProjectCardProps) {
     const [showAlert, setShowAlert] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-    const removeProject = useStore((state) => state.removeProject);
+    const deleteProject = useStore((state) => state.deleteProject);
 
     const approvedQuotes = project.quotes?.filter((q) => q.status === 'Approved') || [];
     const totalApprovedValue = approvedQuotes.reduce((acc: number, q) => acc + (q.calculations as any).grandTotal, 0);
 
     const handleDelete = () => {
         startTransition(async () => {
-            const result = await deleteProject(project.id);
-            if (result.type === 'success') {
-                removeProject(project.id);
-                toast({ title: "Project Deleted" });
-                setShowAlert(false);
-            } else {
-                toast({ variant: 'destructive', title: "Error", description: result.message });
-            }
+            await deleteProject(project.id);
+            toast({ title: 'Project Deleted' });
+            setShowAlert(false);
         });
     };
 
     return (
         <motion.div variants={cardVariants}>
-            <Card className="flex flex-col h-full">
+            <Card className='flex flex-col h-full'>
                 <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div className="flex-grow pr-4">
-                            <CardTitle className="text-xl flex items-start gap-3">
-                                <Building className="text-primary mt-1 flex-shrink-0"/>
-                                <span>{project.name}</span>
-                            </CardTitle>
-                            <div className="space-y-1 mt-2">
-                                {project.client && (
-                                    <CardDescription className="flex items-center gap-2">
-                                        <User className="size-4"/> 
-                                        <Link href="/crm" className="hover:underline">{project.client.name}</Link>
-                                    </CardDescription>
-                                )}
-                                {project.property && (
-                                    <CardDescription className="flex items-center gap-2">
-                                        <HomeIcon className="size-4"/> 
-                                        <Link href="/properties" className="hover:underline">{project.property.name}</Link>
-                                    </CardDescription>
-                                )}
-                            </div>
-                        </div>
-                        <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon"><MoreHorizontal /></Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <ProjectFormDialog project={project} clients={clients} properties={properties}>
-                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                            <Edit className="mr-2"/> Edit Project
-                                        </DropdownMenuItem>
-                                    </ProjectFormDialog>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-destructive" onSelect={() => setShowAlert(true)}>
-                                        <Trash2 className="mr-2" /> Delete Project
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete {project.name}?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the project and unassign it from all linked quotes.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
-                                        {isPending && <Loader2 className="mr-2 animate-spin"/>} 
-                                        Delete
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4 flex-grow flex flex-col">
-                    <div className="space-y-4 flex-grow">
-                        <div className="flex items-center gap-2">
-                            <Badge variant={statusVariant[project.status]}>{project.status}</Badge>
-                        </div>
+                    <div className='flex justify-between items-start'>
                         <div>
-                            <h4 className="font-semibold text-sm text-muted-foreground mb-2">Approved Value</h4>
-                            <p className="text-2xl font-bold">{formatCurrency(totalApprovedValue)}</p>
+                             <CardTitle className='text-lg font-bold'>{project.name}</CardTitle>
+                             <CardDescription className='text-sm text-gray-500'>Created on {format(new Date(project.createdAt), 'PPP')}</CardDescription>
                         </div>
+                        <Badge variant={statusVariant[project.status] || 'default'}>{project.status}</Badge>
+                    </div>
+                   
+                </CardHeader>
+                <CardContent className='flex-grow space-y-4'>
+                    <div className='flex items-center text-sm text-gray-600'>
+                        <Users className='mr-2 h-4 w-4'/> 
+                        <span>{project.client?.name || 'No client'}</span>
+                    </div>
+                     {project.property && (
+                        <div className='flex items-center text-sm text-gray-600'>
+                            <Building className='mr-2 h-4 w-4'/> 
+                            <span>{project.property.name}</span>
+                        </div>
+                    )}
+                    <Separator />
+                    <div className='space-y-2'>
+                         <p className='text-xs font-semibold text-gray-500 uppercase'>Scope & Details</p>
+                        <p className='text-sm'>{project.scope || 'No scope defined.'}</p>
+                    </div>
+                    
+                     {totalApprovedValue > 0 && (
+                        <div>
+                            <p className='text-xs font-semibold text-gray-500 uppercase mt-4'>Value</p>
+                            <p className='text-lg font-bold text-green-600'>{formatCurrency(totalApprovedValue, 'KES')}</p>
+                        </div>
+                    )}
 
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            {project.projectType && (
-                                <div className="flex items-start gap-2">
-                                    <Home className="size-4 mt-0.5 text-primary" />
-                                    <div>
-                                        <p className="font-semibold">Type</p>
-                                        <p className="text-muted-foreground">{project.projectType}</p>
-                                    </div>
-                                </div>
-                            )}
-                            {project.services && (
-                                <div className="flex items-start gap-2">
-                                    <Settings className="size-4 mt-0.5 text-primary" />
-                                    <div>
-                                        <p className="font-semibold">Services</p>
-                                        <p className="text-muted-foreground">{project.services}</p>
-                                    </div>
-                                </div>
-                            )}
-                            {project.roomCount && (
-                                <div className="flex items-start gap-2">
-                                    <BedDouble className="size-4 mt-0.5 text-primary" />
-                                    <div>
-                                        <p className="font-semibold">Rooms</p>
-                                        <p className="text-muted-foreground">{project.roomCount}</p>
-                                    </div>
-                                </div>
-                            )}
-                            {project.otherSpaces && (
-                                <div className="flex items-start gap-2">
-                                    <Square className="size-4 mt-0.5 text-primary" />
-                                    <div>
-                                        <p className="font-semibold">Other Spaces</p>
-                                        <p className="text-muted-foreground">{project.otherSpaces}</p>
-                                    </div>
-                                </div>
-                            )}
-                            {project.timeline && (
-                                <div className="flex items-start gap-2">
-                                    <Calendar className="size-4 mt-0.5 text-primary" />
-                                    <div>
-                                        <p className="font-semibold">Timeline</p>
-                                        <p className="text-muted-foreground">{project.timeline}</p>
-                                    </div>
-                                </div>
-                            )}
-                            {project.scope && (
-                                <div className="flex items-start gap-2 col-span-2">
-                                    <ClipboardList className="size-4 mt-0.5 text-primary" />
-                                    <div>
-                                        <p className="font-semibold">Scope</p>
-                                        <p className="text-muted-foreground whitespace-pre-wrap">{project.scope}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    <div className="mt-auto pt-4 border-t">
-                        <h4 className="text-sm font-semibold text-muted-foreground mb-2">Linked Quotes ({project.quotes?.length || 0})</h4>
-                        {project.quotes?.length > 0 ? (
-                            <ul className="space-y-2">
-                                {project.quotes.map((q) => (
-                                    <li key={q.id} className="text-sm flex items-center justify-between">
-                                        <Link href={`/quotes/${q.id}`} className="flex items-center gap-2 hover:underline">
-                                            <FileText className="size-4 text-muted-foreground"/>
-                                            <span>{q.id.substring(0, 8)}...</span>
-                                        </Link>
-                                        <Badge variant={q.status === 'Approved' ? 'success' : q.status === 'Declined' ? 'destructive' : 'secondary'} className="capitalize">{q.status.toLowerCase()}</Badge>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">No quotes assigned yet.</p>
-                        )}
-                    </div>
                 </CardContent>
+                <CardFooter className='flex justify-between items-center'>
+                    <ProjectFormDialog project={project} clients={clients} properties={properties}>
+                        <Button variant='outline' size='sm'>View Details</Button>
+                    </ProjectFormDialog>
+
+                    <Dialog open={showAlert} onOpenChange={setShowAlert}>
+                        <DialogTrigger asChild>
+                            <Button variant='ghost' size='sm' className='text-red-500 hover:text-red-600'>
+                                <Trash2 className='h-4 w-4'/>
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Are you absolutely sure?</DialogTitle>
+                                <DialogDescription>
+                                    This action cannot be undone. This will permanently delete the project and all associated quotes.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Warning</AlertTitle>
+                                <AlertDescription>
+                                    Deleting this project will also delete {project.quotes?.length || 0} quote(s) associated with it.
+                                </AlertDescription>
+                            </Alert>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setShowAlert(false)}>Cancel</Button>
+                                <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
+                                    {isPending && <Loader2 className="mr-2 animate-spin" />}
+                                    Delete Project
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                </CardFooter>
             </Card>
         </motion.div>
-    );
+    )
 }

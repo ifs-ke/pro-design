@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useMemo } from "react";
 import { useStore } from "@/store/cost-store";
-import type { Allocation } from "@/store/cost-store";
+import type { Allocation } from "@/store/types";
 import {
   Card,
   CardContent,
@@ -30,10 +29,10 @@ const allocationItems: AllocationItem[] = [
 ];
 
 interface ProfitAllocatorProps {
-    profit: number;
+    profitAmount: number;
 }
 
-export function ProfitAllocator({ profit }: ProfitAllocatorProps) {
+export function ProfitAllocator({ profitAmount }: ProfitAllocatorProps) {
   const { allocations, setAllocations } = useStore(state => ({
     allocations: state.allocations,
     setAllocations: state.setAllocations,
@@ -65,7 +64,7 @@ export function ProfitAllocator({ profit }: ProfitAllocatorProps) {
                         {label}
                     </Label>
                     <span className="font-medium text-primary w-28 text-right">
-                        {allocations[id]}% / {formatCurrency(profit * (allocations[id] / 100))}
+                        {allocations[id]}% / {formatCurrency(profitAmount * (allocations[id] / 100))}
                     </span>
                 </div>
                 <Slider

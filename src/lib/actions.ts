@@ -4,20 +4,26 @@
 import { z } from 'zod';
 import prisma from './db';
 import { revalidatePath } from 'next/cache';
+import { Prisma } from '@prisma/client';
 
 const clientSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
   phone: z.string().optional(),
+  status: z.enum(['Lead', 'Active', 'OnHold', 'Inactive']).optional(),
+  responsiveness: z.enum(['Hot', 'Warm', 'Cold']).optional(),
 });
 
 const propertySchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   address: z.string().min(5, 'Address must be at least 5 characters.'),
   clientId: z.string(),
 });
 
 const projectSchema = z.object({
+    id: z.string().optional(), // ID is optional, for upsert logic
     name: z.string().min(2, "Name must be at least 2 characters."),
     clientId: z.string(),
     propertyId: z.string().optional(),
@@ -41,216 +47,13 @@ const quoteSchema = z.object({
   timestamp: z.string(),
 });
 
-export async function createClient(prevState: any, formData: FormData) {
-  const validatedFields = clientSchema.safeParse({
-    name: formData.get('name'),
-    email: formData.get('email'),
-    phone: formData.get('phone'),
-  });
 
-  if (!validatedFields.success) {
-    return {
-      type: 'error' as const,
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Missing Fields. Failed to Create Client.',
-    };
-  }
-
-  const { name, email, phone } = validatedFields.data;
-
-  try {
-    await prisma.client.create({
-      data: {
-        name,
-        email,
-        phone,
-      },
-    });
-
-    revalidatePath('/crm');
-    return {
-      type: 'success' as const,
-      message: `Created client ${name}`,
-    };
-  } catch (e) {
-    console.error(e);
-    return {
-      type: 'error' as const,
-      message: 'Database Error: Failed to Create Client.',
-    };
-  }
-}
-
-export async function updateClient(id: string, prevState: any, formData: FormData) {
-    const validatedFields = clientSchema.safeParse({
-        name: formData.get('name'),
-        email: formData.get('email'),
-        phone: formData.get('phone'),
-    });
-
-    if (!validatedFields.success) {
-        return {
-            type: 'error' as const,
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: 'Missing Fields. Failed to Update Client.',
-        };
-    }
-
-    const { name, email, phone } = validatedFields.data;
-
-    try {
-        await prisma.client.update({
-            where: { id },
-            data: {
-                name,
-                email,
-                phone,
-            },
-        });
-
-        revalidatePath('/crm');
-        return {
-            type: 'success' as const,
-            message: `Updated client ${name}`,
-        };
-    } catch (e) {
-        console.error(e);
-        return {
-            type: 'error' as const,
-            message: 'Database Error: Failed to Update Client.',
-        };
-    }
-}
-
-export async function deleteClient(id: string) {
-    try {
-        await prisma.client.delete({ where: { id } });
-        revalidatePath('/crm');
-        return {
-            type: 'success' as const,
-            message: `Deleted client.`,
-        };
-    } catch (e) {
-        console.error(e);
-        return {
-            type: 'error' as const,
-            message: 'Database Error: Failed to Delete Client.',
-        };
-    }
-}
-
-export async function createProperty(prevState: any, formData: FormData) {
-  const validatedFields = propertySchema.safeParse({
-    name: formData.get('name'),
-    address: formData.get('address'),
-    clientId: formData.get('clientId'),
-  });
-
-  if (!validatedFields.success) {
-    return {
-      type: 'error' as const,
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Missing Fields. Failed to Create Property.',
-    };
-  }
-
-  const { name, address, clientId } = validatedFields.data;
-
-  try {
-    await prisma.property.create({
-      data: {
-        name,
-        address,
-        clientId,
-      },
-    });
-
-    revalidatePath('/properties');
-    return {
-      type: 'success' as const,
-      message: `Created property at ${address}`,
-    };
-  } catch (e) {
-    console.error(e);
-    return {
-      type: 'error' as const,
-      message: 'Database Error: Failed to Create Property.',
-    };
-  }
-}
-
-export async function updateProperty(
-  id: string,
-  prevState: any,
-  formData: FormData
-) {
-  const validatedFields = propertySchema.safeParse({
-    name: formData.get('name'),
-    address: formData.get('address'),
-    clientId: formData.get('clientId'),
-  });
-
-  if (!validatedFields.success) {
-    return {
-      type: 'error' as const,
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Missing Fields. Failed to Update Property.',
-    };
-  }
-
-  const { name, address, clientId } = validatedFields.data;
-
-  try {
-    await prisma.property.update({
-      where: {
-        id,
-      },
-      data: {
-        name,
-        address,
-        clientId,
-      },
-    });
-
-    revalidatePath('/properties');
-    return {
-      type: 'success' as const,
-      message: `Updated property at ${address}`,
-    };
-  } catch (e) {
-    console.error(e);
-    return {
-      type: 'error' as const,
-      message: 'Database Error: Failed to Update Property.',
-    };
-  }
-}
-
-export async function deleteProperty(id: string) {
-  try {
-    await prisma.property.delete({
-      where: {
-        id,
-      },
-    });
-
-    revalidatePath('/properties');
-    return {
-      type: 'success' as const,
-      message: `Deleted property. `,
-    };
-  } catch (e) {
-    console.error(e);
-    return {
-      type: 'error' as const,
-      message: 'Database Error: Failed to Delete Property.',
-    };
-  }
-}
-
-export async function createProject(prevState: any, formData: FormData) {
+export async function upsertProject(prevState: any, formData: FormData) {
     const roomCount = formData.get('roomCount');
+    const id = formData.get('id') as string | null;
+
     const validatedFields = projectSchema.safeParse({
+        id: id || undefined,
         name: formData.get('name'),
         clientId: formData.get('clientId'),
         propertyId: formData.get('propertyId'),
@@ -266,102 +69,57 @@ export async function createProject(prevState: any, formData: FormData) {
         return {
             type: 'error' as const,
             errors: validatedFields.error.flatten().fieldErrors,
-            message: 'Missing Fields. Failed to Create Project.',
+            message: 'Missing Fields. Failed to Save Project.',
         };
     }
 
-    const { name, clientId, propertyId, scope, timeline, projectType, services, roomCount: validatedRoomCount, otherSpaces } = validatedFields.data;
+    const { id: projectId, ...projectData } = validatedFields.data;
 
     try {
-        const newProject = await prisma.project.create({
-            data: {
-                name,
-                clientId,
-                propertyId,
-                scope,
-                timeline,
-                projectType,
-                services,
-                roomCount: validatedRoomCount,
-                otherSpaces,
+        const savedProject = await prisma.project.upsert({
+            where: { id: projectId || '' },
+            update: {
+                ...projectData,
+                updatedAt: new Date(),
+            },
+            create: {
+                ...projectData,
                 status: 'Planning',
             },
-        });
-
-        revalidatePath('/projects');
-        return {
-            type: 'success' as const,
-            message: `Created project ${name}`,
-            project: newProject,
-        };
-    } catch (e) {
-        console.error(e);
-        return {
-            type: 'error' as const,
-            message: 'Database Error: Failed to Create Project.',
-        };
-    }
-}
-
-export async function updateProject(id: string, prevState: any, formData: FormData) {
-    const roomCount = formData.get('roomCount');
-    const validatedFields = projectSchema.safeParse({
-        name: formData.get('name'),
-        clientId: formData.get('clientId'),
-        propertyId: formData.get('propertyId'),
-        scope: formData.get('scope'),
-        timeline: formData.get('timeline'),
-        projectType: formData.get('projectType'),
-        services: formData.get('services'),
-        roomCount: roomCount ? Number(roomCount) : undefined,
-        otherSpaces: formData.get('otherSpaces'),
-    });
-
-    if (!validatedFields.success) {
-        return {
-            type: 'error' as const,
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: 'Missing Fields. Failed to Update Project.',
-        };
-    }
-
-    const { name, clientId, propertyId, scope, timeline, projectType, services, roomCount: validatedRoomCount, otherSpaces } = validatedFields.data;
-
-    try {
-        const updatedProject = await prisma.project.update({
-            where: { id },
-            data: {
-                name,
-                clientId,
-                propertyId,
-                scope,
-                timeline,
-                projectType,
-                services,
-                roomCount: validatedRoomCount,
-                otherSpaces,
+            include: { 
+                client: true,
+                property: true,
             },
         });
 
         revalidatePath('/projects');
+        revalidatePath('/crm');
+
         return {
             type: 'success' as const,
-            message: `Updated project ${name}`,
-            project: updatedProject,
+            message: `Saved project ${savedProject.name}`,
+            project: savedProject,
         };
     } catch (e) {
         console.error(e);
         return {
             type: 'error' as const,
-            message: 'Database Error: Failed to Update Project.',
+            message: 'Database Error: Failed to Save Project.',
         };
     }
 }
 
 export async function deleteProject(id: string) {
     try {
-        await prisma.project.delete({ where: { id } });
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            // Delete all quotes associated with this project
+            await tx.quote.deleteMany({ where: { projectId: id } });
+            // Delete the project itself
+            await tx.project.delete({ where: { id } });
+        });
+
         revalidatePath('/projects');
+        revalidatePath('/crm');
         return {
             type: 'success' as const,
             message: `Deleted project.`,
@@ -375,6 +133,185 @@ export async function deleteProject(id: string) {
     }
 }
 
+export async function upsertClient(prevState: any, formData: FormData) {
+  const id = formData.get('id') as string | null;
+
+  const validatedFields = clientSchema.safeParse({
+    id: id || undefined,
+    name: formData.get('name'),
+    email: formData.get('email'),
+    phone: formData.get('phone'),
+    status: formData.get('status'),
+    responsiveness: formData.get('responsiveness'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      type: 'error' as const,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Save Client.',
+    };
+  }
+
+  const { id: clientId, ...clientData } = validatedFields.data;
+
+  try {
+    const savedClient = await prisma.client.upsert({
+      where: { id: clientId || '' },
+      update: {
+        ...clientData,
+        updatedAt: new Date(),
+      },
+      create: {
+        ...clientData,
+      },
+    });
+
+    revalidatePath('/crm');
+
+    return {
+      type: 'success' as const,
+      message: `Saved client ${savedClient.name}`,
+      client: savedClient,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to Save Client.',
+    };
+  }
+}
+
+
+export async function deleteClient(id: string) {
+    try {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            // First, get all projects for the client
+            const projects = await tx.project.findMany({ where: { clientId: id } });
+            const projectIds = projects.map((p: { id: string }) => p.id);
+
+            // Delete all quotes associated with those projects
+            if (projectIds.length > 0) {
+                await tx.quote.deleteMany({ where: { projectId: { in: projectIds } } });
+            }
+            
+            // Delete all quotes associated directly with the client
+            await tx.quote.deleteMany({ where: { clientId: id } });
+
+            // Delete all projects for the client
+            await tx.project.deleteMany({ where: { clientId: id } });
+
+            // Delete all properties for the client
+            await tx.property.deleteMany({ where: { clientId: id } });
+
+            // Finally, delete the client
+            await tx.client.delete({ where: { id } });
+        });
+
+        revalidatePath('/crm');
+        revalidatePath('/projects');
+        revalidatePath('/properties');
+        return {
+            type: 'success' as const,
+            message: `Deleted client and all associated data.`,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to Delete Client.',
+        };
+    }
+}
+
+export async function upsertProperty(prevState: any, formData: FormData) {
+  const id = formData.get('id') as string | null;
+
+  const validatedFields = propertySchema.safeParse({
+    id: id || undefined,
+    name: formData.get('name'),
+    address: formData.get('address'),
+    clientId: formData.get('clientId'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      type: 'error' as const,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Save Property.',
+    };
+  }
+
+  const { id: propertyId, ...propertyData } = validatedFields.data;
+
+  try {
+    const savedProperty = await prisma.property.upsert({
+      where: { id: propertyId || '' },
+      update: {
+        ...propertyData,
+        updatedAt: new Date(),
+      },
+      create: {
+        ...propertyData,
+      },
+      include: {
+        client: true,
+      }
+    });
+
+    revalidatePath('/properties');
+    revalidatePath('/crm');
+
+    return {
+      type: 'success' as const,
+      message: `Saved property ${savedProperty.name}`,
+      property: savedProperty,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to Save Property.',
+    };
+  }
+}
+
+
+export async function deleteProperty(id: string) {
+  try {
+     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        // Find all projects for the property
+        const projects = await tx.project.findMany({ where: { propertyId: id } });
+        const projectIds = projects.map((p: { id: string }) => p.id);
+
+        // Delete all quotes associated with those projects
+        if (projectIds.length > 0) {
+            await tx.quote.deleteMany({ where: { projectId: { in: projectIds } } });
+        }
+
+        // Delete all projects for the property
+        await tx.project.deleteMany({ where: { propertyId: id } });
+
+        // Finally, delete the property
+        await tx.property.delete({ where: { id } });
+    });
+
+    revalidatePath('/properties');
+    revalidatePath('/projects');
+    revalidatePath('/crm');
+    return {
+      type: 'success' as const,
+      message: `Deleted property and all associated projects.`,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to Delete Property.',
+    };
+  }
+}
 
 export async function upsertQuote(quoteData: any) {
   const validatedFields = quoteSchema.safeParse(quoteData);
@@ -391,17 +328,22 @@ export async function upsertQuote(quoteData: any) {
   const dataForDb = { ...data, timestamp: new Date(data.timestamp) };
 
   try {
-    await prisma.quote.upsert({
-      where: { id },
+    const savedQuote = await prisma.quote.upsert({
+      where: { id: id || '' },
       update: dataForDb,
-      create: { id, ...dataForDb },
+      create: { id: id || `QT-${Date.now().toString().slice(-6)}`, ...dataForDb },
+      include: {
+          client: true,
+          project: true,
+      }
     });
 
     revalidatePath('/quotes');
-    revalidatePath(`/quotes/${id}`);
+    revalidatePath(`/quotes/${savedQuote.id}`);
     return {
       type: 'success' as const,
-      message: `Quote ${id} saved.`,
+      message: `Quote ${savedQuote.id} saved.`,
+      quote: savedQuote,
     };
   } catch (e) {
     console.error(e);
@@ -431,17 +373,23 @@ export async function deleteQuote(id: string) {
 
 export async function assignQuoteToProject(quoteId: string, projectId: string) {
     try {
-        await prisma.quote.update({
+        const updatedQuote = await prisma.quote.update({
             where: { id: quoteId },
             data: { projectId: projectId },
+             include: {
+                client: true,
+                project: true,
+            }
         });
 
         revalidatePath('/quotes');
         revalidatePath(`/quotes/${quoteId}`);
         revalidatePath('/projects');
+        revalidatePath('/crm');
         return {
             type: 'success' as const,
             message: `Assigned quote to project.`,
+            quote: updatedQuote,
         };
     } catch (e) {
         console.error(e);

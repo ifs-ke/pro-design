@@ -1,8 +1,11 @@
 
-'use client'
+'use client';
 
-import { useState, useEffect, useTransition } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -11,120 +14,143 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { createProperty, updateProperty } from "@/lib/actions";
-import { Loader2 } from "lucide-react";
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { useStore } from '@/store/cost-store';
+import { Loader2 } from 'lucide-react';
+
+const propertyFormSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(2, 'Name must be at least 2 characters.'),
+  address: z.string().min(5, 'Address must be at least 5 characters.'),
+  clientId: z.string(),
+});
+
+type PropertyFormValues = z.infer<typeof propertyFormSchema>;
 
 interface PropertyFormDialogProps {
-    property?: any;
-    clients: any[];
-    children: React.ReactNode;
+  property?: any;
+  children: React.ReactNode;
 }
 
-export function PropertyFormDialog({ property, clients, children }: PropertyFormDialogProps) {
-    const [open, setOpen] = useState(false);
-    const [name, setName] = useState("");
-    const [address, setAddress] = useState("");
-    const [propertyType, setPropertyType] = useState<any>('Residential');
-    const [clientId, setClientId] = useState<string>("");
-    const [notes, setNotes] = useState("");
-    const [isPending, startTransition] = useTransition();
-    const { toast } = useToast();
+export function PropertyFormDialog({ property, children }: PropertyFormDialogProps) {
+  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  const { clients, saveProperty } = useStore();
+  
+  const form = useForm<PropertyFormValues>({
+    resolver: zodResolver(propertyFormSchema),
+    defaultValues: {
+      id: property?.id,
+      name: property?.name || '',
+      address: property?.address || '',
+      clientId: property?.clientId || '',
+    },
+  });
 
-    useEffect(() => {
-        if (open) {
-            setName(property?.name || "");
-            setAddress(property?.address || "");
-            setPropertyType(property?.propertyType || 'Residential');
-            setClientId(property?.clientId || "");
-            setNotes(property?.notes || "");
-        }
-    }, [open, property]);
-
-    const handleSave = () => {
-        if (!name || !clientId) return;
-        
-        startTransition(async () => {
-            try {
-                if (property) {
-                    await updateProperty(property.id, { name, address, propertyType, clientId, notes });
-                    toast({ title: "Property Updated" });
-                } else {
-                    await createProperty({ name, address, propertyType, clientId, notes });
-                    toast({ title: "Property Created" });
-                }
-                setOpen(false);
-            } catch (error) {
-                toast({ variant: 'destructive', title: "Error", description: "Failed to save property." });
-            }
-        });
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        id: property?.id,
+        name: property?.name || '',
+        address: property?.address || '',
+        clientId: property?.clientId || '',
+      });
     }
+  }, [open, property, form]);
 
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>{children}</DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>{property ? "Edit Property" : "Create New Property"}</DialogTitle>
-                    <DialogDescription>
-                        {property ? "Update the details for this property." : "Enter the details for the new property."}
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="property-name">Property Name *</Label>
-                        <Input id="property-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Kileleshwa Duplex" />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="property-client">Client *</Label>
-                        <Select onValueChange={setClientId} defaultValue={clientId}>
-                            <SelectTrigger id="property-client">
-                                <SelectValue placeholder="Select a client" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {clients.map(c => (
-                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                           <Label htmlFor="property-address">Address</Label>
-                           <Input id="property-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g., 123 Main St" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="property-type">Property Type</Label>
-                            <Select onValueChange={(v) => setPropertyType(v)} defaultValue={propertyType}>
-                                <SelectTrigger id="property-type">
-                                    <SelectValue placeholder="Select a type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Residential">Residential</SelectItem>
-                                    <SelectItem value="Commercial">Commercial</SelectItem>
-                                    <SelectItem value="Other">Other</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="property-notes">Notes</Label>
-                        <Textarea id="property-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g., Gate code is 1234..."/>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSave} disabled={!name || !clientId || isPending}>
-                        {isPending && <Loader2 className="mr-2 animate-spin" />}
-                        {property ? "Save Changes" : "Create Property"}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    )
+  const onSubmit = async (data: PropertyFormValues) => {
+    const savedProperty = await saveProperty(data);
+    if (savedProperty) {
+        toast({ title: property ? 'Property Updated' : 'Property Created' });
+        setOpen(false);
+    } else {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to save property.' });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{property ? 'Edit Property' : 'Create New Property'}</DialogTitle>
+          <DialogDescription>
+            {property ? 'Update the details for this property.' : 'Enter the details for the new property.'}
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Property Name *</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address *</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="clientId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a client" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {clients.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 animate-spin" />}
+                {property ? 'Save Changes' : 'Create Property'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
 }

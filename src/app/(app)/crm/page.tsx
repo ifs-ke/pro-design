@@ -8,6 +8,7 @@ import { ClientFormDialog } from "@/components/design/client-form";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Users } from "lucide-react";
 import { motion } from "framer-motion";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -47,11 +48,18 @@ export default function CrmPage() {
             </header>
 
             {clients.length === 0 ? (
-                <div className="text-center p-12 border-dashed rounded-lg">
-                    <Users className="mx-auto size-12 text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-semibold">No Clients Found</h3>
-                    <p className="text-muted-foreground">Click "Create New Client" to get started.</p>
-                </div>
+                 <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
+                 <CardHeader>
+                     <Users className="mx-auto size-12 text-muted-foreground mb-4" />
+                     <CardTitle>No Clients Found</CardTitle>
+                     <CardDescription>Click "Create New Client" to get started.</CardDescription>
+                 </CardHeader>
+                 <CardContent>
+                     <ClientFormDialog>
+                         <Button>Create New Client</Button>
+                     </ClientFormDialog>
+                 </CardContent>
+             </Card>
             ) : (
                 <motion.div
                   className="grid grid-cols-1 lg:grid-cols-2 gap-6"

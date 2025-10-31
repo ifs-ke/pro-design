@@ -17,7 +17,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { updateProject } from "@/lib/actions";
 import { useStore } from "@/store/cost-store";
 import { Loader2 } from "lucide-react";
 
@@ -42,7 +41,7 @@ export function ProjectFormDialog({ project, clients, properties, children }: Pr
     const [status, setStatus] = useState<any>('Planning');
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-    const addProject = useStore((state) => state.addProject);
+    const saveProject = useStore((state) => state.saveProject);
 
     const clientProperties = properties.filter(p => p.clientId === clientId);
 
@@ -62,38 +61,40 @@ export function ProjectFormDialog({ project, clients, properties, children }: Pr
     }, [open, project]);
     
      useEffect(() => {
-        // If the selected client doesn't own the selected property, reset the property.
         if (propertyId && !clientProperties.some(p => p.id === propertyId)) {
           setPropertyId("");
         }
     }, [clientId, propertyId, clientProperties]);
 
     const handleSave = () => {
-        if (!name) return;
-        const projectData = { 
+        if (!name || !clientId) {
+            toast({ variant: 'destructive', title: "Validation Error", description: "Project Name and Client are required fields." });
+            return;
+        }
+
+        const projectData: any = { 
             name, 
             clientId, 
-            propertyId,
+            propertyId: propertyId || null,
             scope, 
             timeline,
             projectType,
             services,
-            roomCount: Number(roomCount) || undefined,
+            roomCount: roomCount ? Number(roomCount) : null,
             otherSpaces,
             status
         };
 
+        if (project?.id) {
+            projectData.id = project.id;
+        }
+
         startTransition(async () => {
-            try {
-                if (project) {
-                    await updateProject(project.id, projectData);
-                    toast({ title: "Project Updated" });
-                } else {
-                    addProject(projectData);
-                    toast({ title: "Project Created" });
-                }
+            const result = await saveProject(projectData);
+            if (result) {
+                toast({ title: project ? "Project Updated" : "Project Created", description: `Successfully saved project: ${result.name}` });
                 setOpen(false);
-            } catch (error) {
+            } else {
                 toast({ variant: 'destructive', title: "Error", description: "Failed to save project." });
             }
         });
@@ -116,8 +117,8 @@ export function ProjectFormDialog({ project, clients, properties, children }: Pr
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="project-client">Client</Label>
-                            <Select onValueChange={setClientId} defaultValue={clientId}>
+                            <Label htmlFor="project-client">Client *</Label>
+                            <Select onValueChange={setClientId} value={clientId}>
                                 <SelectTrigger id="project-client">
                                     <SelectValue placeholder="Select a client" />
                                 </SelectTrigger>
@@ -132,7 +133,7 @@ export function ProjectFormDialog({ project, clients, properties, children }: Pr
                            <Label htmlFor="project-property">Property</Label>
                             <Select onValueChange={setPropertyId} value={propertyId} disabled={!clientId || clientProperties.length === 0}>
                                 <SelectTrigger id="project-property">
-                                    <SelectValue placeholder="Select a property" />
+                                    <SelectValue placeholder={!clientId ? "Select a client first" : "Select a property"} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {clientProperties.map(p => (
@@ -145,7 +146,7 @@ export function ProjectFormDialog({ project, clients, properties, children }: Pr
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="project-type">Project Type</Label>
-                            <Select onValueChange={(v) => setProjectType(v)} defaultValue={projectType}>
+                            <Select onValueChange={(v) => setProjectType(v)} value={projectType}>
                                 <SelectTrigger id="project-type">
                                     <SelectValue placeholder="Select a type" />
                                 </SelectTrigger>
@@ -159,7 +160,7 @@ export function ProjectFormDialog({ project, clients, properties, children }: Pr
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="project-status">Status</Label>
-                            <Select onValueChange={(v) => setStatus(v)} defaultValue={status}>
+                            <Select onValueChange={(v) => setStatus(v)} value={status}>
                                 <SelectTrigger id="project-status">
                                     <SelectValue placeholder="Select status" />
                                 </SelectTrigger>
