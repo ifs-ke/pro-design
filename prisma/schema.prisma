@@ -1,46 +1,42 @@
-
-datasource db {
-  provider     = "postgresql"
-  url          = env("DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 model Client {
-  id              String     @id @default(cuid())
-  name            String
-  email           String     @unique
-  phone           String?
-  status          String     @default("Lead")
-  responsiveness  String?    @default("Warm")
-  properties      Property[]
-  projects        Project[]
-  quotes          Quote[]
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id             String     @id @default(cuid())
+  name           String
+  email          String     @unique
+  phone          String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  responsiveness String?    @default("Warm")
+  status         String     @default("Lead")
+  projects       Project[]
+  properties     Property[]
+  quotes         Quote[]
 }
 
 model Property {
   id        String    @id @default(cuid())
   name      String
   address   String
-  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId  String
-  projects  Project[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  projects  Project[]
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model Project {
   id          String    @id @default(cuid())
   name        String
-  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId    String
-  property    Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
   propertyId  String?
-  quotes      Quote[]
   scope       String?
   timeline    String?
   status      String?
@@ -50,22 +46,23 @@ model Project {
   otherSpaces String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  property    Property? @relation(fields: [propertyId], references: [id])
+  quotes      Quote[]
 }
 
 model Quote {
-  id        String   @id @default(cuid())
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId  String
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  projectId String?
-  status    String
-
+  id                    String   @id @default(cuid())
+  clientId              String
+  projectId             String?
+  status                String
   formValues            Json
   allocations           Json
   calculations          Json
   suggestedCalculations Json
-
-  timestamp DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  timestamp             DateTime
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  client                Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project               Project? @relation(fields: [projectId], references: [id])
 }
