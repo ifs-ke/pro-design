@@ -42,10 +42,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MoreHorizontal, Trash2, Edit, CheckCircle, Briefcase, FileText } from "lucide-react";
-import { useStore, type HydratedQuote, type Client, type Project } from "@/store/cost-store";
+import { MoreHorizontal, Trash2, Edit, CheckCircle, Briefcase, FileText, Loader2 } from "lucide-react";
+import { useStore, type HydratedQuote, type Client, type Project, type QuoteStatus } from "@/store/cost-store";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" | "success" } = {
   "Sent": "secondary",
@@ -59,7 +58,7 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: HydratedQuot
     const [selectedProject, setSelectedProject] = useState<string | undefined>(quote.projectId || undefined);
     const [newProjectName, setNewProjectName] = useState("");
     const [isCreating, setIsCreating] = useState(false);
-    const [isPending, startTransition] = useTransition();
+    const [isAssigning, startAssignTransition] = useTransition();
     const { toast } = useToast();
     const clientForQuote = clients.find(c => c.id === quote.clientId);
     const addProject = useStore((state) => state.addProject);
@@ -68,7 +67,7 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: HydratedQuot
 
     const handleAssign = () => {
         if (selectedProject) {
-            startTransition(async () => {
+            startAssignTransition(async () => {
                 assignQuoteToProject(quote.id, selectedProject);
                 toast({ title: "Quote Assigned" });
                 setOpen(false);
@@ -78,7 +77,7 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: HydratedQuot
 
     const handleCreateAndAssign = () => {
         if (newProjectName && quote.clientId) {
-            startTransition(async () => {
+            startAssignTransition(async () => {
                 const newProject = await addProject({ name: newProjectName, clientId: quote.clientId });
                 assignQuoteToProject(quote.id, newProject.id);
                 toast({ title: "Project Created & Assigned" });
@@ -93,7 +92,7 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: HydratedQuot
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    <Briefcase className="mr-2" /> Assign to Project
+                    <Briefcase className="mr-2 h-4 w-4" /> Assign to Project
                 </DropdownMenuItem>
             </DialogTrigger>
             <DialogContent>
@@ -113,7 +112,7 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: HydratedQuot
                         <p className="text-sm text-muted-foreground">
                             This new project will be automatically linked to the client: <span className="font-semibold">{clientForQuote?.name || 'Unknown'}</span>.
                         </p>
-                        <Button onClick={() => setIsCreating(false)} variant="link" className="p-0">Cancel</Button>
+                        <Button onClick={() => setIsCreating(false)} variant="link" className="p-0 h-auto">Cancel</Button>
                     </div>
                 ) : (
                     <div className="space-y-4 py-4">
@@ -130,20 +129,20 @@ function AssignProjectDialog({ quote, projects, clients }: { quote: HydratedQuot
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Button onClick={() => setIsCreating(true)} variant="link" className="p-0">Or, create a new project</Button>
+                        <Button onClick={() => setIsCreating(true)} variant="link" className="p-0 h-auto">Or, create a new project</Button>
                     </div>
                 )}
                 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                     {isCreating ? (
-                        <Button onClick={handleCreateAndAssign} disabled={!newProjectName || isPending}>
-                            {isPending && <Loader2 className="mr-2 animate-spin" />}
+                        <Button onClick={handleCreateAndAssign} disabled={!newProjectName || isAssigning}>
+                            {isAssigning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Create & Assign
                         </Button>
                     ) : (
-                        <Button onClick={handleAssign} disabled={!selectedProject || isPending}>
-                             {isPending && <Loader2 className="mr-2 animate-spin" />}
+                        <Button onClick={handleAssign} disabled={!selectedProject || isAssigning}>
+                             {isAssigning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Assign Project
                         </Button>
                     )}
@@ -169,32 +168,46 @@ function QuoteRow({ quote, projects, clients }: { quote: HydratedQuote, projects
     const { loadQuoteIntoForm, deleteQuote, updateQuoteStatus } = useStore();
     const router = useRouter();
     const { toast } = useToast();
-    const [showAlert, setShowAlert] = useState(false);
+    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+    
+    const [isUpdateStatusPending, startUpdateStatusTransition] = useTransition();
+    const [isDeletePending, startDeleteTransition] = useTransition();
+    const [updatingStatus, setUpdatingStatus] = useState<QuoteStatus | null>(null);
+
 
     const handleEdit = () => {
         loadQuoteIntoForm(quote.id);
         router.push('/costing');
     }
-    
-    const [isPending, startTransition] = useTransition();
 
-    const handleUpdateStatus = (status: HydratedQuote['status']) => {
-        startTransition(async () => {
-            await updateQuoteStatus(quote.id, status);
-            toast({title: `Quote status set to ${status}`});
+    const handleUpdateStatus = (status: QuoteStatus) => {
+        setUpdatingStatus(status);
+        startUpdateStatusTransition(async () => {
+            try {
+                await updateQuoteStatus(quote.id, status);
+                toast({title: `Quote status set to ${status}`});
+            } catch (error) {
+                toast({ title: "Error updating status", variant: "destructive" });
+            }
+            setUpdatingStatus(null);
         });
     }
 
     const handleDelete = () => {
-        startTransition(async () => {
-            await deleteQuote(quote.id);
-            toast({title: "Quote deleted successfully"});
+        startDeleteTransition(async () => {
+            try {
+                await deleteQuote(quote.id);
+                toast({title: "Quote deleted successfully"});
+                setShowDeleteAlert(false);
+            } catch (error) {
+                toast({ title: "Error deleting quote", variant: "destructive" });
+            }
         });
     }
 
     const clientName = quote.client?.name || "Unknown Client";
     const projectName = quote.project?.name || "N/A";
-    const grandTotal = (quote.calculations as any)?.totalPrice || 0;
+    const totalPrice = (quote.calculations as any)?.totalPrice || 0;
     
     return (
         <MotionRow variants={itemVariants}>
@@ -212,25 +225,25 @@ function QuoteRow({ quote, projects, clients }: { quote: HydratedQuote, projects
             </TableCell>
             <TableCell className="hidden md:table-cell">{new Date(quote.timestamp).toLocaleDateString()}</TableCell>
             <TableCell className="hidden lg:table-cell">{projectName}</TableCell>
-            <TableCell className="text-right font-semibold">{formatCurrency(grandTotal)}</TableCell>
+            <TableCell className="text-right font-semibold">{formatCurrency(totalPrice)}</TableCell>
             <TableCell className="text-center hidden sm:table-cell">
               <Badge variant={statusVariant[quote.status] || "secondary"} className="capitalize">{quote.status.toLowerCase()}</Badge>
             </TableCell>
             <TableCell className="text-right">
-               <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
+               <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="size-4" />
+                        <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">More actions</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => router.push(`/quotes/${quote.id}`)}>
-                        <FileText className="mr-2" /> View Quote
+                        <FileText className="mr-2 h-4 w-4" /> View Details
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleEdit}>
-                        <Edit className="mr-2" /> Edit Quote
+                        <Edit className="mr-2 h-4 w-4" /> Edit Quote
                       </DropdownMenuItem>
                       <AssignProjectDialog 
                           quote={quote} 
@@ -239,18 +252,22 @@ function QuoteRow({ quote, projects, clients }: { quote: HydratedQuote, projects
                       />
                       <DropdownMenuSub>
                         <DropdownMenuSubTrigger>
-                          <CheckCircle className="mr-2" />
+                          <CheckCircle className="mr-2 h-4 w-4" />
                           <span>Change Status</span>
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
                           <DropdownMenuSubContent>
-                            {(['Draft', 'Sent', 'Approved', 'Declined'] as const).map(status => (
+                            {(["Draft", "Sent", "Approved", "Declined"] as const).map(status => (
                               <DropdownMenuItem 
                                 key={status} 
-                                onClick={() => handleUpdateStatus(status)}
-                                disabled={quote.status === status || isPending}
+                                onSelect={() => handleUpdateStatus(status)}
+                                disabled={quote.status === status || isUpdateStatusPending}
                               >
-                                {isPending ? <Loader2 className="mr-2 animate-spin" /> : null}
+                                {isUpdateStatusPending && updatingStatus === status ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <div className="w-6" /> // Placeholder for alignment
+                                )}
                                 {status}
                               </DropdownMenuItem>
                             ))}
@@ -258,8 +275,8 @@ function QuoteRow({ quote, projects, clients }: { quote: HydratedQuote, projects
                         </DropdownMenuPortal>
                       </DropdownMenuSub>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onSelect={() => setShowAlert(true)}>
-                          <Trash2 className="mr-2" /> Delete Quote
+                      <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onSelect={() => setShowDeleteAlert(true)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete Quote
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -273,8 +290,8 @@ function QuoteRow({ quote, projects, clients }: { quote: HydratedQuote, projects
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                           {isPending ? <Loader2 className="mr-2 animate-spin" /> : null}
+                      <AlertDialogAction onClick={handleDelete} disabled={isDeletePending} className="bg-destructive hover:bg-destructive/90">
+                           {isDeletePending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           Yes, delete it
                       </AlertDialogAction>
                       </AlertDialogFooter>
@@ -302,10 +319,10 @@ export function QuotesTable({ quotes, projects, clients }: QuotesTableProps) {
                 <TableHead className="hidden lg:table-cell">Project</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead className="text-center hidden sm:table-cell">Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right"><span className="sr-only">Actions</span></TableHead>
             </TableRow>
             </TableHeader>
-            <motion.tbody variants={listVariants} initial="hidden" animate="visible">
+            <motion.tbody variants={listVariants} initial="hidden" animate="visible" layout>
                 <AnimatePresence>
                     {quotes.map((quote) => (
                         <QuoteRow key={quote.id} quote={quote} projects={projects} clients={clients} />

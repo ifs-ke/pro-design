@@ -12,7 +12,7 @@ import {
     upsertProject as upsertProjectAction, 
     deleteProject as deleteProjectAction,
 } from '@/lib/actions';
-import { Client, Project, Property, Quote, Interaction, FormValues, Allocation, Calculations, HydratedClient, HydratedProperty, HydratedProject, HydratedQuote, Material } from './types'; 
+import { Client, Project, Property, Quote, Interaction, FormValues, Allocation, Calculations, HydratedClient, HydratedProperty, HydratedProject, HydratedQuote, Material, QuoteStatus } from './types'; 
 export type { FormValues, Material, Calculations };
 
 const objectToFormData = (obj: Record<string, any>): FormData => {
@@ -78,7 +78,7 @@ interface CostState {
   saveProject: (data: Partial<Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'status'>> & { id?: string }) => Promise<Project | null>;
   deleteProject: (id: string) => Promise<void>;
   publishQuote: (formValues: FormValues, allocations: Allocation, finalCalculations: Calculations, suggestedCalculations: Calculations, loadedQuoteId: string | null) => Promise<{ quoteId: string, wasExisting: boolean } | null>;
-  updateQuoteStatus: (id: string, status: Quote['status']) => Promise<void>;
+  updateQuoteStatus: (id: string, status: QuoteStatus) => Promise<void>;
   deleteQuote: (id: string) => Promise<void>;
   assignQuoteToProject: (quoteId: string, projectId: string) => Promise<void>;
 }
@@ -441,19 +441,35 @@ export const useStore = create<CostState>()(
                     set({ isPublishing: false });
                 }
             },
+
             updateQuoteStatus: async (id, status) => {
                 const quote = get().quotes.find(q => q.id === id);
-                if (quote) {
-                    const updatedQuote = { ...quote, status };
+                if (!quote) return;
+
+                const updatedQuote = { ...quote, status };
+
+                // Optimistic update
+                const originalQuotes = get().quotes;
+                set(state => {
+                    const newQuotes = state.quotes.map(q => (q.id === id ? updatedQuote : q));
+                    const newState = { ...state, quotes: newQuotes };
+                    return { ...newState, ...computeAndSetHydratedState(newState) };
+                });
+
+                try {
                     const result = await upsertQuoteAction(updatedQuote);
-                     if (result.type === 'success' && result.quote) {
-                        set(state => {
-                            const newState = { ...state, quotes: state.quotes.map(q => q.id === id ? result.quote as Quote : q) };
-                            return { ...newState, ...computeAndSetHydratedState(newState) };
-                        });
-                    }
+                    if (result.type === 'error') throw new Error(result.message);
+                    // The optimistic update is already applied
+                } catch (error) {
+                    console.error('Failed to update quote status, rolling back', error);
+                    // Rollback on error
+                    set(state => {
+                         const newState = { ...state, quotes: originalQuotes };
+                         return { ...newState, ...computeAndSetHydratedState(newState) };
+                    });
                 }
             },
+
             deleteQuote: async (id) => {
                 const result = await deleteQuoteAction(id);
                  if (result.type === 'success') {
