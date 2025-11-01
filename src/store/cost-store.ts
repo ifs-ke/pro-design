@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import { createSelector } from 'reselect';
@@ -13,7 +14,8 @@ import {
     deleteProject as deleteProjectAction,
 } from '@/lib/actions';
 import { Client, Project, Property, Quote, Interaction, FormValues, Allocation, Calculations, HydratedClient, HydratedProperty, HydratedProject, HydratedQuote, Material, QuoteStatus } from './types'; 
-export type { FormValues, Material, Calculations };
+
+export type { FormValues, Material, Calculations, Client, Project, Property, Quote, Interaction, Allocation, HydratedClient, HydratedProperty, HydratedProject, HydratedQuote, QuoteStatus };
 
 const objectToFormData = (obj: Record<string, any>): FormData => {
     const formData = new FormData();
@@ -70,7 +72,7 @@ interface CostState {
   resetForm: () => void;
   setHydrated: () => void;
   setIsPublishing: (isPublishing: boolean) => void;
-  saveClient: (data: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'interactions' | 'status' | 'responsiveness'>> & { id?: string }) => Promise<Client | null>;
+  saveClient: (data: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'interactions'>>) => Promise<Client | null>;
   deleteClient: (id: string) => Promise<void>;
   addInteraction: (clientId: string, data: { type: Interaction['type']; notes: string }) => void;
   saveProperty: (data: Partial<Omit<Property, 'id' | 'createdAt' | 'updatedAt'>> & { id?: string }) => Promise<Property | null>;

@@ -51,6 +51,7 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | 
   "Approved": "success",
   "Draft": "outline",
   "Declined": "destructive",
+  "Received": "default",
 }
 
 function AssignProjectDialog({ quote, projects, clients }: { quote: HydratedQuote, projects: Project[], clients: Client[] }) {
@@ -257,7 +258,7 @@ function QuoteRow({ quote, projects, clients }: { quote: HydratedQuote, projects
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
                           <DropdownMenuSubContent>
-                            {(["Draft", "Sent", "Approved", "Declined"] as const).map(status => (
+                            {(["Draft", "Sent", "Approved", "Declined", "Received"] as const).map(status => (
                               <DropdownMenuItem 
                                 key={status} 
                                 onSelect={() => handleUpdateStatus(status)}

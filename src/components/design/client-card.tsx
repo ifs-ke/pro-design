@@ -44,7 +44,7 @@ const responsivenessVariant: { [key: string]: "success" | "secondary" | "destruc
 const statusVariant: { [key: string]: "default" | "secondary" | "outline" } = {
   "Lead": "secondary",
   "Active": "default",
-  "OnHold": "outline",
+  "Return": "outline",
   "Inactive": "outline"
 };
 

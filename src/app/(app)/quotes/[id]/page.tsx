@@ -1,17 +1,29 @@
 
 'use client';
 
-import { useStore } from "@/store/cost-store";
+import { useStore, type QuoteStatus } from "@/store/cost-store";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
 import { CostBreakdown } from "@/components/design/quote-display";
 import { MaterialsList } from "@/components/design/materials-list";
 import { formatCurrency } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
+import { useTransition, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import type { Calculations, Allocation, FormValues, HydratedQuote } from "@/store/cost-store";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+
+const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" | "success" } = {
+  "Sent": "secondary",
+  "Approved": "success",
+  "Draft": "outline",
+  "Declined": "destructive",
+  "Received": "default"
+};
 
 const emptyCalculations: Calculations = {
     totalMaterialCost: 0,
@@ -50,8 +62,24 @@ const emptyFormValues: FormValues = {
 export default function QuoteDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const { quotes, clients, projects } = useStore();
+  const { quotes, clients, projects, updateQuoteStatus } = useStore();
   const isLoading = !useIsHydrated();
+  const { toast } = useToast();
+  const [isUpdateStatusPending, startUpdateStatusTransition] = useTransition();
+  const [updatingStatus, setUpdatingStatus] = useState<QuoteStatus | null>(null);
+
+  const handleUpdateStatus = (status: QuoteStatus) => {
+    setUpdatingStatus(status);
+    startUpdateStatusTransition(async () => {
+        try {
+            await updateQuoteStatus(id, status);
+            toast({title: `Quote status set to ${status}`});
+        } catch (error) {
+            toast({ title: "Error updating status", variant: "destructive" });
+        }
+        setUpdatingStatus(null);
+    });
+  }
 
   if (isLoading) {
     return (
@@ -98,6 +126,30 @@ export default function QuoteDetailPage() {
             <p className="text-muted-foreground mt-1">
               Published on {new Date(quote.timestamp).toLocaleDateString()}
             </p>
+             <div className="flex items-center gap-2 mt-2">
+               <Badge variant={statusVariant[quote.status] || "secondary"} className="capitalize text-base">{quote.status.toLowerCase()}</Badge>
+               <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">Change Status</Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                      {(["Draft", "Sent", "Approved", "Declined", "Received"] as const).map(status => (
+                        <DropdownMenuItem 
+                          key={status} 
+                          onSelect={() => handleUpdateStatus(status)}
+                          disabled={quote.status === status || isUpdateStatusPending}
+                        >
+                          {isUpdateStatusPending && updatingStatus === status ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                              <div className="w-6" /> // Placeholder
+                          )}
+                          {status}
+                        </DropdownMenuItem>
+                      ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
           </div>
           <div className="text-right">
             <p className="text-muted-foreground">Grand Total</p>
