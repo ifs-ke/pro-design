@@ -14,11 +14,38 @@ import { notFound, useParams } from "next/navigation";
 import type { Calculations, Allocation, FormValues, HydratedQuote } from "@/store/cost-store";
 
 const emptyCalculations: Calculations = {
-  materialCost: 0, laborCost: 0, operationalCost: 0, affiliateCost: 0, miscCost: 0, salaryCost: 0, nssfCost: 0, shifCost: 0,
-  totalBaseCost: 0, profit: 0, subtotal: 0, grandTotal: 0, tax: 0, taxRate: 0, taxType: '', profitMargin: 0, businessType: ''
+    totalMaterialCost: 0,
+    totalLaborCost: 0,
+    totalOperationCost: 0,
+    totalAffiliateCost: 0,
+    subtotal: 0,
+    miscAmount: 0,
+    subtotalWithMisc: 0,
+    taxAmount: 0,
+    totalCost: 0,
+    profitAmount: 0,
+    totalPrice: 0,
+    salaryAmount: 0,
+    nssfAmount: 0,
+    shifAmount: 0,
 };
 const emptyAllocations: Allocation = { savings: 0, futureDev: 0, csr: 0 };
-const emptyFormValues: FormValues = { materials: [], labor: [], operations: [], affiliates: [], businessType: "vat_registered", taxRate: 16, profitMargin: 25, miscPercentage: 0, salaryPercentage: 0, numberOfPeople: 1, enableNSSF: false, enableSHIF: false, grossSalary: 0, clientId: '', projectId: '' };
+const emptyFormValues: FormValues = { 
+    materials: [], 
+    labor: [], 
+    operations: [], 
+    affiliates: [], 
+    salaries: [],
+    businessType: "vat_registered", 
+    taxRate: 16, 
+    profitMargin: 25, 
+    miscPercentage: 0, 
+    salaryPercentage: 0, 
+    enableNSSF: false, 
+    enableSHIF: false, 
+    clientId: '', 
+    projectId: '' 
+};
 
 export default function QuoteDetailPage() {
   const params = useParams();
@@ -74,7 +101,7 @@ export default function QuoteDetailPage() {
           </div>
           <div className="text-right">
             <p className="text-muted-foreground">Grand Total</p>
-            <p className="text-4xl font-bold text-primary">{formatCurrency(calculations.grandTotal)}</p>
+            <p className="text-4xl font-bold text-primary">{formatCurrency(calculations.totalPrice)}</p>
           </div>
         </div>
       </header>
@@ -84,6 +111,7 @@ export default function QuoteDetailPage() {
           calculations={calculations}
           allocations={allocations}
           suggestedCalculations={suggestedCalculations}
+          formValues={formValues}
         />
         {materials.length > 0 && (
           <>

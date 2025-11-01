@@ -27,6 +27,7 @@ interface CostBreakdownProps {
   calculations: Calculations;
   allocations: Allocation;
   suggestedCalculations?: Calculations;
+  formValues: any;
 }
 
 const allocationMeta = {
@@ -36,27 +37,36 @@ const allocationMeta = {
 };
 
 
-export function CostBreakdown({ calculations, allocations, suggestedCalculations }: CostBreakdownProps) {
+export function CostBreakdown({ calculations, allocations, suggestedCalculations, formValues }: CostBreakdownProps) {
   const {
-    materialCost,
-    laborCost,
-    operationalCost,
-    totalBaseCost,
-    profit,
+    totalMaterialCost,
+    totalLaborCost,
+    totalOperationCost,
+    totalAffiliateCost,
     subtotal,
-    tax,
-    grandTotal,
-    taxRate,
-    taxType,
-    salaryCost,
-    numberOfPeople,
-    nssfCost,
-    shifCost,
+    miscAmount,
+    subtotalWithMisc,
+    taxAmount,
+    totalCost,
+    profitAmount,
+    totalPrice,
+    salaryAmount,
+    nssfAmount,
+    shifAmount,
   } = calculations;
 
-  // For clarity:
-  const netRevenue = subtotal; // Revenue before tax
-  const hasDeductibles = (nssfCost || 0) > 0 || (shifCost || 0) > 0;
+  const taxRate = formValues.taxRate;
+  const businessType = formValues.businessType;
+  
+  const taxType = businessType === 'vat_registered' 
+    ? "VAT"
+    : businessType === 'sole_proprietor'
+    ? "Turnover Tax"
+    : "No Tax";
+
+
+  const hasDeductibles = (nssfAmount || 0) > 0 || (shifAmount || 0) > 0;
+  const directCosts = totalMaterialCost + totalLaborCost + totalOperationCost + totalAffiliateCost;
 
   return (
     <Card className="h-full flex flex-col">
@@ -74,58 +84,48 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
             </>
         )}
         <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><p className="text-muted-foreground">Material Cost</p><p>{formatCurrency(materialCost)}</p></div>
-            <div className="flex justify-between"><p className="text-muted-foreground">Labor Cost</p><p>{formatCurrency(laborCost)}</p></div>
-            <div className="flex justify-between"><p className="text-muted-foreground">Operational Cost</p><p>{formatCurrency(operationalCost)}</p></div>
-             <div className="flex justify-between">
-                <p className="text-muted-foreground flex items-center">
-                    <Users className="size-3 mr-1.5" />
-                    Salaries
-                </p>
-                <p>{formatCurrency(salaryCost)}</p>
-            </div>
+            <div className="flex justify-between"><p className="text-muted-foreground">Material Cost</p><p>{formatCurrency(totalMaterialCost)}</p></div>
+            <div className="flex justify-between"><p className="text-muted-foreground">Labor Cost</p><p>{formatCurrency(totalLaborCost)}</p></div>
+            <div className="flex justify-between"><p className="text-muted-foreground">Operational Cost</p><p>{formatCurrency(totalOperationCost)}</p></div>
+             <div className="flex justify-between"><p className="text-muted-foreground">Affiliate Cost</p><p>{formatCurrency(totalAffiliateCost)}</p></div>
+             <div className="flex justify-between"><p className="text-muted-foreground">Salary Cost</p><p>{formatCurrency(salaryAmount)}</p></div>
              {hasDeductibles && (
-                <div className="flex justify-between">
-                    <p className="text-muted-foreground flex items-center">
-                        <ShieldCheck className="size-3 mr-1.5" />
-                        Statutory Deductibles
-                    </p>
-                    <p>{formatCurrency(nssfCost + shifCost)}</p>
+                <div className="pl-4 mt-1 space-y-1 text-xs border-l">
+                    <div className="flex justify-between"><p className="text-muted-foreground">NSSF (Tier 1)</p><p>{formatCurrency(nssfAmount)}</p></div>
+                    <div className="flex justify-between"><p className="text-muted-foreground">SHIF</p><p>{formatCurrency(shifAmount)}</p></div>
                 </div>
             )}
         </div>
         <Separator />
          <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><p className="text-muted-foreground">Total Base Cost</p><p className="font-medium">{formatCurrency(totalBaseCost)}</p></div>
-            <div className="flex justify-between"><p className="text-muted-foreground">Profit</p><p className="font-medium">{formatCurrency(profit)}</p></div>
+            <div className="flex justify-between"><p className="text-muted-foreground">Direct Costs Subtotal</p><p className="font-medium">{formatCurrency(directCosts)}</p></div>
+            <div className="flex justify-between"><p className="text-muted-foreground">Salaries & Deductibles</p><p className="font-medium">{formatCurrency(salaryAmount)}</p></div>
+            <div className="flex justify-between"><p className="text-muted-foreground">Subtotal</p><p className="font-semibold">{formatCurrency(subtotal)}</p></div>
+            <div className="flex justify-between"><p className="text-muted-foreground">Misc / Contingency</p><p className="font-medium">{formatCurrency(miscAmount)}</p></div>
         </div>
         <Separator />
         <TooltipProvider>
             <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                     <p className="text-muted-foreground flex items-center">
-                        Net Revenue
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Info className="size-3 ml-1.5" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Total before tax (Base Cost + Profit)</p>
-                            </TooltipContent>
-                        </Tooltip>
+                       Total before Profit
                     </p>
-                    <p className="font-semibold">{formatCurrency(netRevenue)}</p>
+                    <p className="font-semibold">{formatCurrency(subtotalWithMisc)}</p>
                 </div>
                 <div className="flex justify-between">
+                    <p className="text-muted-foreground">Profit</p>
+                    <p className="font-semibold">{formatCurrency(profitAmount)}</p>
+                </div>
+                 <div className="flex justify-between">
                     <p className="text-muted-foreground">{taxType} ({taxRate}%)</p>
-                    <p className="font-semibold">{formatCurrency(tax)}</p>
+                    <p className="font-semibold">{formatCurrency(taxAmount)}</p>
                 </div>
             </div>
         </TooltipProvider>
         <Separator />
         <div className="flex justify-between font-bold text-base bg-primary/10 p-2 rounded-md">
             <p>Grand Total</p>
-            <p>{formatCurrency(grandTotal)}</p>
+            <p>{formatCurrency(totalPrice)}</p>
         </div>
 
       </CardContent>
@@ -139,7 +139,7 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
                     return (
                         <div key={key} className="flex justify-between items-center text-muted-foreground">
                             <span className="flex items-center gap-2"><Icon className="size-4" />{meta.label}</span>
-                            <span>{formatCurrency(profit * (value / 100))}</span>
+                            <span>{formatCurrency(profitAmount * (value / 100))}</span>
                         </div>
                     )
                 })}

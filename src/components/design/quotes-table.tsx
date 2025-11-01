@@ -194,7 +194,7 @@ function QuoteRow({ quote, projects, clients }: { quote: HydratedQuote, projects
 
     const clientName = quote.client?.name || "Unknown Client";
     const projectName = quote.project?.name || "N/A";
-    const grandTotal = (quote.calculations as any)?.grandTotal || 0;
+    const grandTotal = (quote.calculations as any)?.totalPrice || 0;
     
     return (
         <MotionRow variants={itemVariants}>

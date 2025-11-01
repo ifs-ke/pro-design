@@ -5,9 +5,10 @@ import { useMemo } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowDown, ArrowRight, ArrowUp } from "lucide-react";
 
+// The props passed are of type Calculations, so we need to match the property names
 interface QuoteValues {
-    grandTotal: number;
-    profit: number;
+    totalPrice: number;
+    profitAmount: number;
 }
 
 interface QuoteVarianceProps {
@@ -17,12 +18,20 @@ interface QuoteVarianceProps {
 
 export function QuoteVariance({ suggested, final }: QuoteVarianceProps) {
     const variance = useMemo(() => {
-        if (suggested.grandTotal === 0 || final.grandTotal === 0) {
+        // Initialize values to 0 if they are not available to prevent NaN calculations
+        const suggestedTotal = suggested?.totalPrice || 0;
+        const finalTotal = final?.totalPrice || 0;
+        const suggestedProfit = suggested?.profitAmount || 0;
+        const finalProfit = final?.profitAmount || 0;
+
+        if (suggestedTotal === 0 || finalTotal === 0) {
             return { total: 0, profit: 0, totalPercent: 0 };
         }
-        const total = final.grandTotal - suggested.grandTotal;
-        const profit = final.profit - suggested.profit;
-        const totalPercent = (total / suggested.grandTotal) * 100;
+        
+        const total = finalTotal - suggestedTotal;
+        const profit = finalProfit - suggestedProfit;
+        // Avoid division by zero
+        const totalPercent = suggestedTotal !== 0 ? (total / suggestedTotal) * 100 : 0;
 
         return { total, profit, totalPercent };
     }, [suggested, final]);
@@ -45,30 +54,23 @@ export function QuoteVariance({ suggested, final }: QuoteVarianceProps) {
     }
 
     return (
-        <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className={`flex flex-col gap-1 rounded-md border p-3 ${getVarianceStyle(variance.total)} bg-opacity-10 ${variance.total > 0 ? 'bg-green-500/10 border-green-500/20' : variance.total < 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-muted/30'}`}>
-                <div className="flex items-center justify-between font-semibold">
-                    <span>Quote Variance</span>
-                    <VarianceIcon value={variance.total} />
+        <div className="border rounded-lg p-4 bg-muted/20">
+            <h3 className="font-semibold mb-3">Quote Comparison</h3>
+            <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Suggested Quote</span>
+                    <span className="font-medium">{formatCurrency(suggested?.totalPrice || 0)}</span>
                 </div>
-                <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-bold">
-                        {formatCurrency(variance.total)}
-                    </span>
-                    <span className="font-medium">
-                        ({variance.totalPercent.toFixed(1)}%)
-                    </span>
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Final Quote</span>
+                    <span className="font-medium">{formatCurrency(final?.totalPrice || 0)}</span>
                 </div>
-            </div>
-             <div className={`flex flex-col gap-1 rounded-md border p-3 ${getVarianceStyle(variance.profit)} bg-opacity-10 ${variance.profit > 0 ? 'bg-green-500/10 border-green-500/20' : variance.profit < 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-muted/30'}`}>
-                <div className="flex items-center justify-between font-semibold">
-                    <span>Profit Variance</span>
-                    <VarianceIcon value={variance.profit} />
-                </div>
-                <div className="flex items-baseline gap-2">
-                     <span className="text-lg font-bold">
-                        {formatCurrency(variance.profit)}
-                    </span>
+                 <div className={`flex justify-between items-center font-semibold pt-2 border-t mt-2 ${getVarianceStyle(variance.total)}`}>
+                    <span>Variance</span>
+                    <div className="flex items-center gap-2">
+                        <span>{formatCurrency(variance.total)} ({variance.totalPercent.toFixed(1)}%)</span>
+                        <VarianceIcon value={variance.total} />
+                    </div>
                 </div>
             </div>
         </div>

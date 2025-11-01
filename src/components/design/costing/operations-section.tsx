@@ -2,7 +2,7 @@
 
 import { useFormContext, useFieldArray, useWatch, Control } from 'react-hook-form';
 import { memo, useCallback, useMemo } from 'react';
-import type { FormValues, Calculations } from '@/store/cost-store';
+import type { FormValues, Calculations, Salary } from '@/store/cost-store';
 import {
     Popover,
     PopoverContent,
@@ -25,7 +25,8 @@ import {
   Building,
   FileText,
   Receipt,
-  Banknote
+  Banknote,
+  UserPlus,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Slider } from "@/components/ui/slider";
@@ -33,23 +34,28 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 
 const OperationsTotalDisplay = ({ calculations }: { calculations: Calculations }) => {
-  const total = calculations.totalOperationCost + calculations.salaryAmount + calculations.nssfAmount + calculations.shifAmount + calculations.miscAmount;
+  const total = calculations.totalOperationCost + calculations.salaryAmount + calculations.miscAmount;
   return <span className="font-semibold">{formatCurrency(total)}</span>;
 };
 
 const OperationsSummaryCard = ({ calculations }: { calculations: Calculations }) => {
+    const { control } = useFormContext<FormValues>();
+    const salaries = useWatch({ control, name: 'salaries' });
+    const totalGrossSalary = useMemo(() => salaries?.reduce((acc, s) => acc + (Number(s.salary) || 0), 0) || 0, [salaries]);
+
   return (
     <Card className="bg-muted/40 shadow-inner border-dashed">
       <CardHeader className="pb-4"><CardTitle className="text-lg">Summary</CardTitle></CardHeader>
       <CardContent className="text-sm space-y-4">
         <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><Building className="w-4 h-4 mr-2"/> Fixed Costs</span><span className="font-semibold">{formatCurrency(calculations.totalOperationCost)}</span></div>
         <Separator/>
-        <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><Users className="w-4 h-4 mr-2"/> Salaries</span><span className="font-semibold">{formatCurrency(calculations.salaryAmount)}</span></div>
+        <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><Users className="w-4 h-4 mr-2"/> Gross Salaries</span><span className="font-semibold">{formatCurrency(totalGrossSalary)}</span></div>
         <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><FileText className="w-4 h-4 mr-2"/> NSSF</span><span className="font-semibold">{formatCurrency(calculations.nssfAmount)}</span></div>
         <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><Receipt className="w-4 h-4 mr-2"/> SHIF</span><span className="font-semibold">{formatCurrency(calculations.shifAmount)}</span></div>
+         <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><Banknote className="w-4 h-4 mr-2"/> Salary Allocation (%)</span><span className="font-semibold">{formatCurrency(calculations.salaryAmount - totalGrossSalary - calculations.nssfAmount - calculations.shifAmount)}</span></div>
         <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><SlidersHorizontal className="w-4 h-4 mr-2"/> Misc. Costs</span><span className="font-semibold">{formatCurrency(calculations.miscAmount)}</span></div>
         <Separator/>
-        <div className="flex justify-between items-center"><span className="text-muted-foreground font-bold">Total Cost</span><span className="font-bold text-lg text-primary">{formatCurrency(calculations.totalOperationCost + calculations.salaryAmount + calculations.nssfAmount + calculations.shifAmount + calculations.miscAmount)}</span></div>
+        <div className="flex justify-between items-center"><span className="text-muted-foreground font-bold">Total Ops Cost</span><span className="font-bold text-lg text-primary">{formatCurrency(calculations.totalOperationCost + calculations.salaryAmount + calculations.miscAmount)}</span></div>
       </CardContent>
     </Card>
   );
@@ -78,22 +84,57 @@ const FixedCostsCard = () => {
     )
 }
 
+const SalaryItem = memo(({ control, index, remove }: { control: Control<FormValues>, index: number, remove: (index: number) => void }) => {
+    return (
+        <div className="flex items-end gap-2 p-3 bg-muted/20 rounded-md border">
+            <FormField control={control} name={`salaries.${index}.role`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Role</FormLabel><FormControl><Input placeholder="e.g., Project Manager" {...field} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={control} name={`salaries.${index}.salary`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Gross Salary</FormLabel><FormControl><Input className="w-32" type="number" placeholder="50000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
+        </div>
+    );
+});
+SalaryItem.displayName = 'SalaryItem';
+
+const SalariesList = () => {
+    const { control } = useFormContext<FormValues>();
+    const { fields, append, remove } = useFieldArray({ control, name: 'salaries' });
+
+    return (
+        <div className="space-y-3">
+             <h4 className="font-medium text-sm text-center py-1 bg-background rounded-md border">Direct Salary Costs</h4>
+            <div className="space-y-3">
+                {fields.map((field, index) => (
+                    <SalaryItem key={field.id} control={control} index={index} remove={remove} />
+                ))}
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => append({ role: '', salary: 0 })}><UserPlus className="mr-2 h-4 w-4" /> Add Person</Button>
+        </div>
+    );
+}
+
 const SalariesCard = ({ calculations }: { calculations: Calculations }) => {
     const { control } = useFormContext<FormValues>();
+    const salaries = useWatch({ control, name: 'salaries' });
+    const totalGrossSalary = useMemo(() => salaries?.reduce((acc, s) => acc + (Number(s.salary) || 0), 0) || 0, [salaries]);
+    const directCostBase = calculations.totalMaterialCost + calculations.totalLaborCost + calculations.totalOperationCost;
+    const salaryPercentageAmount = (useWatch({ control, name: 'salaryPercentage' }) / 100) * directCostBase;
+
     return (
         <Card>
             <CardHeader><CardTitle className="text-base">Salaries & Statutory Deductions</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-                <FormField control={control} name="salaryPercentage" render={({ field }) => (<FormItem><div className="flex justify-between items-center"><FormLabel>Salaries</FormLabel><span className="font-bold text-primary">{field.value?.toFixed(0) ?? 0}%</span></div><FormControl><Slider min={0} max={100} step={1} value={[field.value || 0]} onValueChange={(value) => field.onChange(value[0])} /></FormControl><FormDescription className="text-xs">Calculated as a percentage of Material & Labor cost.</FormDescription><div className="text-right text-sm text-muted-foreground">Amount: <span className="font-medium text-foreground">{formatCurrency(calculations.salaryAmount)}</span></div><FormMessage /></FormItem>)} />
-                <Alert variant="destructive" className="bg-destructive/5 border-destructive/30"><AlertTriangle className="h-4 w-4 text-destructive" /><AlertTitle className="text-destructive">Important Note</AlertTitle><AlertDescription className="text-destructive/80 text-xs">The following costs are estimates based on the monthly gross salary per person and will be added to your total operational costs.</AlertDescription></Alert>
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField control={control} name="numberOfPeople" render={({ field }) => (<FormItem><FormLabel>No. of People</FormLabel><FormControl><Input type="number" placeholder="1" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={control} name="grossSalary" render={({ field }) => (<FormItem><FormLabel>Gross Salary/Person</FormLabel><FormControl><Input type="number" placeholder="50000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+            <CardContent className="space-y-6">
+                <FormField control={control} name="salaryPercentage" render={({ field }) => (<FormItem><div className="flex justify-between items-center"><FormLabel>Salary Allocation (as % of Costs)</FormLabel><span className="font-bold text-primary">{field.value?.toFixed(0) ?? 0}%</span></div><FormControl><Slider min={0} max={100} step={1} value={[field.value || 0]} onValueChange={(value) => field.onChange(value[0])} /></FormControl><FormDescription className="text-xs">A percentage of Material, Labor & Fixed Operational costs allocated for salaries.</FormDescription><div className="text-right text-sm text-muted-foreground">Amount: <span className="font-medium text-foreground">{formatCurrency(salaryPercentageAmount)}</span></div><FormMessage /></FormItem>)} />
+                
+                <SalariesList />
+                
+                <div>
+                    <h4 className="font-medium text-sm text-center py-1 bg-background rounded-md border mb-3">Statutory Deductions (based on Total Gross Salary of <span className="font-bold">{formatCurrency(totalGrossSalary)}</span>)</h4>
+                    <div className="space-y-2">
+                        <FormField control={control} name="enableNSSF" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><div className="space-y-0.5"><FormLabel>NSSF</FormLabel><FormDescription className="text-xs">National Social Security Fund (6% of Gross).</FormDescription></div><div className="flex items-center gap-4	"><span className="font-bold text-primary text-sm">{formatCurrency(calculations.nssfAmount)}</span><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></div></FormItem>)} />
+                        <FormField control={control} name="enableSHIF" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><div className="space-y-0.5"><FormLabel>SHIF</FormLabel><FormDescription className="text-xs">Social Health Insurance Fund (2.75% of Gross).</FormDescription></div><div className="flex items-center gap-4"><span className="font-bold text-primary text-sm">{formatCurrency(calculations.shifAmount)}</span><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></div></FormItem>)} />
+                    </div>
                 </div>
-                <div className="space-y-2">
-                     <FormField control={control} name="enableNSSF" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><div className="space-y-0.5"><FormLabel>NSSF</FormLabel><FormDescription className="text-xs">National Social Security Fund.</FormDescription></div><div className="flex items-center gap-4"><span className="font-bold text-primary text-sm">{formatCurrency(calculations.nssfAmount)}</span><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></div></FormItem>)} />
-                     <FormField control={control} name="enableSHIF" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><div className="space-y-0.5"><FormLabel>SHIF</FormLabel><FormDescription className="text-xs">Social Health Insurance Fund (2.75%).</FormDescription></div><div className="flex items-center gap-4"><span className="font-bold text-primary text-sm">{formatCurrency(calculations.shifAmount)}</span><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></div></FormItem>)} />
-                </div>
+
             </CardContent>
         </Card>
     )

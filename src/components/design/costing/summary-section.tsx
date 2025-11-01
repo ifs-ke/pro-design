@@ -139,7 +139,7 @@ export function SummarySection({ calculations }: SummarySectionProps) {
                                 <Milestone className="size-3"/>
                                 Suggested Quote
                             </Label>
-                            <p className="font-bold text-lg text-primary">{formatCurrency(calculations.grandTotal)}</p>
+                            <p className="font-bold text-lg text-primary">{formatCurrency(calculations.totalPrice)}</p>
                         </div>
                         <FormMessage />
                     </FormItem>
@@ -147,7 +147,7 @@ export function SummarySection({ calculations }: SummarySectionProps) {
                 />
             </div>
             
-            {(calculations.profitAmount ?? 0) < 18 && calculations.grandTotal > 0 && (
+            {(calculations.profitAmount ?? 0) < 18 && calculations.totalPrice > 0 && (
             <Alert variant="destructive" className="bg-amber-100 border-amber-300 text-amber-900">
                 <AlertTriangle className="h-4 w-4 !text-amber-700" />
                 <AlertTitle>Low Profit Margin</AlertTitle>

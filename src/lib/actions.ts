@@ -35,13 +35,18 @@ const projectSchema = z.object({
     otherSpaces: z.string().optional(),
 });
 
+const calculationsSchema = z.object({
+  totalPrice: z.number().positive({ message: "Final quote price must be greater than 0." }),
+  // Include other calculation fields as needed, or use z.any() if they are not strictly validated yet
+}).passthrough();
+
 const quoteSchema = z.object({
-  id: z.string(),
-  clientId: z.string(),
+  id: z.string().optional(),
+  clientId: z.string().min(1, { message: "Client is required." }),
   projectId: z.string().nullable(),
   formValues: z.any(),
   allocations: z.any(),
-  calculations: z.any(),
+  calculations: calculationsSchema,
   suggestedCalculations: z.any(),
   status: z.string(),
   timestamp: z.string(),
@@ -314,44 +319,58 @@ export async function deleteProperty(id: string) {
 }
 
 export async function upsertQuote(quoteData: any) {
-  const validatedFields = quoteSchema.safeParse(quoteData);
+    const validatedFields = quoteSchema.safeParse(quoteData);
 
-  if (!validatedFields.success) {
-    return {
-      type: 'error' as const,
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Missing Fields. Failed to save Quote.',
-    };
-  }
+    if (!validatedFields.success) {
+        const errorMessages = validatedFields.error.errors.map(e => e.message).join(', ');
+        return {
+            type: 'error' as const,
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: `Missing Fields: ${errorMessages}. Failed to save Quote.`,
+        };
+    }
 
-  const { id, ...data } = validatedFields.data;
-  const dataForDb = { ...data, timestamp: new Date(data.timestamp) };
+    const { id, ...data } = validatedFields.data;
+    const dataForDb = { ...data, timestamp: new Date(data.timestamp) };
 
-  try {
-    const savedQuote = await prisma.quote.upsert({
-      where: { id: id || '' },
-      update: dataForDb,
-      create: { id: id || `QT-${Date.now().toString().slice(-6)}`, ...dataForDb },
-      include: {
-          client: true,
-          project: true,
-      }
-    });
+    try {
+        let savedQuote;
+        if (id) {
+            // Update existing quote
+            savedQuote = await prisma.quote.update({
+                where: { id },
+                data: dataForDb,
+                include: { client: true, project: true },
+            });
+        } else {
+            // Create new quote
+            const newId = `QT-${Date.now().toString().slice(-6)}`;
+            savedQuote = await prisma.quote.create({
+                data: { ...(dataForDb as any), id: newId },
+                include: { client: true, project: true },
+            });
+        }
 
-    revalidatePath('/quotes');
-    revalidatePath(`/quotes/${savedQuote.id}`);
-    return {
-      type: 'success' as const,
-      message: `Quote ${savedQuote.id} saved.`,
-      quote: savedQuote,
-    };
-  } catch (e) {
-    console.error(e);
-    return {
-      type: 'error' as const,
-      message: 'Database Error: Failed to save Quote.',
-    };
-  }
+        revalidatePath('/quotes');
+        revalidatePath(`/quotes/${savedQuote.id}`);
+        return {
+            type: 'success' as const,
+            message: `Quote ${savedQuote.id} saved.`,
+            quote: savedQuote,
+        };
+    } catch (e) {
+        console.error(e);
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+             return {
+                type: 'error' as const,
+                message: 'A quote with this ID already exists. Please try again.',
+            };
+        }
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to save Quote.',
+        };
+    }
 }
 
 export async function deleteQuote(id: string) {

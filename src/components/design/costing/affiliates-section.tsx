@@ -2,7 +2,7 @@
 
 import { useFormContext, useFieldArray, useWatch, Control } from 'react-hook-form';
 import { memo, useCallback, useMemo } from 'react';
-import type { FormValues } from '@/store/cost-store';
+import type { FormValues, Calculations } from '@/store/cost-store';
 import {
     Popover,
     PopoverContent,
@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
-  FormControl, FormField, FormItem, FormLabel, FormMessage,
+  FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -30,23 +30,25 @@ interface AffiliateItemProps {
   control: Control<FormValues>;
   index: number;
   remove: (index: number) => void;
+  calculations: Calculations;
 }
 
-const AffiliateItem = memo(({ control, index, remove }: AffiliateItemProps) => {
+const AffiliateItem = memo(({ control, index, remove, calculations }: AffiliateItemProps) => {
   const { watch } = useFormContext<FormValues>();
-  const rateType = watch(`affiliates.${index}.rateType`);
-  const watchedUnits = watch(`affiliates.${index}.units`);
-  const watchedRate = watch(`affiliates.${index}.rate`);
+  const affiliate = watch(`affiliates.${index}`);
+  const { rateType, units, rate } = affiliate;
 
-  const totalItemCost = useMemo(() => {
+  const directCostBase = calculations.totalMaterialCost + calculations.totalLaborCost + calculations.totalOperationCost;
+
+  const itemAmount = useMemo(() => {
+    const numericRate = parseFloat(String(rate)) || 0;
     if (rateType === 'percentage') {
-      // Note: Base cost for percentage calculation is handled in the main store/reducer.
-      // Here, we just show the rate.
-      return watchedRate || 0;
+      return (numericRate / 100) * directCostBase;
     } else {
-      return (parseFloat(String(watchedUnits)) || 0) * (parseFloat(String(watchedRate)) || 0);
+      const numericUnits = parseFloat(String(units)) || 0;
+      return numericUnits * numericRate;
     }
-  }, [rateType, watchedUnits, watchedRate]);
+  }, [rateType, units, rate, directCostBase]);
 
   const handleRemove = useCallback(() => remove(index), [index, remove]);
 
@@ -68,11 +70,7 @@ const AffiliateItem = memo(({ control, index, remove }: AffiliateItemProps) => {
       </div>
       
       <div className="text-sm font-medium text-right pr-1 pt-2 border-t border-dashed">
-        {rateType === 'percentage' ? (
-          <>Commission: <span className="font-semibold text-primary">{totalItemCost}%</span></>
-        ) : (
-          <>Item Total: <span className="font-semibold text-primary">{formatCurrency(totalItemCost)}</span></>
-        )}
+        Amount: <span className="font-semibold text-primary">{formatCurrency(itemAmount)}</span>
       </div>
     </div>
   );
@@ -80,26 +78,11 @@ const AffiliateItem = memo(({ control, index, remove }: AffiliateItemProps) => {
 AffiliateItem.displayName = 'AffiliateItem';
 
 
-const AffiliateTotalDisplay = () => {
-    const { control, watch } = useFormContext<FormValues>();
-    const affiliates = watch('affiliates');
-    const baseTotal = 0; // This should be calculated based on materials and labor
-
-    const totalAffiliateCost = useMemo(() => {
-        return affiliates?.reduce((acc, item) => {
-            if (item.rateType === 'percentage') {
-                const percentageCost = baseTotal * (item.rate / 100);
-                return acc + percentageCost;
-            } else {
-                return acc + (item.units || 0) * (item.rate || 0);
-            }
-        }, 0) || 0;
-    }, [affiliates, baseTotal]);
-
-    return <span className="font-semibold">{formatCurrency(totalAffiliateCost)}</span>;
+const AffiliateTotalDisplay = ({ calculations }: { calculations: Calculations }) => {
+    return <span className="font-semibold">{formatCurrency(calculations.totalAffiliateCost)}</span>;
 };
 
-const AffiliateSummaryCard = () => {
+const AffiliateSummaryCard = ({ calculations }: { calculations: Calculations }) => {
   const { control } = useFormContext<FormValues>();
   const affiliates = useWatch({ control, name: 'affiliates' });
 
@@ -107,9 +90,8 @@ const AffiliateSummaryCard = () => {
     const totalPartners = affiliates?.length || 0;
     const percentagePartners = affiliates?.filter(p => p.rateType === 'percentage').length || 0;
     const fixedPartners = totalPartners - percentagePartners;
-    const totalFixedCost = affiliates?.reduce((acc, item) => item.rateType === 'fixed' ? acc + ((item.units || 0) * (item.rate || 0)) : acc, 0) || 0;
-
-    return { totalPartners, percentagePartners, fixedPartners, totalFixedCost };
+    
+    return { totalPartners, percentagePartners, fixedPartners };
   }, [affiliates]);
 
   return (
@@ -121,13 +103,13 @@ const AffiliateSummaryCard = () => {
         <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><Percent className="w-4 h-4 mr-2"/> Commission-Based</span><span className="font-semibold">{summary.percentagePartners}</span></div>
         <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><Sigma className="w-4 h-4 mr-2"/> Fixed-Rate</span><span className="font-semibold">{summary.fixedPartners}</span></div>
         <Separator/>
-        <div className="flex justify-between items-center"><span className="text-muted-foreground font-bold">Total Fixed Cost</span><span className="font-bold text-lg text-primary">{formatCurrency(summary.totalFixedCost)}</span></div>
+        <div className="flex justify-between items-center"><span className="text-muted-foreground font-bold">Total Affiliate Cost</span><span className="font-bold text-lg text-primary">{formatCurrency(calculations.totalAffiliateCost)}</span></div>
       </CardContent>
     </Card>
   );
 };
 
-const AffiliatesList = () => {
+const AffiliatesList = ({ calculations }: { calculations: Calculations }) => {
   const { control } = useFormContext<FormValues>();
   const { fields, append, remove } = useFieldArray({ control, name: 'affiliates' });
 
@@ -141,7 +123,7 @@ const AffiliatesList = () => {
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-3 custom-scrollbar rounded-md border bg-muted/20 p-3">
           {fields.length > 0 ? (
             fields.map((field, index) => (
-              <AffiliateItem key={field.id} control={control} index={index} remove={handleRemove} />
+              <AffiliateItem key={field.id} control={control} index={index} remove={handleRemove} calculations={calculations} />
             ))
           ) : (
             <div className="text-center py-10 text-muted-foreground"><p>No affiliates or partners added yet.</p></div>
@@ -151,13 +133,13 @@ const AffiliatesList = () => {
       </div>
       <div className="lg:col-span-1">
          <h3 className="font-semibold text-lg mb-4">Cost Overview</h3>
-        <AffiliateSummaryCard />
+        <AffiliateSummaryCard calculations={calculations} />
       </div>
     </div>
   );
 };
 
-export function AffiliatesSection() {
+export function AffiliatesSection({ calculations }: { calculations: Calculations }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -166,13 +148,13 @@ export function AffiliatesSection() {
             <div className="p-3 bg-primary/10 rounded-lg"><Handshake className="h-6 w-6 text-primary" /></div>
             <div className="flex flex-col items-start">
               <span className="font-semibold text-lg">Affiliates & Partners</span>
-              <span className="text-sm text-muted-foreground">Total Cost: <AffiliateTotalDisplay /></span>
+              <span className="text-sm text-muted-foreground">Total Cost: <AffiliateTotalDisplay calculations={calculations} /></span>
             </div>
           </div>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-screen max-w-4xl p-6 shadow-2xl rounded-xl" side="bottom" align="start">
-        <AffiliatesList />
+        <AffiliatesList calculations={calculations} />
       </PopoverContent>
     </Popover>
   );

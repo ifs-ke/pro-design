@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '@/store/cost-store';
 import type { Calculations, FormValues } from '@/store/types';
 import { useIsHydrated } from '@/hooks/use-hydrated-store';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { formSchema } from '@/store/types';
+import { useToast } from '@/hooks/use-toast';
 
 import { CostForm } from '@/components/design/cost-form';
 import { ProfitAllocator } from '@/components/design/profit-allocator';
@@ -27,50 +28,38 @@ import {
 export default function CostingPage() {
   const {
     formValues,
-    setFormValues,
+    allocations,
     resetForm,
     isPublishing,
     calculate,
-  } = useStore();
+    publishQuote,
+    loadedQuoteId,
+  } = useStore(state => ({ 
+      formValues: state.formValues,
+      allocations: state.allocations,
+      resetForm: state.resetForm,
+      isPublishing: state.isPublishing,
+      calculate: state.calculate,
+      publishQuote: state.publishQuote,
+      loadedQuoteId: state.loadedQuoteId
+    }));
+    
   const isLoading = !useIsHydrated();
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    // The form is now uncontrolled internally by react-hook-form,
-    // which is more performant for complex forms.
-    defaultValues: formValues, // Initialize with store's values
+    defaultValues: formValues,
   });
 
-  // Effect to reset the form when the store's formValues change
-  // (e.g. loading a quote).
   useEffect(() => {
     form.reset(formValues);
   }, [formValues, form]);
 
-  // Effect to subscribe to form changes and sync them to the Zustand store
-  // with a debounce.
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-      debounceTimeoutRef.current = setTimeout(() => {
-        setFormValues(value as FormValues);
-      }, 300); // 300ms debounce
-    });
-
-    return () => {
-      subscription.unsubscribe();
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, [form, setFormValues]);
-
-
-  const calculations: Calculations = calculate(formValues);
+  const watchedFormValues = form.watch();
+  const calculations: Calculations = calculate(watchedFormValues);
+  const isClientSelected = watchedFormValues.clientId && watchedFormValues.clientId.length > 0;
 
   const handleNewQuoteClick = () => {
     setResetDialogOpen(true);
@@ -80,6 +69,33 @@ export default function CostingPage() {
     resetForm();
     setResetDialogOpen(false);
   };
+  
+  const handlePublish = async (finalQuotePrice: number) => {
+    const suggestedCalculations = calculate(watchedFormValues);
+    const finalCalculations: Calculations = { ...suggestedCalculations, totalPrice: finalQuotePrice };
+
+    const result = await publishQuote(
+      watchedFormValues,
+      allocations,
+      finalCalculations,
+      suggestedCalculations,
+      loadedQuoteId
+    );
+
+    if (result) {
+        toast({
+            title: `Quote ${result.wasExisting ? 'Updated' : 'Published'}!`,
+            description: `Quote ID: ${result.quoteId} has been successfully ${result.wasExisting ? 'updated' : 'saved'}.`,
+        });
+        resetForm();
+    } else {
+        toast({
+            title: 'Uh oh! Something went wrong.',
+            description: 'There was a problem with your request. Please try again',
+            variant: 'destructive',
+        });
+    }
+  }
 
   if (isLoading) {
     return (
@@ -118,7 +134,13 @@ export default function CostingPage() {
         <div className='lg:col-span-2 space-y-8'>
           <div className='sticky top-8 space-y-8'>
             <ProfitAllocator profitAmount={calculations.profitAmount} />
-            <ProjectQuote calculations={calculations} />
+            <ProjectQuote 
+                calculations={calculations} 
+                onPublish={handlePublish}
+                isPublishing={isPublishing}
+                isPublished={!!loadedQuoteId}
+                isClientSelected={isClientSelected}
+            />
           </div>
         </div>
       </div>

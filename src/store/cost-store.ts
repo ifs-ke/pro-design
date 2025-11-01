@@ -32,15 +32,14 @@ const defaultFormValues: FormValues = {
   labor: [],
   operations: [],
   affiliates: [],
+  salaries: [],
   businessType: "vat_registered",
   taxRate: 16,
   profitMargin: 25,
   miscPercentage: 0,
   salaryPercentage: 0,
-  numberOfPeople: 1,
   enableNSSF: false,
   enableSHIF: false,
-  grossSalary: 0,
 };
 
 const defaultAllocations: Allocation = {
@@ -78,7 +77,7 @@ interface CostState {
   deleteProperty: (id: string) => Promise<void>;
   saveProject: (data: Partial<Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'status'>> & { id?: string }) => Promise<Project | null>;
   deleteProject: (id: string) => Promise<void>;
-  publishQuote: (finalCalculations: Calculations, suggestedCalculations: Calculations) => Promise<{ quoteId: string, wasExisting: boolean } | null>;
+  publishQuote: (formValues: FormValues, allocations: Allocation, finalCalculations: Calculations, suggestedCalculations: Calculations, loadedQuoteId: string | null) => Promise<{ quoteId: string, wasExisting: boolean } | null>;
   updateQuoteStatus: (id: string, status: Quote['status']) => Promise<void>;
   deleteQuote: (id: string) => Promise<void>;
   assignQuoteToProject: (quoteId: string, projectId: string) => Promise<void>;
@@ -197,22 +196,40 @@ export const useStore = create<CostState>()(
             setAllocations: (values) => set({ allocations: values }),
 
             calculate: (formValues) => {
-                const totalMaterialCost = formValues.materials?.reduce((acc, item) => acc + (item.quantity * (item.cost || 0)), 0) || 0;
-                const totalLaborCost = formValues.labor?.reduce((acc, item) => acc + (item.units * item.rate), 0) || 0;
-                const totalOperationCost = formValues.operations?.reduce((acc, item) => acc + item.cost, 0) || 0;
-                const totalAffiliateCost = formValues.affiliates?.reduce((acc, item) => acc + (item.units ? item.units * item.rate : (item.rate / 100) * (totalMaterialCost + totalLaborCost)), 0) || 0;
+                const businessType = formValues.businessType;
+                const taxRate = Number(formValues.taxRate) || 0;
+                const profitMargin = Number(formValues.profitMargin) || 0;
+                const miscPercentage = Number(formValues.miscPercentage) || 0;
+                const salaryPercentage = Number(formValues.salaryPercentage) || 0;
+
+                const totalMaterialCost = formValues.materials?.reduce((acc, item) => acc + (Number(item.quantity) * (Number(item.cost) || 0)), 0) || 0;
+                const totalLaborCost = formValues.labor?.reduce((acc, item) => acc + (Number(item.units) * Number(item.rate)), 0) || 0;
+                const totalOperationCost = formValues.operations?.reduce((acc, item) => acc + Number(item.cost), 0) || 0;
                 
-                const salaryAmount = ((formValues.salaryPercentage || 0) / 100) * (totalMaterialCost + totalLaborCost);
-                const nssfAmount = formValues.enableNSSF ? (formValues.grossSalary || 0) * 0.06 : 0;
-                const shifAmount = formValues.enableSHIF ? (formValues.grossSalary || 0) * 0.0275 : 0;
+                const directCostBase = totalMaterialCost + totalLaborCost + totalOperationCost;
 
-                const subtotal = totalMaterialCost + totalLaborCost + totalOperationCost + totalAffiliateCost + salaryAmount + nssfAmount + shifAmount;
+                const totalGrossSalary = formValues.salaries?.reduce((acc, s) => acc + Number(s.salary), 0) || 0;
+                const nssfAmount = formValues.enableNSSF ? (totalGrossSalary * 0.06) : 0;
+                const shifAmount = formValues.enableSHIF ? (totalGrossSalary * 0.0275) : 0;
+                const salaryAsPercentageAmount = (salaryPercentage / 100) * directCostBase;
+                const salaryAmount = salaryAsPercentageAmount + totalGrossSalary + nssfAmount + shifAmount;
 
-                const miscAmount = (formValues.miscPercentage / 100) * subtotal;
+                const totalAffiliateCost = formValues.affiliates?.reduce((acc, item) => {
+                    const rate = Number(item.rate) || 0;
+                    if (item.rateType === 'percentage') { 
+                        return acc + ((rate / 100) * directCostBase);
+                    } else { // Fixed rate
+                        return acc + (Number(item.units) * rate);
+                    }
+                }, 0) || 0;
+
+                const subtotal = directCostBase + salaryAmount + totalAffiliateCost;
+
+                const miscAmount = (miscPercentage / 100) * subtotal;
                 const subtotalWithMisc = subtotal + miscAmount;
-                const taxAmount = formValues.businessType === 'vat_registered' ? (formValues.taxRate / 100) * subtotalWithMisc : 0;
+                const taxAmount = businessType === 'vat_registered' ? (taxRate / 100) * subtotalWithMisc : 0;
                 const totalCost = subtotalWithMisc + taxAmount;
-                const profitAmount = (formValues.profitMargin / 100) * totalCost;
+                const profitAmount = (profitMargin / 100) * totalCost;
                 const totalPrice = totalCost + profitAmount;
 
                 return {
@@ -230,7 +247,6 @@ export const useStore = create<CostState>()(
                     salaryAmount,
                     nssfAmount,
                     shifAmount,
-                    numberOfPeople: formValues.numberOfPeople
                 };
             },
 
@@ -385,8 +401,7 @@ export const useStore = create<CostState>()(
                 }
             },
             
-            publishQuote: async (finalCalculations, suggestedCalculations) => {
-                const { loadedQuoteId, formValues, allocations } = get();
+            publishQuote: async (formValues, allocations, finalCalculations, suggestedCalculations, loadedQuoteId) => {
                 set({ isPublishing: true });
 
                 try {
@@ -412,6 +427,8 @@ export const useStore = create<CostState>()(
                                 ...state, 
                                 quotes: [...quotes, savedQuote],
                                 loadedQuoteId: savedQuote.id,
+                                formValues: savedQuote.formValues,
+                                allocations: savedQuote.allocations,
                             };
                             return { ...newState, ...computeAndSetHydratedState(newState) };
                         });

@@ -25,18 +25,17 @@ const operationItemSchema = z.object({
 
 const affiliateItemSchema = z.object({
     name: z.string().min(1, "Name is required."),
-    rateType: z.enum(['hourly', 'daily', 'percentage']),
+    rateType: z.enum(['percentage', 'fixed']),
     units: z.coerce.number().min(0, "Units cannot be negative.").optional(),
     rate: z.coerce.number().min(0, "Rate cannot be negative."),
-}).refine(data => {
-    if (data.rateType === 'hourly' || data.rateType === 'daily') {
-        return data.units !== undefined && data.units !== null;
-    }
-    return true;
-}, {
-    message: "Units are required for hourly or daily rates.",
-    path: ['units'],
 });
+
+const salaryItemSchema = z.object({
+    role: z.string().min(1, "Role is required."),
+    salary: z.coerce.number().min(0, "Salary cannot be negative."),
+});
+
+export type Salary = z.infer<typeof salaryItemSchema>;
 
 export const formSchema = z.object({
     clientId: z.string().min(1, "Please select a client."),
@@ -45,15 +44,14 @@ export const formSchema = z.object({
     labor: z.array(laborItemSchema).optional(),
     operations: z.array(operationItemSchema).optional(),
     affiliates: z.array(affiliateItemSchema).optional(),
+    salaries: z.array(salaryItemSchema).optional(),
     businessType: z.enum(['vat_registered', 'sole_proprietor', 'no_tax']),
     taxRate: z.coerce.number().min(0, "Tax rate cannot be negative.").max(100),
     profitMargin: z.coerce.number().min(0, "Profit margin cannot be negative."),
     miscPercentage: z.coerce.number().min(0, "Misc. percentage cannot be negative."),
     salaryPercentage: z.coerce.number().min(0, "Salary percentage cannot be negative."),
-    numberOfPeople: z.coerce.number().min(1, "At least one person is required.").optional(),
     enableNSSF: z.boolean().optional(),
     enableSHIF: z.boolean().optional(),
-    grossSalary: z.coerce.number().min(0, "Gross salary cannot be negative.").optional(),
 });
 
 
@@ -128,7 +126,6 @@ export interface Allocation {
 export interface Calculations {
   nssfAmount: number;
   shifAmount: number;
-  numberOfPeople: number | undefined;
   totalMaterialCost: number;
   totalLaborCost: number;
   totalOperationCost: number;
