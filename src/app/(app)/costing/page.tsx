@@ -24,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { OverviewSection } from '@/components/design/costing/overview-section';
 
 export default function CostingPage() {
   const {
@@ -133,6 +134,7 @@ export default function CostingPage() {
 
         <div className='lg:col-span-2 space-y-8'>
           <div className='sticky top-8 space-y-8'>
+            <OverviewSection calculations={calculations} />
             <ProfitAllocator profitAmount={calculations.profitAmount} />
             <ProjectQuote 
                 calculations={calculations} 

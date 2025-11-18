@@ -17,6 +17,7 @@ import { AffiliatesSection } from './costing/affiliates-section';
 import { SummarySection } from './costing/summary-section';
 import { ClientSelector } from './client-selector';
 import { ProjectSelector } from './project-selector';
+import { SalariesSection } from './costing/salaries-section';
 
 interface CostFormProps {
   calculations: Calculations;
@@ -43,6 +44,7 @@ export function CostForm({ calculations }: CostFormProps) {
           <div className="space-y-4">
             <MaterialsSection calculations={calculations} />
             <LaborSection calculations={calculations} />
+            <SalariesSection calculations={calculations} />
             <OperationsSection calculations={calculations} />
             <AffiliatesSection calculations={calculations} />
           </div>
