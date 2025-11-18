@@ -61,6 +61,7 @@ export const formSchema = z.object({
 
 // Enums
 export type QuoteStatus = 'Draft' | 'Sent' | 'Accepted' | 'Rejected' | 'Archived';
+export type PaymentPlan = 'Gold' | 'Silver' | 'Bronze';
 
 // Base Prisma-like types
 export interface Client {
@@ -127,10 +128,13 @@ export interface Invoice {
     invoiceNumber: string;
     amount: number;
     status: string;
-    dueDate: string;
+    startDate: string;
+    endDate: string;
     clientId: string;
     projectId?: string | null;
     quoteId?: string | null;
+    paymentPlan: PaymentPlan;
+    paymentTerms: string;
     createdAt: string;
     updatedAt: string;
 }

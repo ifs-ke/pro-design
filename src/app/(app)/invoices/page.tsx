@@ -7,13 +7,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { InvoicesDataTable } from "@/components/design/invoices/data-table";
 import { formatCurrency } from "@/lib/utils";
 import { useMemo, useState } from "react";
-import { AlertTriangle, BadgeCheck, Clock, PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertTriangle, BadgeCheck, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InvoiceForm } from "@/components/design/invoices/invoice-form";
+import { InvoicesToolbar } from "@/components/design/invoices/toolbar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function InvoicesPage() {
-    const { invoices, addInvoice, updateInvoice } = useStore();
+    const { invoices, addInvoice, updateInvoice, deleteInvoice } = useStore();
     const isLoading = !useIsHydrated();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingInvoice, setEditingInvoice] = useState(null);
@@ -36,11 +37,17 @@ export default function InvoicesPage() {
         return { totalOutstanding, totalOverdue, totalPaid };
     }, [invoices, isLoading]);
 
-    const handleFormSubmit = (data) => {
+    const handleFormSubmit = async (data) => {
+        const invoiceData = {
+            ...data,
+            startDate: data.startDate.toISOString(),
+            endDate: data.endDate.toISOString(),
+        };
+
         if (editingInvoice) {
-            updateInvoice({ ...editingInvoice, ...data });
+            await updateInvoice({ ...editingInvoice, ...invoiceData });
         } else {
-            addInvoice(data);
+            await addInvoice(invoiceData);
         }
         setIsFormOpen(false);
         setEditingInvoice(null);
@@ -49,6 +56,15 @@ export default function InvoicesPage() {
     const openCreateForm = () => {
         setEditingInvoice(null);
         setIsFormOpen(true);
+    };
+
+    const handleEdit = (invoice) => {
+        setEditingInvoice(invoice);
+        setIsFormOpen(true);
+    };
+
+    const handleDelete = async (invoiceId) => {
+        await deleteInvoice(invoiceId);
     };
 
     if (isLoading) {
@@ -60,16 +76,12 @@ export default function InvoicesPage() {
     }
 
     return (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-8 p-4 md:p-6">
             <header className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">Invoices</h1>
                     <p className="text-muted-foreground mt-1">Effortlessly manage your financial documents.</p>
                 </div>
-                <Button onClick={openCreateForm}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create Invoice
-                </Button>
             </header>
 
             <div className="grid gap-4 md:grid-cols-3">
@@ -106,27 +118,32 @@ export default function InvoicesPage() {
             </div>
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-[800px]">
-                    <DialogHeader>
+                <DialogContent className="sm:max-w-4xl">
+                     <DialogHeader>
                         <DialogTitle>{editingInvoice ? "Edit" : "Create"} Invoice</DialogTitle>
                     </DialogHeader>
-                    <InvoiceForm 
-                        invoice={editingInvoice} 
-                        onSubmit={handleFormSubmit} 
-                        onCancel={() => {
-                            setIsFormOpen(false);
-                            setEditingInvoice(null);
-                        }}
-                    />
+                    <ScrollArea className="max-h-[80vh] p-4">
+                        <InvoiceForm 
+                            invoice={editingInvoice} 
+                            onSubmit={handleFormSubmit} 
+                            onCancel={() => {
+                                setIsFormOpen(false);
+                                setEditingInvoice(null);
+                            }}
+                        />
+                    </ScrollArea>
                 </DialogContent>
             </Dialog>
-
-            <InvoicesDataTable 
-                onEdit={(invoice) => {
-                    setEditingInvoice(invoice);
-                    setIsFormOpen(true);
-                }}
-            />
+            
+            <Card>
+                <CardContent className="p-0">
+                    <InvoicesDataTable 
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onCreate={openCreateForm}
+                    />
+                </CardContent>
+            </Card>
         </div>
     );
 }
