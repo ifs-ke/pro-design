@@ -12,6 +12,7 @@ import {
     deleteProperty as deletePropertyAction,
     upsertProject as upsertProjectAction, 
     deleteProject as deleteProjectAction,
+    upsertInteraction as upsertInteractionAction,
 } from '@/lib/actions';
 import { Client, Project, Property, Quote, Interaction, FormValues, Allocation, Calculations, HydratedClient, HydratedProperty, HydratedProject, HydratedQuote, Material, QuoteStatus } from './types'; 
 
@@ -72,9 +73,9 @@ interface CostState {
   resetForm: () => void;
   setHydrated: () => void;
   setIsPublishing: (isPublishing: boolean) => void;
-  saveClient: (data: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'interactions'>>) => Promise<Client | null>;
+  saveClient: (data: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'interactions'>> & { id?: string }) => Promise<Client | null>;
   deleteClient: (id: string) => Promise<void>;
-  addInteraction: (clientId: string, data: { type: Interaction['type']; notes: string }) => void;
+  addInteraction: (clientId: string, data: { type: Interaction['type']; notes: string }) => Promise<void>;
   saveProperty: (data: Partial<Omit<Property, 'id' | 'createdAt' | 'updatedAt'>> & { id?: string }) => Promise<Property | null>;
   deleteProperty: (id: string) => Promise<void>;
   saveProject: (data: Partial<Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'status'>> & { id?: string }) => Promise<Project | null>;
@@ -351,19 +352,49 @@ export const useStore = create<CostState>()(
                 }
             },
             
-            addInteraction: (clientId, data) => {
-                const newInteraction: Interaction = { ...data, id: crypto.randomUUID(), timestamp: new Date().toISOString() };
+            addInteraction: async (clientId, data) => {
+                const newInteraction: Interaction = { 
+                    ...data, 
+                    id: crypto.randomUUID(), 
+                    timestamp: new Date().toISOString(),
+                    clientId: clientId,
+                }; 
+                
+                const originalClients = get().clients;
+
+                // Optimistic update
                 set(state => {
                     const newState = {
-                         ...state,
-                         clients: state.clients.map(c => 
-                            c.id === clientId 
-                                ? { ...c, interactions: [...(c.interactions || []), newInteraction].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) } 
+                        ...state,
+                        clients: state.clients.map(c =>
+                            c.id === clientId
+                                ? { ...c, interactions: [...(c.interactions || []), newInteraction].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) }
                                 : c
-                         )
+                        )
                     };
                     return { ...newState, ...computeAndSetHydratedState(newState) };
                 });
+
+                try {
+                    const result = await upsertInteractionAction(newInteraction);
+                    if (result.type === 'error') throw new Error(result.message);
+
+                    // Replace the temporary ID with the one from the database
+                    set(state => {
+                         const finalInteraction = result.interaction as Interaction;
+                         const newState = { ...state, 
+                            clients: state.clients.map(c => c.id === clientId ? {
+                                ...c,
+                                interactions: c.interactions?.map(i => i.id === newInteraction.id ? finalInteraction : i)
+                            } : c)
+                         };
+                        return { ...newState, ...computeAndSetHydratedState(newState) };
+                    });
+
+                } catch (error) {
+                    console.error('Server action failed: addInteraction. Reverting.', error);
+                    set(state => ({ ...state, clients: originalClients }));
+                }
             },
 
             saveProperty: async (data) => {

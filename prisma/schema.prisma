@@ -19,6 +19,7 @@ model Client {
   projects       Project[]
   properties     Property[]
   quotes         Quote[]
+  interactions   Interaction[]
 }
 
 model Property {
@@ -65,4 +66,14 @@ model Quote {
   updatedAt             DateTime @updatedAt
   client                Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   project               Project? @relation(fields: [projectId], references: [id])
+}
+
+model Interaction {
+  id        String   @id @default(cuid())
+  clientId  String
+  type      String
+  notes     String
+  timestamp DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }

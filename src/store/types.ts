@@ -54,6 +54,8 @@ export const formSchema = z.object({
     enableSHIF: z.boolean().optional(),
 });
 
+// Enums
+export type QuoteStatus = 'Draft' | 'Sent' | 'Accepted' | 'Rejected' | 'Archived';
 
 // Base Prisma-like types
 export interface Client {
@@ -97,7 +99,7 @@ export interface Quote {
   id: string;
   clientId: string;
   projectId?: string | null;
-  status: string;
+  status: QuoteStatus;
   formValues: FormValues;
   allocations: Allocation;
   calculations: Calculations;
@@ -109,6 +111,7 @@ export interface Quote {
 
 export interface Interaction {
   id: string;
+  clientId: string;
   type: 'Call' | 'Email' | 'Meeting' | 'Message';
   notes: string;
   timestamp: string;

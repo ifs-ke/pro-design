@@ -52,6 +52,14 @@ const quoteSchema = z.object({
   timestamp: z.string(),
 });
 
+const interactionSchema = z.object({
+    id: z.string().optional(),
+    clientId: z.string(),
+    type: z.string(),
+    notes: z.string(),
+    timestamp: z.string().optional(),
+});
+
 
 export async function upsertProject(prevState: any, formData: FormData) {
     const roomCount = formData.get('roomCount');
@@ -116,7 +124,7 @@ export async function upsertProject(prevState: any, formData: FormData) {
 
 export async function deleteProject(id: string) {
     try {
-        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        await prisma.$transaction(async (tx: typeof prisma) => {
             // Delete all quotes associated with this project
             await tx.quote.deleteMany({ where: { projectId: id } });
             // Delete the project itself
@@ -191,7 +199,7 @@ export async function upsertClient(prevState: any, formData: FormData) {
 
 export async function deleteClient(id: string) {
     try {
-        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        await prisma.$transaction(async (tx: typeof prisma) => {
             // First, get all projects for the client
             const projects = await tx.project.findMany({ where: { clientId: id } });
             const projectIds = projects.map((p: { id: string }) => p.id);
@@ -209,6 +217,9 @@ export async function deleteClient(id: string) {
 
             // Delete all properties for the client
             await tx.property.deleteMany({ where: { clientId: id } });
+            
+            // Delete all interactions for the client
+            await tx.interaction.deleteMany({ where: { clientId: id }});
 
             // Finally, delete the client
             await tx.client.delete({ where: { id } });
@@ -228,6 +239,43 @@ export async function deleteClient(id: string) {
             message: 'Database Error: Failed to Delete Client.',
         };
     }
+}
+
+export async function upsertInteraction(interactionData: z.infer<typeof interactionSchema>) {
+    const validatedFields = interactionSchema.safeParse(interactionData);
+
+    if (!validatedFields.success) {
+        return {
+            type: 'error' as const,
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Missing Fields. Failed to Save Interaction.',
+        };
+    }
+
+    const { id, ...data } = validatedFields.data;
+
+    try {
+        const savedInteraction = await prisma.interaction.upsert({
+            where: { id: id || '' },
+            update: { ...data, updatedAt: new Date() },
+            create: { ...data },
+        });
+
+        revalidatePath('/crm');
+
+        return {
+            type: 'success' as const,
+            message: `Saved interaction.`,
+            interaction: savedInteraction,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to Save Interaction.',
+        };
+    }
+
 }
 
 export async function upsertProperty(prevState: any, formData: FormData) {
@@ -285,7 +333,7 @@ export async function upsertProperty(prevState: any, formData: FormData) {
 
 export async function deleteProperty(id: string) {
   try {
-     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+     await prisma.$transaction(async (tx: typeof prisma) => {
         // Find all projects for the property
         const projects = await tx.project.findMany({ where: { propertyId: id } });
         const projectIds = projects.map((p: { id: string }) => p.id);
@@ -430,7 +478,7 @@ export async function getProjects() {
 
 export async function getClients() {
   try {
-    return await prisma.client.findMany();
+    return await prisma.client.findMany({ include: { interactions: true } });
   } catch (error) {
     console.error('Failed to fetch clients:', error);
     throw new Error('Failed to fetch clients.');

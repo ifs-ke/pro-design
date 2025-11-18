@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calculator, FileText, Users, ArrowRight } from 'lucide-react';
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
 export default function HomePage() {
   return (
@@ -26,13 +27,18 @@ export default function HomePage() {
               </svg>
               <span className="text-lg">DesignCost Pro</span>
           </Link>
-          <nav className="ml-auto">
-            <Button asChild>
-              <Link href="/dashboard">
-                Go to App
-                <ArrowRight className="ml-2" />
-              </Link>
-            </Button>
+          <nav className="ml-auto flex items-center gap-4">
+            <SignedOut>
+              <Button asChild>
+                <Link href="/dashboard">
+                  Go to App
+                  <ArrowRight className="ml-2" />
+                </Link>
+              </Button>
+            </SignedOut>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
           </nav>
         </div>
       </header>
