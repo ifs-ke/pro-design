@@ -4,15 +4,18 @@ import { useFormContext, useFieldArray, useWatch, Control } from 'react-hook-for
 import { memo, useCallback, useMemo } from 'react';
 import type { FormValues, Calculations } from '@/store/cost-store';
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-  } from '@/components/ui/popover';
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
-  FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage,
+  FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -77,7 +80,6 @@ const AffiliateItem = memo(({ control, index, remove, calculations }: AffiliateI
 });
 AffiliateItem.displayName = 'AffiliateItem';
 
-
 const AffiliateTotalDisplay = ({ calculations }: { calculations: Calculations }) => {
     return <span className="font-semibold">{formatCurrency(calculations.totalAffiliateCost)}</span>;
 };
@@ -141,8 +143,8 @@ const AffiliatesList = ({ calculations }: { calculations: Calculations }) => {
 
 export function AffiliatesSection({ calculations }: { calculations: Calculations }) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <Dialog>
+      <DialogTrigger asChild>
         <Button variant="outline" className="w-full justify-start items-center p-4 h-auto rounded-xl bg-card shadow-sm">
            <div className="flex items-center gap-4">
             <div className="p-3 bg-primary/10 rounded-lg"><Handshake className="h-6 w-6 text-primary" /></div>
@@ -152,10 +154,16 @@ export function AffiliatesSection({ calculations }: { calculations: Calculations
             </div>
           </div>
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-screen max-w-4xl p-6 shadow-2xl rounded-xl" side="bottom" align="start">
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+            <DialogTitle>Affiliates & Partners Cost Calculator</DialogTitle>
+            <DialogDescription>
+                Manage referral commissions, partner fees, and other affiliate-related costs.
+            </DialogDescription>
+        </DialogHeader>
         <AffiliatesList calculations={calculations} />
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 }

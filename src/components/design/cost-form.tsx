@@ -41,8 +41,8 @@ export function CostForm({ calculations }: CostFormProps) {
           <ClientSelector />
           <ProjectSelector />
           <div className="space-y-4">
-            <MaterialsSection />
-            <LaborSection />
+            <MaterialsSection calculations={calculations} />
+            <LaborSection calculations={calculations} />
             <OperationsSection calculations={calculations} />
             <AffiliatesSection calculations={calculations} />
           </div>

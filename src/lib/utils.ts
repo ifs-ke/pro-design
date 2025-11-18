@@ -7,69 +7,63 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(value);
-  };
+export const formatCurrency = (amount: number | null | undefined): string => {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return 'Ksh 0.00';
+  }
+  const roundedAmount = Math.round(amount * 100) / 100;
+  
+  return new Intl.NumberFormat('en-KE', { 
+    style: 'currency', 
+    currency: 'KES',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(roundedAmount).replace('KES', 'Ksh');
+};
 
 export const performCalculations = (formValues: FormValues): Calculations => {
-    const materialsTotal = formValues.materials?.reduce((acc, item) => acc + (item.cost * item.quantity), 0) || 0;
-    const laborTotal = formValues.labor?.reduce((acc, item) => acc + (item.rate * item.units), 0) || 0;
-    const operationsTotal = formValues.operations?.reduce((acc, item) => acc + item.cost, 0) || 0;
+    const totalMaterialCost = formValues.materials?.reduce((acc, item) => acc + ((item.cost || 0) * (item.quantity || 0)), 0) || 0;
+    const totalLaborCost = formValues.labor?.reduce((acc, item) => acc + (item.rate * item.hours * item.days), 0) || 0;
+    const totalOperationCost = formValues.operations?.reduce((acc, item) => acc + (item.cost || 0), 0) || 0;
 
-    const subtotal = materialsTotal + laborTotal + operationsTotal;
+    const directCostBase = totalMaterialCost + totalLaborCost + totalOperationCost;
 
-    const affiliatesTotal = formValues.affiliates?.reduce((acc, item) => {
+    const totalAffiliateCost = formValues.affiliates?.reduce((acc, item) => {
+        const rate = Number(item.rate) || 0;
         if (item.rateType === 'percentage') {
-            return acc + (subtotal * (item.rate / 100));
+            return acc + (directCostBase * (rate / 100));
         }
-        return acc + (item.rate * (item.units || 0));
+        const units = Number(item.units) || 0;
+        return acc + (rate * units);
     }, 0) || 0;
 
-    const baseTotal = subtotal + affiliatesTotal;
+    const subtotal = directCostBase + totalAffiliateCost;
 
-    let taxAmount = 0;
-    if (formValues.businessType === 'vat_registered') {
-        taxAmount = baseTotal * (formValues.taxRate / 100);
-    } else if (formValues.businessType === 'sole_proprietor') {
-        taxAmount = baseTotal * 0.03;
-    }
+    const totalGrossSalary = formValues.salaries?.reduce((acc, s) => acc + (Number(s.salary) || 0), 0) || 0;
+    const nssfAmount = formValues.enableNSSF ? totalGrossSalary * 0.06 : 0;
+    const shifAmount = formValues.enableSHIF ? totalGrossSalary * 0.0275 : 0;
+    
+    const salaryPercentageAmount = (formValues.salaryPercentage / 100) * directCostBase;
+    const salaryAmount = salaryPercentageAmount + totalGrossSalary + nssfAmount + shifAmount;
 
-    const totalCost = baseTotal + taxAmount;
+    const miscAmount = (formValues.miscPercentage / 100) * subtotal;
 
-    const profitAmount = totalCost / (1 - (formValues.profitMargin / 100)) - totalCost;
-    const miscAmount = totalCost * (formValues.miscPercentage / 100);
-
-    let nssfAmount = 0;
-    if (formValues.enableNSSF) {
-        nssfAmount = Math.min((formValues.grossSalary || 0) * 0.06, 1080) * (formValues.numberOfPeople || 1);
-    }
-
-    let shifAmount = 0;
-    if (formValues.enableSHIF) {
-        shifAmount = (formValues.grossSalary || 0) * 0.0275 * (formValues.numberOfPeople || 1);
-    }
-
-    const salariesTotal = (formValues.grossSalary || 0) * (formValues.numberOfPeople || 1) + nssfAmount + shifAmount;
-    const salaryAmount = baseTotal * ((formValues.salaryPercentage || 0) / 100) + salariesTotal;
-
-    const grandTotal = totalCost + profitAmount + miscAmount + salaryAmount;
+    const totalCostBeforeProfit = subtotal + salaryAmount + miscAmount;
+    const profitAmount = totalCostBeforeProfit / (1 - (formValues.profitMargin / 100)) - totalCostBeforeProfit;
+    const grandTotal = totalCostBeforeProfit + profitAmount;
 
     return {
-        materialsTotal,
-        laborTotal,
-        operationsTotal,
-        affiliatesTotal,
-        subtotal: baseTotal, // subtotal is now baseTotal
-        taxAmount,
-        totalCost,
-        profitAmount,
-        miscAmount,
+        totalMaterialCost,
+        totalLaborCost,
+        totalOperationCost,
+        totalAffiliateCost,
+        subtotal,
         salaryAmount,
-        grandTotal,
+        miscAmount,
         nssfAmount,
         shifAmount,
+        totalCost: totalCostBeforeProfit,
+        profitAmount,
+        grandTotal,
     };
 };
