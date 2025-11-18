@@ -13,6 +13,8 @@ import {
     upsertProject as upsertProjectAction, 
     deleteProject as deleteProjectAction,
     upsertInteraction as upsertInteractionAction,
+    upsertInvoice as upsertInvoiceAction,
+    deleteInvoice as deleteInvoiceAction,
 } from '@/lib/actions';
 import { Client, Project, Property, Quote, Interaction, FormValues, Allocation, Calculations, HydratedClient, HydratedProperty, HydratedProject, HydratedQuote, Labor, Material, QuoteStatus, Salary, Invoice, HydratedInvoice } from './types'; 
 
@@ -87,6 +89,8 @@ interface CostState {
   updateQuoteStatus: (id: string, status: QuoteStatus) => Promise<void>;
   deleteQuote: (id: string) => Promise<void>;
   assignQuoteToProject: (quoteId: string, projectId: string) => Promise<void>;
+  saveInvoice: (data: Partial<Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }>) => Promise<Invoice | null>;
+  deleteInvoice: (id: string) => Promise<void>;
 }
 
 type RawStateForHydration = {
@@ -367,6 +371,40 @@ export const useStore = create<CostState>()(
                 allocations: defaultAllocations,
                 loadedQuoteId: null,
             }),
+
+             saveInvoice: async (data) => {
+                const formData = objectToFormData(data);
+                const result = await upsertInvoiceAction(null, formData);
+
+                if (result.type === 'success' && result.invoice) {
+                    const savedInvoice = result.invoice;
+                    set(state => {
+                        const invoices = state.invoices.filter(i => i.id !== savedInvoice.id);
+                        const newState = { ...state, invoices: [...invoices, savedInvoice] };
+                        return { ...newState, ...computeAndSetHydratedState(newState) };
+                    });
+                    return savedInvoice;
+                } else {
+                    console.error('Server action failed: saveInvoice', result.message);
+                    return null;
+                }
+            },
+
+            deleteInvoice: async (id: string) => {
+                const originalState = get();
+                set(state => {
+                    const newState = { ...state, invoices: state.invoices.filter(i => i.id !== id) };
+                    return { ...newState, ...computeAndSetHydratedState(newState) };
+                });
+
+                try {
+                    const result = await deleteInvoiceAction(id);
+                    if (result.type === 'error') throw new Error(result.message);
+                } catch (error) {
+                    console.error('Server action failed: deleteInvoice. Reverting.', error);
+                    set(originalState);
+                }
+            },
 
             saveProject: async (data) => {
                 const formData = objectToFormData(data);

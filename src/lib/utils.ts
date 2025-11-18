@@ -31,3 +31,12 @@ export const formatNumber = (
   const defaultOptions = { maximumFractionDigits: 1 };
   return new Intl.NumberFormat('en-US', { ...defaultOptions, ...options }).format(value);
 };
+
+export const formatDate = (date: Date | string): string => {
+  const d = new Date(date);
+  return new Intl.DateTimeFormat('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: '2-digit' 
+  }).format(d);
+};

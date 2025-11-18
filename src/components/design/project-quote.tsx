@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import type { Calculations } from '@/store/types';
+import { formatCurrency } from '@/lib/utils';
 
 interface ProjectQuoteProps {
   calculations: Calculations;
@@ -62,18 +63,18 @@ export function ProjectQuote({
         <div className="space-y-4 text-sm text-muted-foreground">
           <div className="flex justify-between items-center">
             <span>Total Cost</span>
-            <span className="font-semibold text-foreground">{calculations.totalCost.toFixed(2)}</span>
+            <span className="font-semibold text-foreground">{formatCurrency(calculations.totalCost)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span>Profit Amount ({calculations.profitMargin}%)</span>
-            <span className="font-semibold text-foreground">{calculations.profitAmount.toFixed(2)}</span>
+            <span className="font-semibold text-foreground">{formatCurrency(calculations.profitAmount)}</span>
           </div>
         </div>
         <Separator />
         <div className="space-y-4">
            <div className="flex justify-between items-center text-2xl">
              <span className="font-extrabold">Suggested Price</span>
-             <span className="font-extrabold">KES {suggestedPrice.toFixed(2)}</span>
+             <span className="font-extrabold">{formatCurrency(suggestedPrice)}</span>
            </div>
 
           {isOverriding && (
