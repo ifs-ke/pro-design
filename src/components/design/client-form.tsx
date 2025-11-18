@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/store/cost-store';
@@ -33,6 +34,7 @@ const clientFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
   phone: z.string().optional(),
+  notes: z.string().optional(),
   status: z.enum(['Lead', 'Active', 'OnHold', 'Inactive']),
   responsiveness: z.enum(['Hot', 'Warm', 'Cold']),
 });
@@ -55,6 +57,7 @@ export function ClientFormDialog({ client, children }: ClientFormDialogProps) {
       name: client?.name || '',
       email: client?.email || '',
       phone: client?.phone || '',
+      notes: (client as any)?.notes || '',
       status: client?.status || 'Lead',
       responsiveness: client?.responsiveness || 'Warm',
     },
@@ -67,6 +70,7 @@ export function ClientFormDialog({ client, children }: ClientFormDialogProps) {
         name: client?.name || '',
         email: client?.email || '',
         phone: client?.phone || '',
+        notes: (client as any)?.notes || '',
         status: client?.status || 'Lead',
         responsiveness: client?.responsiveness || 'Warm',
       });
@@ -86,7 +90,7 @@ export function ClientFormDialog({ client, children }: ClientFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>{client ? 'Edit Client' : 'Create New Client'}</DialogTitle>
           <DialogDescription>
@@ -129,6 +133,19 @@ export function ClientFormDialog({ client, children }: ClientFormDialogProps) {
                   <FormLabel>Phone</FormLabel>
                   <FormControl>
                     <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Add any notes about the client..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

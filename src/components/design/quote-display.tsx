@@ -46,7 +46,7 @@ const allocationMeta = {
 };
 
 const CostItem = ({ icon, label, value, isSubItem = false, isBold = false }: { icon: React.ReactNode, label: string, value: string | number, isSubItem?: boolean, isBold?: boolean }) => (
-    <div className={`flex justify-between items-center text-sm ${isSubItem ? 'pl-8' : ''}`}>
+    <div className={`flex justify-between items-center text-sm sm:text-base ${isSubItem ? 'pl-8' : ''}`}>
         <span className="text-muted-foreground flex items-center">{icon}<span className="ml-2">{label}</span></span>
         <span className={isBold ? 'font-semibold' : ''}>{typeof value === 'number' ? formatCurrency(value) : value}</span>
     </div>
@@ -78,7 +78,7 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
   return (
     <Card className="h-full flex flex-col shadow-sm">
       <CardHeader>
-        <CardTitle>Quote Breakdown</CardTitle>
+        <CardTitle className="text-xl sm:text-2xl">Quote Breakdown</CardTitle>
         <CardDescription>A detailed breakdown of the project costs and totals.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 flex-grow">
@@ -86,7 +86,7 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
             <>
                 <QuoteVariance suggested={suggestedCalculations} final={calculations} />
                 <Separator className="my-3"/>
-            </>
+            </>        
         )}
         
         <CostItem icon={<Package className="w-4 h-4"/>} label="Material Cost" value={totalMaterialCost} />
@@ -102,7 +102,7 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
         )}
 
         <Separator className="my-2" />
-        <div className="flex justify-between items-center text-sm">
+        <div className="flex justify-between items-center text-sm sm:text-base">
           <span className="text-muted-foreground font-semibold flex items-center"><Sigma className="w-4 h-4 mr-2"/> Sub-total</span>
           <span className="font-bold">{formatCurrency(subtotal)}</span>
         </div>
@@ -114,22 +114,22 @@ export function CostBreakdown({ calculations, allocations, suggestedCalculations
         <Separator className="my-2"/>
 
         <div className="flex justify-between items-center">
-          <span className="font-semibold flex items-center text-sm"><Banknote className="w-4 h-4 mr-2 text-muted-foreground"/> Total Project Cost</span>
-          <span className="font-bold text-base">{formatCurrency(totalCost)}</span>
+          <span className="font-semibold flex items-center text-sm sm:text-base"><Banknote className="w-4 h-4 mr-2 text-muted-foreground"/> Total Project Cost</span>
+          <span className="font-bold text-base sm:text-lg">{formatCurrency(totalCost)}</span>
         </div>
         <CostItem icon={<TrendingUp className="w-4 h-4 text-emerald-500"/>} label="Profit Margin" value={profitAmount} isBold={true} />
         
         <Separator className="my-2"/>
         
-        <div className="flex justify-between items-center text-lg font-bold text-primary pt-1">
+        <div className="flex justify-between items-center text-lg sm:text-xl font-bold text-primary pt-1">
             <span className="flex items-center"><ShieldCheck className="w-5 h-5 mr-2"/>Final Quote Price</span>
             <span>{formatCurrency(totalPrice)}</span>
         </div>
 
       </CardContent>
        <CardFooter className="bg-muted/30 mt-4 p-4 rounded-b-lg flex-col items-start gap-3 border-t">
-            <h4 className="font-semibold mb-1 text-sm">Profit Allocation</h4>
-            <div className="space-y-2 text-sm w-full">
+            <h4 className="font-semibold mb-1 text-sm sm:text-base">Profit Allocation</h4>
+            <div className="space-y-2 text-sm sm:text-base w-full">
                 {Object.entries(allocations).map(([key, value]) => {
                     const meta = allocationMeta[key as keyof typeof allocationMeta];
                     if (!meta) return null;

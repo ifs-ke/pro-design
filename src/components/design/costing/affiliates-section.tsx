@@ -39,19 +39,23 @@ interface AffiliateItemProps {
 const AffiliateItem = memo(({ control, index, remove, calculations }: AffiliateItemProps) => {
   const { watch } = useFormContext<FormValues>();
   const affiliate = watch(`affiliates.${index}`);
+  
+  // Return null if the affiliate data is not available, e.g., during a delete animation
+  if (!affiliate) return null;
+
   const { rateType, units, rate } = affiliate;
 
-  const directCostBase = calculations.totalMaterialCost + calculations.totalLaborCost + calculations.totalOperationCost;
-
   const itemAmount = useMemo(() => {
-    const numericRate = parseFloat(String(rate)) || 0;
+    const numericRate = Number(rate) || 0;
     if (rateType === 'percentage') {
-      return (numericRate / 100) * directCostBase;
-    } else {
-      const numericUnits = parseFloat(String(units)) || 0;
+      // Affiliate commission is a percentage of the *total revenue* (totalPrice).
+      // The `calculations` object is the result of the store's `calculate` function, which correctly computes the final totalPrice.
+      return (numericRate / 100) * (calculations.totalPrice || 0);
+    } else { // Fixed rate
+      const numericUnits = Number(units) || 0;
       return numericUnits * numericRate;
     }
-  }, [rateType, units, rate, directCostBase]);
+  }, [rateType, units, rate, calculations.totalPrice]);
 
   const handleRemove = useCallback(() => remove(index), [index, remove]);
 
@@ -67,9 +71,9 @@ const AffiliateItem = memo(({ control, index, remove, calculations }: AffiliateI
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
         {rateType === 'fixed' && (
-          <FormField control={control} name={`affiliates.${index}.units`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Units/Items</FormLabel><FormControl><Input type="number" placeholder="1" {...field} /></FormControl><FormMessage /></FormItem>)} />
+          <FormField control={control} name={`affiliates.${index}.units`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Units/Items</FormLabel><FormControl><Input type="number" placeholder="1" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>)} />
         )}
-        <FormField control={control} name={`affiliates.${index}.rate`} render={({ field }) => (<FormItem className={rateType === 'percentage' ? 'md:col-span-2' : ''}><FormLabel className="text-xs">{rateType === 'percentage' ? 'Percentage Rate (%)' : 'Rate per Unit (Ksh)'}</FormLabel><FormControl><Input type="number" placeholder={rateType === 'percentage' ? '15' : '1000'} {...field} /></FormControl><FormMessage /></FormItem>)} />
+        <FormField control={control} name={`affiliates.${index}.rate`} render={({ field }) => (<FormItem className={rateType === 'percentage' ? 'md:col-span-2' : ''}><FormLabel className="text-xs">{rateType === 'percentage' ? 'Percentage Rate (%)' : 'Rate per Unit (Ksh)'}</FormLabel><FormControl><Input type="number" placeholder={rateType === 'percentage' ? '15' : '1000'} {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>)} />
       </div>
       
       <div className="text-sm font-medium text-right pr-1 pt-2 border-t border-dashed">
@@ -121,7 +125,10 @@ const AffiliatesList = ({ calculations }: { calculations: Calculations }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-4">
-        <h3 className="font-semibold text-lg">Affiliate & Partner Items</h3>
+        <div className="flex justify-between items-center">
+            <h3 className="font-semibold text-lg">Affiliate & Partner Items</h3>
+            <Button type="button" variant="default" size="sm" onClick={handleAddAffiliate}><PlusCircle className="mr-2 h-4 w-4" /> Add Partner</Button>
+        </div>
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-3 custom-scrollbar rounded-md border bg-muted/20 p-3">
           {fields.length > 0 ? (
             fields.map((field, index) => (
@@ -131,7 +138,6 @@ const AffiliatesList = ({ calculations }: { calculations: Calculations }) => {
             <div className="text-center py-10 text-muted-foreground"><p>No affiliates or partners added yet.</p></div>
           )}
         </div>
-        <Button type="button" variant="default" size="sm" onClick={handleAddAffiliate}><PlusCircle className="mr-2 h-4 w-4" /> Add Partner</Button>
       </div>
       <div className="lg:col-span-1">
          <h3 className="font-semibold text-lg mb-4">Cost Overview</h3>

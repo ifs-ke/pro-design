@@ -60,6 +60,92 @@ const interactionSchema = z.object({
     timestamp: z.string().optional(),
 });
 
+const invoiceSchema = z.object({
+  id: z.string().optional(),
+  invoiceNumber: z.string().min(1, 'Invoice number is required.'),
+  amount: z.coerce.number().positive('Amount must be positive.'),
+  status: z.enum(['Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled']),
+  dueDate: z.coerce.date(),
+  clientId: z.string(),
+  projectId: z.string().optional(),
+  quoteId: z.string().optional(),
+});
+
+export async function upsertInvoice(prevState: any, formData: FormData) {
+  const id = formData.get('id') as string | null;
+  const validatedFields = invoiceSchema.safeParse({
+    id: id || undefined,
+    invoiceNumber: formData.get('invoiceNumber'),
+    amount: formData.get('amount'),
+    status: formData.get('status'),
+    dueDate: formData.get('dueDate'),
+    clientId: formData.get('clientId'),
+    projectId: formData.get('projectId'),
+    quoteId: formData.get('quoteId'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      type: 'error' as const,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Save Invoice.',
+    };
+  }
+
+  const { id: invoiceId, ...invoiceData } = validatedFields.data;
+
+  try {
+    const savedInvoice = await prisma.invoice.upsert({
+      where: { id: invoiceId || '' },
+      update: {
+        ...invoiceData,
+        updatedAt: new Date(),
+      },
+      create: {
+        ...invoiceData,
+      },
+       include: {
+        client: true,
+        project: true,
+        quote: true,
+      },
+    });
+
+    revalidatePath('/invoices');
+    revalidatePath('/dashboard');
+
+    return {
+      type: 'success' as const,
+      message: `Saved invoice ${savedInvoice.invoiceNumber}`,
+      invoice: savedInvoice,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to Save Invoice.',
+    };
+  }
+}
+
+export async function deleteInvoice(id: string) {
+  try {
+    await prisma.invoice.delete({ where: { id } });
+    revalidatePath('/invoices');
+    revalidatePath('/dashboard');
+    return {
+      type: 'success' as const,
+      message: `Deleted invoice.`,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to Delete Invoice.',
+    };
+  }
+}
+
 
 export async function upsertProject(prevState: any, formData: FormData) {
     const roomCount = formData.get('roomCount');
@@ -500,5 +586,14 @@ export async function getQuotes() {
   } catch (error) {
     console.error('Failed to fetch quotes:', error);
     throw new Error('Failed to fetch quotes.');
+  }
+}
+
+export async function getInvoices() {
+  try {
+    return await prisma.invoice.findMany({ include: { client: true, project: true, quote: true } });
+  } catch (error) {
+    console.error('Failed to fetch invoices:', error);
+    throw new Error('Failed to fetch invoices.');
   }
 }

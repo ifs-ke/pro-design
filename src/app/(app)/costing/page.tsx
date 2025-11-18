@@ -110,10 +110,10 @@ export default function CostingPage() {
     <FormProvider {...form}>
       <header className='mb-8 flex flex-col sm:flex-row justify-between items-start gap-4'>
         <div>
-          <h1 className='text-4xl lg:text-5xl font-bold text-foreground tracking-tight'>
+          <h1 className='text-3xl sm:text-4xl font-bold text-foreground tracking-tight'>
             Costing Tool
           </h1>
-          <p className='text-muted-foreground mt-2 text-lg'>
+          <p className='text-muted-foreground mt-2 text-base sm:text-lg'>
             Your all-in-one pricing tool for interior design projects.
           </p>
         </div>

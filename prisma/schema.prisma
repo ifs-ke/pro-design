@@ -12,6 +12,7 @@ model Client {
   name           String
   email          String     @unique
   phone          String?
+  notes          String?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   responsiveness String?    @default("Warm")
@@ -20,6 +21,7 @@ model Client {
   properties     Property[]
   quotes         Quote[]
   interactions   Interaction[]
+  invoices       Invoice[]
 }
 
 model Property {
@@ -50,10 +52,11 @@ model Project {
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   property    Property? @relation(fields: [propertyId], references: [id])
   quotes      Quote[]
+  invoices    Invoice[]
 }
 
 model Quote {
-  id                    String   @id @default(cuid())
+  id                    String    @id @default(cuid())
   clientId              String
   projectId             String?
   status                String
@@ -62,10 +65,11 @@ model Quote {
   calculations          Json
   suggestedCalculations Json
   timestamp             DateTime
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  client                Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  project               Project? @relation(fields: [projectId], references: [id])
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  client                Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project               Project?  @relation(fields: [projectId], references: [id])
+  invoices              Invoice[]
 }
 
 model Interaction {
@@ -76,4 +80,20 @@ model Interaction {
   timestamp DateTime @default(now())
   updatedAt DateTime @updatedAt
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique
+  amount        Float
+  status        String   @default("Draft") // e.g., Draft, Sent, Paid, Overdue
+  dueDate       DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  clientId      String
+  projectId     String?
+  quoteId       String?
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project       Project? @relation(fields: [projectId], references: [id])
+  quote         Quote?   @relation(fields: [quoteId], references: [id])
 }

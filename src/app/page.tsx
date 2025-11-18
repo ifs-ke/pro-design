@@ -78,7 +78,7 @@ export default function HomePage() {
               <div className="space-y-2">
                 <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Key Features</div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Everything You Need to Succeed</h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed">
                   DesignCost Pro is packed with powerful features to help you run a more profitable and efficient design business.
                 </p>
               </div>
@@ -128,7 +128,7 @@ export default function HomePage() {
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
                 Ready to Take Control of Your Project Finances?
               </h2>
-              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed">
                 Start organizing your design business today. Sign up and begin creating your first quote in just a few minutes.
               </p>
             </div>

@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
-  Package, Trash2, PlusCircle, MessageSquarePlus, MessageSquareX, ListTree, Sigma,
+  Package, Trash2, PlusCircle, MessageSquarePlus, MessageSquareX, ListTree, Sigma, Banknote
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
@@ -42,24 +42,25 @@ const MaterialItem = memo(({ control, index, remove }: MaterialItemProps) => {
   }, [index, setValue]);
 
   return (
-    <div className="p-4 border rounded-lg bg-background space-y-3 shadow-sm hover:shadow-md transition-shadow duration-200">
+    <div className="p-3 border rounded-md bg-muted/20 space-y-3">
         <div className="flex justify-between items-start">
-            <div className="flex-grow grid grid-cols-2 md:grid-cols-[2fr_1fr_1.5fr] gap-4 items-start">
+            <div className="flex-grow grid grid-cols-2 md:grid-cols-[2fr_1fr_1.5fr] gap-3 items-start">
                 <FormField control={control} name={`materials.${index}.name`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Material</FormLabel><FormControl><Input {...field} placeholder="e.g., Oak Wood" /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={control} name={`materials.${index}.quantity`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Qty</FormLabel><FormControl><Input {...field} type="number" placeholder="1" /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={control} name={`materials.${index}.cost`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Unit Cost (Ksh)</FormLabel><FormControl><Input {...field} type="number" placeholder="1500" /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={control} name={`materials.${index}.cost`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Unit Cost</FormLabel><FormControl><Input {...field} type="number" placeholder="1500" /></FormControl><FormMessage /></FormItem>)} />
             </div>
             <Button type="button" variant="ghost" size="icon" onClick={handleRemove} className="text-muted-foreground hover:text-destructive ml-2 mt-6 shrink-0"><Trash2 className="h-4 w-4" /></Button>
         </div>
-        <div className="text-sm font-medium text-right pr-1 pt-2 border-t border-dashed">Item Total: <span className="font-semibold text-primary">{formatCurrency(totalItemCost)}</span></div>
         {description !== undefined ? (
-            <div className="space-y-2 pt-2 border-t border-dashed">
-                <FormField control={control} name={`materials.${index}.description`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Description</FormLabel><FormControl><Textarea placeholder="Add a short description..." {...field} className="h-16 text-sm" /></FormControl><FormMessage /></FormItem>)} />
-                <Button type="button" variant="link" size="sm" className="p-0 h-auto text-muted-foreground text-xs" onClick={() => handleToggleDescription(false)}><MessageSquareX className="mr-1 text-destructive w-3 h-3" /> Hide Description</Button>
+            <div className="space-y-2 pt-2 border-t">
+                <FormField control={control} name={`materials.${index}.description`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Description</FormLabel><FormControl><Textarea placeholder="Add a short description..." {...field} className="h-16 text-sm bg-background" /></FormControl><FormMessage /></FormItem>)} />
+                <Button type="button" variant="link" size="sm" className="p-0 h-auto text-muted-foreground text-xs" onClick={() => handleToggleDescription(false)}><MessageSquareX className="mr-1 text-destructive w-3 h-3" /> Remove Description</Button>
             </div>
         ) : (
             <Button type="button" variant="link" size="sm" className="p-0 h-auto text-muted-foreground text-xs" onClick={() => handleToggleDescription(true)}><MessageSquarePlus className="mr-1 w-3 h-3" /> Add Description</Button>
         )}
+        <Separator />
+        <div className="text-sm font-medium text-right">Item Total: <span className="font-semibold text-primary">{formatCurrency(totalItemCost)}</span></div>
     </div>
   );
 });
@@ -82,12 +83,14 @@ const MaterialSummaryCard = ({ calculations }: { calculations: Calculations }) =
   return (
     <Card className="bg-muted/40 shadow-inner border-dashed">
       <CardHeader className="pb-4"><CardTitle className="text-lg">Summary</CardTitle></CardHeader>
-      <CardContent className="text-sm space-y-4">
+      <CardContent className="text-sm space-y-3">
         <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><ListTree className="w-4 h-4 mr-2"/> Total Unique Items</span><span className="font-semibold">{summary.totalItems}</span></div>
-        <Separator/>
         <div className="flex justify-between items-center"><span className="text-muted-foreground flex items-center"><Sigma className="w-4 h-4 mr-2"/> Total Quantity</span><span className="font-semibold">{summary.totalQuantity}</span></div>
         <Separator/>
-        <div className="flex justify-between items-center"><span className="text-muted-foreground font-bold">Total Cost</span><span className="font-bold text-lg text-primary">{formatCurrency(calculations.totalMaterialCost)}</span></div>
+        <div className="flex justify-between items-center font-bold text-primary pt-2">
+            <span className="flex items-center"><Banknote className="w-4 h-4 mr-2"/>Total Material Cost</span>
+            <span className="text-lg">{formatCurrency(calculations.totalMaterialCost)}</span>
+        </div>
       </CardContent>
     </Card>
   );
@@ -102,17 +105,16 @@ const MaterialsList = ({ calculations }: { calculations: Calculations }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-4">
-        <h3 className="font-semibold text-lg">Material Items</h3>
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-3 custom-scrollbar rounded-md border bg-muted/20 p-3">
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-3 custom-scrollbar rounded-md bg-muted/20 p-3">
           {fields.length > 0 ? (
             fields.map((field, index) => (
               <MaterialItem key={field.id} control={control} index={index} remove={handleRemove} />
             ))
           ) : (
-            <div className="text-center py-10 text-muted-foreground"><p>No materials added yet.</p></div>
+            <div className="text-center py-12 text-muted-foreground"><p>No materials added yet.</p></div>
           )}
         </div>
-        <Button type="button" variant="default" size="sm" onClick={handleAddMaterial}><PlusCircle className="mr-2 h-4 w-4" /> Add Material</Button>
+        <Button type="button" variant="outline" size="sm" onClick={handleAddMaterial}><PlusCircle className="mr-2 h-4 w-4" /> Add Material</Button>
       </div>
       <div className="lg:col-span-1">
          <h3 className="font-semibold text-lg mb-4">Cost Overview</h3>

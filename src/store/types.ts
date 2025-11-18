@@ -11,12 +11,16 @@ const materialItemSchema = z.object({
 
 export type Material = z.infer<typeof materialItemSchema>;
 
+// Corrected Labor Schema
 const laborItemSchema = z.object({
     vendor: z.string().min(1, "Vendor is required."),
-    units: z.coerce.number().min(0, "Units cannot be negative."),
     rate: z.coerce.number().min(0, "Rate cannot be negative."),
     rateType: z.enum(['hourly', 'daily']),
+    hours: z.coerce.number().min(0, "Hours must be positive").optional(),
+    days: z.coerce.number().min(0, "Days must be positive").optional(),
 });
+
+export type Labor = z.infer<typeof laborItemSchema>;
 
 const operationItemSchema = z.object({
     name: z.string().min(1, "Name is required."),
@@ -50,6 +54,7 @@ export const formSchema = z.object({
     profitMargin: z.coerce.number().min(0, "Profit margin cannot be negative."),
     miscPercentage: z.coerce.number().min(0, "Misc. percentage cannot be negative."),
     salaryPercentage: z.coerce.number().min(0, "Salary percentage cannot be negative."),
+    laborConcurrencyPercentage: z.coerce.number().min(0).max(100).default(0),
     enableNSSF: z.boolean().optional(),
     enableSHIF: z.boolean().optional(),
 });
@@ -117,6 +122,19 @@ export interface Interaction {
   timestamp: string;
 }
 
+export interface Invoice {
+    id: string;
+    invoiceNumber: string;
+    amount: number;
+    status: string;
+    dueDate: string;
+    clientId: string;
+    projectId?: string | null;
+    quoteId?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
 // Form and Calculation Types
 export type FormValues = z.infer<typeof formSchema>;
 
@@ -141,6 +159,8 @@ export interface Calculations {
   profitAmount: number;
   totalPrice: number;
   salaryAmount: number;
+  totalLaborHours: number;
+  effectiveLaborHours: number;
 }
 
 // Hydrated types for frontend display
@@ -153,6 +173,7 @@ export interface HydratedProject extends Project {
   client?: Client;
   property?: Property;
   quotes?: HydratedQuote[];
+  invoices?: HydratedInvoice[];
 }
 
 export interface HydratedProperty extends Property {
@@ -164,4 +185,29 @@ export interface HydratedClient extends Client {
   properties?: HydratedProperty[];
   projects?: HydratedProject[];
   quotes?: HydratedQuote[];
+  invoices?: HydratedInvoice[];
+}
+
+export interface HydratedInvoice extends Invoice {
+    client?: Client;
+    project?: Project;
+    quote?: Quote;
+}
+
+export interface DashboardMetrics {
+  totalClients: number;
+  totalProjects: number;
+  totalQuotes: number;
+  totalInvoices: number;
+  approvedRevenue: number;
+  approvalRate: number;
+  totalApprovedQuotes: number;
+  totalOutstandingAmount: number;
+  totalOverdueAmount: number;
+  totalPaidAmount: number;
+  clientStatusData: { name: string; value: number }[];
+  projectStatusData: { name: string; value: number }[];
+  quoteStatusData: { name: string; value: number }[];
+  totalProfit: number;
+  effectiveWorkHours: number;
 }

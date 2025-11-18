@@ -1,22 +1,22 @@
 
 'use client';
 
-import { useStore, DashboardMetrics } from "@/store/cost-store";
+import { useStore } from "@/store/cost-store";
+import type { DashboardMetrics } from "@/store/types";
 import { useIsHydrated } from "@/hooks/use-hydrated-store";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Calculator, ArrowRight, Users, FileText, BarChart2, CheckCircle, Building, Banknote } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { Calculator, ArrowRight, Users, CheckCircle, Building, Banknote, TrendingUp } from "lucide-react";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 import { DashboardCharts } from "@/components/design/dashboard-charts";
 import { useMemo } from "react";
-
 
 export default function DashboardPage() {
   const { clients, projects, quotes } = useStore();
   const isLoading = !useIsHydrated();
 
-  const dashboardMetrics: DashboardMetrics | null = useMemo(() => {
+  const dashboardMetrics: Omit<DashboardMetrics, 'totalInvoices' | 'totalOutstandingAmount' | 'totalOverdueAmount' | 'totalPaidAmount' | 'effectiveWorkHours'> | null = useMemo(() => {
     if (isLoading) return null;
 
     const safeQuotes = quotes || [];
@@ -25,8 +25,9 @@ export default function DashboardPage() {
 
     const approvedQuotes = safeQuotes.filter(q => q.status === 'Approved');
     
-    const approvedRevenue = approvedQuotes.reduce((sum, q) => sum + (q.calculations?.grandTotal || 0), 0);
-    
+    const approvedRevenue = approvedQuotes.reduce((sum, q) => sum + (q.calculations?.totalPrice || 0), 0);
+    const totalProfit = approvedQuotes.reduce((sum, q) => sum + (q.calculations?.profitAmount || 0), 0);
+
     const approvalRate = safeQuotes.length > 0 ? (approvedQuotes.length / safeQuotes.length) * 100 : 0;
 
     const clientStatusCounts = safeClients
@@ -63,8 +64,9 @@ export default function DashboardPage() {
       clientStatusData,
       projectStatusData,
       quoteStatusData,
+      totalProfit,
     };
-  }, [clients, projects, quotes]);
+  }, [clients, projects, quotes, isLoading]);
 
 
   if (isLoading || !dashboardMetrics) {
@@ -82,7 +84,7 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mt-1">Here's a quick overview of your business.</p>
       </header>
         
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Approved Revenue</CardTitle>
@@ -90,7 +92,27 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(dashboardMetrics.approvedRevenue)}</div>
-            <p className="text-xs text-muted-foreground">Total from approved quotes</p>
+            <p className="text-xs text-muted-foreground">From {dashboardMetrics.totalApprovedQuotes} approved quotes</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(dashboardMetrics.totalProfit)}</div>
+            <p className="text-xs text-muted-foreground">From approved quotes</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Quote Approval</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardMetrics.approvalRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground">{dashboardMetrics.totalApprovedQuotes} of {dashboardMetrics.totalQuotes} total</p>
           </CardContent>
         </Card>
         <Card>
@@ -99,28 +121,18 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardMetrics.totalClients}</div>
-            <p className="text-xs text-muted-foreground">Total clients managed</p>
+            <div className="text-2xl font-bold">+{formatNumber(dashboardMetrics.totalClients, { notation: 'compact' })}</div>
+            <p className="text-xs text-muted-foreground">Total clients in your CRM</p>
           </CardContent>
         </Card>
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Projects</CardTitle>
-                <Building className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{dashboardMetrics.totalProjects}</div>
-                <p className="text-xs text-muted-foreground">Ongoing and completed</p>
-            </CardContent>
-        </Card>
-        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Quote Approval Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Projects</CardTitle>
+            <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardMetrics.approvalRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">{dashboardMetrics.totalApprovedQuotes} of {dashboardMetrics.totalQuotes} quotes approved</p>
+            <div className="text-2xl font-bold">+{formatNumber(dashboardMetrics.totalProjects, { notation: 'compact' })}</div>
+            <p className="text-xs text-muted-foreground">Total projects created</p>
           </CardContent>
         </Card>
       </div>

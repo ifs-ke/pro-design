@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
-import { MoreHorizontal, Edit, Trash2, Building, FileText, HomeIcon } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, Building, FileText, HomeIcon, FilePen } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,6 +105,10 @@ export function ClientCard({ client }: ClientCardProps) {
                         <Badge variant={statusVariant[client.status]}>{client.status}</Badge>
                         <Badge variant={responsivenessVariant[client.responsiveness]}>{client.responsiveness}</Badge>
                     </div>
+                    <div className="space-y-2">
+                        <h4 className="font-semibold text-sm flex items-center gap-2"><FilePen className="text-primary"/> Notes</h4>
+                        <p className="text-sm text-muted-foreground">{client.notes || 'No notes yet.'}</p>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
                         <div>
                              <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><HomeIcon className="text-primary"/> Properties ({client.properties?.length || 0})</h4>
@@ -139,7 +143,7 @@ export function ClientCard({ client }: ClientCardProps) {
                                     <li key={q.id}>
                                         <Link href={`/quotes/${q.id}`} className="hover:underline flex justify-between">
                                             <span>{q.id.substring(0,8)}...</span>
-                                            <span className="font-medium text-foreground">{formatCurrency((q.calculations as any).grandTotal)}</span>
+                                            <span className="font-medium text-foreground">{formatCurrency((q.calculations as any).totalPrice)}</span>
                                         </Link>
                                     </li>
                                 ))}
