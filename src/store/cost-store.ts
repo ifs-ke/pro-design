@@ -14,12 +14,13 @@ import {
     upsertProject as upsertProjectAction, 
     deleteProject as deleteProjectAction,
     upsertInteraction as upsertInteractionAction,
+    deleteInteraction as deleteInteractionAction,
     upsertInvoice as upsertInvoiceAction,
     deleteInvoice as deleteInvoiceAction,
 } from '@/lib/actions';
-import { Client, Project, Property, Quote, Interaction, FormValues, Allocation, Calculations, HydratedClient, HydratedProperty, HydratedProject, HydratedQuote, Labor, Material, QuoteStatus, Salary, Invoice, HydratedInvoice } from './types'; 
+import { Client, Project, Property, Quote, Interaction, FormValues, Allocation, Calculations, HydratedClient, HydratedProperty, HydratedProject, HydratedQuote, Labor, Material, QuoteStatus, Salary, Invoice, HydratedInvoice, HydratedInteraction } from './types'; 
 
-export type { FormValues, Material, Calculations, Client, Project, Property, Quote, Interaction, Allocation, HydratedClient, HydratedProperty, HydratedProject, HydratedQuote, QuoteStatus, Labor, Salary, Invoice, HydratedInvoice };
+export type { FormValues, Material, Calculations, Client, Project, Property, Quote, Interaction, Allocation, HydratedClient, HydratedProperty, HydratedProject, HydratedQuote, QuoteStatus, Labor, Salary, Invoice, HydratedInvoice, HydratedInteraction };
 
 const objectToFormData = (obj: Record<string, any>): FormData => {
     const formData = new FormData();
@@ -52,12 +53,14 @@ interface CostState {
   projects: Project[];
   quotes: Quote[];
   invoices: Invoice[];
+  interactions: Interaction[];
   hydratedClients: HydratedClient[];
   hydratedProperties: HydratedProperty[];
   hydratedProjects: HydratedProject[];
   hydratedQuotes: HydratedQuote[];
   hydratedInvoices: HydratedInvoice[];
-  setData: (data: { clients: Client[], properties: Property[], projects: Project[], quotes: Quote[], invoices: Invoice[] }) => void;
+  hydratedInteractions: HydratedInteraction[];
+  setData: (data: { clients: Client[], properties: Property[], projects: Project[], quotes: Quote[], invoices: Invoice[], interactions: Interaction[] }) => void;
   setFormValues: (values: Partial<FormValues>) => void;
   setAllocations: (values: Allocation) => void;
   calculate: (formValues: FormValues) => Calculations;
@@ -68,6 +71,8 @@ interface CostState {
   saveClient: (data: Partial<Client>) => Promise<Client | null>;
   deleteClient: (id: string) => Promise<boolean>;
   addInteraction: (clientId: string, data: { type: Interaction['type']; notes: string }) => Promise<void>;
+  updateInteraction: (id: string, data: Partial<Interaction>) => Promise<void>;
+  deleteInteraction: (id: string) => Promise<void>;
   saveProperty: (data: Partial<Property>) => Promise<Property | null>;
   deleteProperty: (id: string) => Promise<boolean>;
   saveProject: (data: Partial<Project>) => Promise<Project | null>;
@@ -128,12 +133,22 @@ const selectHydratedClientsInternal = createSelector(
     (clients) => clients.map(client => ({ ...client }))
 );
 
+const selectHydratedInteractionsInternal = createSelector(
+    (state: CostState) => state.interactions,
+    (state: CostState) => state.clients,
+    (interactions, clients) => interactions.map(interaction => ({
+        ...interaction,
+        client: clients.find(c => c.id === interaction.clientId),
+    }))
+);
+
 const computeAndSetHydratedState = (state: CostState) => ({
     hydratedInvoices: selectHydratedInvoicesInternal(state),
     hydratedQuotes: selectHydratedQuotesInternal(state),
     hydratedProjects: selectHydratedProjectsInternal(state),
     hydratedProperties: selectHydratedPropertiesInternal(state),
     hydratedClients: selectHydratedClientsInternal(state),
+    hydratedInteractions: selectHydratedInteractionsInternal(state),
 });
 
 
@@ -151,11 +166,13 @@ export const useStore = create<CostState>()(
             projects: [],
             quotes: [],
             invoices: [],
+            interactions: [],
             hydratedClients: [],
             hydratedProperties: [],
             hydratedProjects: [],
             hydratedQuotes: [],
             hydratedInvoices: [],
+            hydratedInteractions: [],
             
             setHydrated: () => set({ _hydrated: true }),
             setIsPublishing: (isPublishing) => set({ isPublishing }),
@@ -230,6 +247,79 @@ export const useStore = create<CostState>()(
                     return false;
                 }
             },
+            
+            addInteraction: async (clientId, data) => {
+                const originalState = get();
+                const tempId = `temp-${crypto.randomUUID()}`;
+
+                set(state => {
+                    const optimisticInteraction = { ...data, id: tempId, clientId } as Interaction;
+                    const newState = { ...state, interactions: [...state.interactions, optimisticInteraction] };
+                    return { ...newState, ...computeAndSetHydratedState(newState) };
+                });
+
+                try {
+                    const result = await upsertInteractionAction(null, objectToFormData({ ...data, clientId }));
+                    if (result.type === 'error' || !result.interaction) throw new Error(result.message);
+
+                    set(state => {
+                        const finalInteraction = result.interaction as Interaction;
+                        const otherInteractions = state.interactions.filter(i => i.id !== tempId);
+                        const newState = { ...state, interactions: [...otherInteractions, finalInteraction] };
+                        return { ...newState, ...computeAndSetHydratedState(newState) };
+                    });
+                } catch (error) {
+                    console.error('Failed to add interaction, rolling back', error);
+                    set(originalState);
+                    throw new Error('Failed to add interaction');
+                }
+            },
+
+            updateInteraction: async (id, data) => {
+                const originalState = get();
+                set(state => {
+                    const interactionToUpdate = state.interactions.find(i => i.id === id);
+                    if (!interactionToUpdate) return state;
+                    const optimisticInteraction = { ...interactionToUpdate, ...data };
+                    const otherInteractions = state.interactions.filter(i => i.id !== id);
+                    const newState = { ...state, interactions: [...otherInteractions, optimisticInteraction] };
+                    return { ...newState, ...computeAndSetHydratedState(newState) };
+                });
+
+                try {
+                    const result = await upsertInteractionAction(id, objectToFormData(data));
+                    if (result.type === 'error' || !result.interaction) throw new Error(result.message);
+
+                    set(state => {
+                        const finalInteraction = result.interaction as Interaction;
+                        const otherInteractions = state.interactions.filter(i => i.id !== id);
+                        const newState = { ...state, interactions: [...otherInteractions, finalInteraction] };
+                        return { ...newState, ...computeAndSetHydratedState(newState) };
+                    });
+                } catch (error) {
+                    console.error('Failed to update interaction, rolling back', error);
+                    set(originalState);
+                    throw new Error('Failed to update interaction');
+                }
+            },
+
+            deleteInteraction: async (id) => {
+                const originalState = get();
+                set(state => {
+                    const newState = { ...state, interactions: state.interactions.filter(i => i.id !== id) };
+                    return { ...newState, ...computeAndSetHydratedState(newState) };
+                });
+
+                try {
+                    const result = await deleteInteractionAction(id);
+                    if (result.type === 'error') throw new Error(result.message);
+                } catch (error) {
+                    console.error('Failed to delete interaction, rolling back', error);
+                    set(originalState);
+                    throw new Error('Failed to delete interaction');
+                }
+            },
+
 
             saveProperty: async (data) => {
                 const originalState = get();
@@ -374,7 +464,6 @@ export const useStore = create<CostState>()(
 
             // Other actions like addInteraction, publishQuote, etc. would be refactored similarly.
             // For brevity, I am leaving them as they are but they should follow the same pattern.
-            addInteraction: async (clientId, data) => { /* ... */ },
             publishQuote: async (formValues, allocations, finalCalculations, suggestedCalculations, loadedQuoteId) => { /* ... */ },
             updateQuoteStatus: async (id: string, status: QuoteStatus) => {
                 const originalState = get();

@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
-import { MoreHorizontal, Edit, Trash2, Building, FileText, HomeIcon, FilePen } from "lucide-react";
+import { formatCurrency, timeSince } from "@/lib/utils";
+import { MoreHorizontal, Edit, Trash2, Building, FileText, HomeIcon, FilePen, MessageSquarePlus, Bot } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,8 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { FollowUpTracker } from "@/components/design/follow-up-tracker";
 import { ClientFormDialog } from "./client-form";
-import { deleteClient } from "@/lib/actions";
-import type { HydratedClient } from "@/store/cost-store";
+import { useStore, type HydratedClient } from "@/store/cost-store";
 
 interface ClientCardProps {
     client: HydratedClient;
@@ -55,6 +54,12 @@ const cardVariants = {
 
 export function ClientCard({ client }: ClientCardProps) {
     const [showAlert, setShowAlert] = useState(false);
+    const { deleteClient } = useStore();
+
+    const handleDeleteClient = async () => {
+        await deleteClient(client.id);
+        setShowAlert(false);
+    };
     
     return (
         <motion.div variants={cardVariants}>
@@ -90,25 +95,27 @@ export function ClientCard({ client }: ClientCardProps) {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Delete {client.name}?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the client and all associated projects, quotes, and properties.
+                                    This action cannot be undone. This will permanently delete the client and all associated data.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteClient(client.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                <AlertDialogAction onClick={handleDeleteClient} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
                 </CardHeader>
                 <CardContent className="flex flex-col flex-grow gap-4">
                     <div className="flex gap-2 flex-wrap">
-                        <Badge variant={statusVariant[client.status]}>{client.status}</Badge>
-                        <Badge variant={responsivenessVariant[client.responsiveness]}>{client.responsiveness}</Badge>
+                        {client.status && <Badge variant={statusVariant[client.status]}>{client.status}</Badge>}
+                        {client.responsiveness && <Badge variant={responsivenessVariant[client.responsiveness]}>{client.responsiveness}</Badge>}
                     </div>
+
                     <div className="space-y-2">
                         <h4 className="font-semibold text-sm flex items-center gap-2"><FilePen className="text-primary"/> Notes</h4>
                         <p className="text-sm text-muted-foreground">{client.notes || 'No notes yet.'}</p>
                     </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
                         <div>
                              <h4 className="font-semibold text-sm flex items-center gap-2 mb-2"><HomeIcon className="text-primary"/> Properties ({client.properties?.length || 0})</h4>
@@ -135,6 +142,7 @@ export function ClientCard({ client }: ClientCardProps) {
                             ) : <p className="text-sm text-muted-foreground">No projects yet.</p>}
                         </div>
                     </div>
+
                      <div className="space-y-2">
                         <h4 className="font-semibold text-sm flex items-center gap-2"><FileText className="text-primary"/> Quotes ({client.quotes?.length || 0})</h4>
                         {client.quotes?.length > 0 ? (
@@ -150,6 +158,7 @@ export function ClientCard({ client }: ClientCardProps) {
                             </ul>
                         ) : <p className="text-sm text-muted-foreground">No quotes yet.</p>}
                     </div>
+                     
                     <div className="mt-auto pt-4 border-t">
                         <FollowUpTracker client={client} />
                     </div>

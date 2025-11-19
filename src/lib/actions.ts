@@ -366,8 +366,15 @@ export async function deleteClient(id: string) {
     }
 }
 
-export async function upsertInteraction(interactionData: z.infer<typeof interactionSchema>) {
-    const validatedFields = interactionSchema.safeParse(interactionData);
+export async function upsertInteraction(prevState: any, formData: FormData) {
+    const id = formData.get('id') as string | null;
+    const validatedFields = interactionSchema.safeParse({
+        id: id || undefined,
+        clientId: formData.get('clientId'),
+        type: formData.get('type'),
+        notes: formData.get('notes'),
+        timestamp: formData.get('timestamp') || new Date().toISOString(),
+    });
 
     if (!validatedFields.success) {
         return {
@@ -377,13 +384,20 @@ export async function upsertInteraction(interactionData: z.infer<typeof interact
         };
     }
 
-    const { id, ...data } = validatedFields.data;
+    const { id: interactionId, ...interactionData } = validatedFields.data;
 
     try {
         const savedInteraction = await prisma.interaction.upsert({
-            where: { id: id || '' },
-            update: { ...data, updatedAt: new Date() },
-            create: { ...data },
+            where: { id: interactionId || '' },
+            update: { 
+                ...interactionData,
+                timestamp: new Date(interactionData.timestamp!), 
+                updatedAt: new Date(),
+            },
+            create: { 
+                ...interactionData,
+                timestamp: new Date(interactionData.timestamp!),
+            },
         });
 
         revalidatePath('/crm');
@@ -400,8 +414,25 @@ export async function upsertInteraction(interactionData: z.infer<typeof interact
             message: 'Database Error: Failed to Save Interaction.',
         };
     }
-
 }
+
+export async function deleteInteraction(id: string) {
+    try {
+        await prisma.interaction.delete({ where: { id } });
+        revalidatePath('/crm');
+        return {
+            type: 'success' as const,
+            message: `Deleted interaction.`,
+        };
+    } catch (e) {
+        console.error(e);
+        return {
+            type: 'error' as const,
+            message: 'Database Error: Failed to Delete Interaction.',
+        };
+    }
+}
+
 
 export async function upsertProperty(prevState: any, formData: FormData) {
   const id = formData.get('id') as string | null;

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { PlusCircle, Users, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,11 +27,19 @@ export function CrmPageClient({ clients: initialClients }: { clients: any[] }) {
     const { hydratedClients } = useStore();
     const isLoading = !useIsHydrated();
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     const clients = hydratedClients || initialClients;
 
     const filteredClients = clients.filter(client =>
         client.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredClients.length / rowsPerPage);
+    const paginatedClients = filteredClients.slice(
+        (currentPage - 1) * rowsPerPage,
+        currentPage * rowsPerPage
     );
 
     if (isLoading) {
@@ -40,6 +49,11 @@ export function CrmPageClient({ clients: initialClients }: { clients: any[] }) {
             </div>
         );
     }
+
+    const handleRowsPerPageChange = (value: string) => {
+        setRowsPerPage(Number(value));
+        setCurrentPage(1); // Reset to first page
+    };
 
     return (
         <div className="flex flex-col gap-8">
@@ -58,7 +72,10 @@ export function CrmPageClient({ clients: initialClients }: { clients: any[] }) {
                 <Input
                     placeholder="Search clients..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1); // Reset to first page on search
+                    }}
                     className="pl-10"
                 />
             </div>
@@ -81,16 +98,54 @@ export function CrmPageClient({ clients: initialClients }: { clients: any[] }) {
                     )}
              </Card>
             ) : (
-                <motion.div
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                    {filteredClients.map(client => (
-                        <ClientCard key={client.id} client={client} />
-                    ))}
-                </motion.div>
+                <>
+                    <motion.div
+                      className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+                      variants={containerVariants}
+                      initial="hidden"
+                      animate="visible"
+                    >
+                        {paginatedClients.map(client => (
+                            <ClientCard key={client.id} client={client} />
+                        ))}
+                    </motion.div>
+                    <div className="flex items-center justify-between mt-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Rows per page:</span>
+                            <Select value={String(rowsPerPage)} onValueChange={handleRowsPerPageChange}>
+                                <SelectTrigger className="w-20">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="10">10</SelectItem>
+                                    <SelectItem value="20">20</SelectItem>
+                                    <SelectItem value="50">50</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm text-muted-foreground">
+                                Page {currentPage} of {totalPages}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCurrentPage(prev => prev - 1)}
+                                    disabled={currentPage === 1}
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCurrentPage(prev => prev + 1)}
+                                    disabled={currentPage >= totalPages}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     );
