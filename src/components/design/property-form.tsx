@@ -26,36 +26,31 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useStore } from '@/store/cost-store';
+import { useStore, Property } from '@/store/cost-store';
 import { Loader2 } from 'lucide-react';
 
 const propertyFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   address: z.string().min(5, 'Address must be at least 5 characters.'),
-  clientId: z.string(),
+  clientId: z.string().min(1, "Client is required"),
 });
 
 type PropertyFormValues = z.infer<typeof propertyFormSchema>;
 
 interface PropertyFormDialogProps {
-  property?: any;
+  property?: Property;
+  clients: any[]; // Assuming clients are passed in as props
   children: React.ReactNode;
 }
 
-export function PropertyFormDialog({ property, children }: PropertyFormDialogProps) {
+export function PropertyFormDialog({ property, clients, children }: PropertyFormDialogProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  const { clients, saveProperty } = useStore();
+  const { saveProperty } = useStore();
   
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
-    defaultValues: {
-      id: property?.id,
-      name: property?.name || '',
-      address: property?.address || '',
-      clientId: property?.clientId || '',
-    },
   });
 
   useEffect(() => {
@@ -66,12 +61,14 @@ export function PropertyFormDialog({ property, children }: PropertyFormDialogPro
         address: property?.address || '',
         clientId: property?.clientId || '',
       });
+    } else {
+      form.reset();
     }
   }, [open, property, form]);
 
   const onSubmit = async (data: PropertyFormValues) => {
-    const savedProperty = await saveProperty(data);
-    if (savedProperty) {
+    const result = await saveProperty(data as Property);
+    if (result) {
         toast({ title: property ? 'Property Updated' : 'Property Created' });
         setOpen(false);
     } else {
@@ -123,7 +120,7 @@ export function PropertyFormDialog({ property, children }: PropertyFormDialogPro
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a client" />

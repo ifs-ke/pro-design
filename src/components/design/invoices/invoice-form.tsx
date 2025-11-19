@@ -15,7 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -23,90 +22,91 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useStore, PaymentPlan } from "@/store/cost-store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { format, addDays } from "date-fns";
+import { format } from "date-fns";
 import { useEffect } from "react";
+import { useStore, Invoice } from "@/store/cost-store";
+import { useToast } from "@/hooks/use-toast";
 
 const invoiceFormSchema = z.object({
-  clientId: z.string().nonempty({ message: "Please select a client." }),
-  projectId: z.string().optional(),
-  quoteId: z.string().optional(),
+  id: z.string().optional(),
+  clientId: z.string().min(1, "Client is required"),
+  projectId: z.string().optional().nullable(),
+  quoteId: z.string().optional().nullable(),
   invoiceNumber: z.string().nonempty({ message: "Invoice number is required." }),
-  status: z.enum(["Draft", "Sent", "Paid", "Overdue"]),
-  startDate: z.date(),
-  endDate: z.date(),
+  status: z.enum(["Draft", "Sent", "Paid", "Overdue", "Cancelled"]),
+  dueDate: z.date(),
   amount: z.coerce.number().min(0),
-  paymentPlan: z.enum(["Gold", "Silver", "Bronze"]),
-  paymentTerms: z.string().optional(),
 });
 
-const paymentTermsDefaults: Record<PaymentPlan, string> = {
-    Gold: "Payment due within 30 days. 5% discount for payment within 10 days.",
-    Silver: "Payment due within 60 days. 2% discount for payment within 20 days.",
-    Bronze: "Payment due within 90 days.",
-};
+type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
 
-export function InvoiceForm({ invoice, onSubmit, onCancel }) {
-  const { clients, projects, quotes } = useStore();
+interface InvoiceFormProps {
+  invoice: Invoice | null;
+  clients: any[];
+  projects: any[];
+  quotes: any[];
+  onSuccess: () => void;
+}
 
-  const form = useForm({
+export function InvoiceForm({ invoice, clients, projects, quotes, onSuccess }: InvoiceFormProps) {
+  const { saveInvoice } = useStore();
+  const { toast } = useToast();
+  const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceFormSchema),
-    defaultValues: invoice ? {
-        ...invoice,
-        startDate: new Date(invoice.startDate),
-        endDate: new Date(invoice.endDate),
-    } : {
-      clientId: "",
-      projectId: "",
-      quoteId: "",
-      invoiceNumber: `INV-${Date.now()}`,
-      status: "Draft",
-      startDate: new Date(),
-      endDate: new Date(),
+    defaultValues: {
+      clientId: '',
+      projectId: null,
+      quoteId: null,
+      invoiceNumber: '',
+      status: 'Draft',
+      dueDate: new Date(),
       amount: 0,
-      paymentPlan: "Silver",
-      paymentTerms: paymentTermsDefaults.Silver,
     },
   });
+
+  useEffect(() => {
+    form.reset({
+      id: invoice?.id,
+      clientId: invoice?.clientId || '',
+      projectId: invoice?.projectId || null,
+      quoteId: invoice?.quoteId || null,
+      invoiceNumber: invoice?.invoiceNumber || `INV-${Date.now()}`,
+      status: invoice?.status || 'Draft',
+      dueDate: invoice ? new Date(invoice.dueDate) : new Date(),
+      amount: invoice?.amount || 0,
+    });
+  }, [invoice, form]);
 
   const selectedClientId = form.watch("clientId");
   const selectedProjectId = form.watch("projectId");
   const selectedQuoteId = form.watch("quoteId");
-  const selectedStartDate = form.watch("startDate");
-  const selectedPaymentPlan = form.watch("paymentPlan");
 
-  const availableProjects = selectedClientId ? projects.filter(p => p.clientId === selectedClientId) : [];
-  const availableQuotes = selectedProjectId ? quotes.filter(q => q.projectId === selectedProjectId) : [];
+  const availableProjects = selectedClientId ? projects.filter((p: any) => p.clientId === selectedClientId) : [];
+  const availableQuotes = selectedProjectId
+    ? quotes.filter((q: any) => q.projectId === selectedProjectId && q.status === 'Approved')
+    : [];
 
   useEffect(() => {
     if (selectedQuoteId) {
-        const selectedQuote = quotes.find(q => q.id === selectedQuoteId);
+        const selectedQuote = quotes.find((q: any) => q.id === selectedQuoteId);
         if (selectedQuote) {
             form.setValue("amount", selectedQuote.calculations.totalPrice);
         }
     }
   }, [selectedQuoteId, quotes, form]);
-
-  useEffect(() => {
-    const project = projects.find(p => p.id === selectedProjectId);
-    if (project && project.timeline && selectedStartDate) {
-      const timelineDays = parseInt(project.timeline, 10);
-      if (!isNaN(timelineDays)) {
-        const newEndDate = addDays(selectedStartDate, timelineDays);
-        form.setValue("endDate", newEndDate);
-      }
+  
+  const onSubmit = async (data: InvoiceFormValues) => {
+    const result = await saveInvoice(data as Invoice);
+    if (result) {
+        toast({ title: invoice ? "Invoice Updated" : "Invoice Created" });
+        onSuccess();
+    } else {
+        toast({ variant: 'destructive', title: "Error", description: "Failed to save invoice." });
     }
-  }, [selectedProjectId, selectedStartDate, projects, form]);
-
-    useEffect(() => {
-        if (selectedPaymentPlan) {
-            form.setValue("paymentTerms", paymentTermsDefaults[selectedPaymentPlan]);
-        }
-    }, [selectedPaymentPlan, form]);
-
+  };
 
   return (
     <Form {...form}>
@@ -118,14 +118,14 @@ export function InvoiceForm({ invoice, onSubmit, onCancel }) {
             render={({ field }) => (
                 <FormItem>
                 <FormLabel>Client</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || ''}>
                     <FormControl>
                     <SelectTrigger>
                         <SelectValue placeholder="Select a client" />
                     </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                    {clients.map((client) => (
+                    {clients.map((client: any) => (
                         <SelectItem key={client.id} value={client.id}>
                         {client.name}
                         </SelectItem>
@@ -143,14 +143,14 @@ export function InvoiceForm({ invoice, onSubmit, onCancel }) {
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Project</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedClientId}>
+                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedClientId}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a project" />
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        {availableProjects.map((project) => (
+                        {availableProjects.map((project: any) => (
                             <SelectItem key={project.id} value={project.id}>
                             {project.name}
                             </SelectItem>
@@ -168,14 +168,14 @@ export function InvoiceForm({ invoice, onSubmit, onCancel }) {
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Quote</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedProjectId}>
+                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedProjectId}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a quote" />
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        {availableQuotes.map((quote) => (
+                        {availableQuotes.map((quote: any) => (
                             <SelectItem key={quote.id} value={quote.id}>
                             {'Quote #' + quote.id.substring(0, 5) + ' - ' + format(new Date(quote.timestamp), "PP") + ' - ' + quote.status}
                             </SelectItem>
@@ -216,34 +216,39 @@ export function InvoiceForm({ invoice, onSubmit, onCancel }) {
             />
 
             <FormField
-                control={form.control}
-                name="paymentPlan"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Payment Plan</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a payment plan" />
-                        </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="Gold">Gold</SelectItem>
-                            <SelectItem value="Silver">Silver</SelectItem>
-                            <SelectItem value="Bronze">Bronze</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value || ''}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Draft">Draft</SelectItem>
+                      <SelectItem value="Sent">Sent</SelectItem>
+                      <SelectItem value="Paid">Paid</SelectItem>
+                      <SelectItem value="Overdue">Overdue</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <FormField
                 control={form.control}
-                name="startDate"
+                name="dueDate"
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
-                    <FormLabel>Start Date</FormLabel>
+                    <FormLabel>Due Date</FormLabel>
                     <Popover>
                         <PopoverTrigger asChild>
                         <FormControl>
@@ -276,66 +281,15 @@ export function InvoiceForm({ invoice, onSubmit, onCancel }) {
                     </FormItem>
                 )}
             />
-
-            <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                    <FormLabel>End Date</FormLabel>
-                     <Popover>
-                        <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button
-                            variant={"outline"}
-                            className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                            )}
-                            >
-                            {field.value ? (
-                                format(field.value, "PPP")
-                            ) : (
-                                <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                        </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled
-                        />
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
         </div>
-
-        <FormField
-          control={form.control}
-          name="paymentTerms"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Payment Terms</FormLabel>
-              <FormControl>
-                <Textarea {...field} placeholder="Describe the payment terms..." className="min-h-[100px]" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <div className="flex justify-end space-x-4 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onSuccess}>
             Cancel
           </Button>
-          <Button type="submit">{invoice ? "Update" : "Create"} Invoice</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting && <Loader2 className="mr-2 animate-spin"/>}
+            {invoice ? "Update" : "Create"} Invoice
+          </Button>
         </div>
       </form>
     </Form>

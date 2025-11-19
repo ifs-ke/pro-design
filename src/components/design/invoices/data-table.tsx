@@ -17,16 +17,13 @@ import {
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -35,50 +32,36 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useStore, HydratedInvoice } from "@/store/cost-store";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { InvoicesToolbar } from "./toolbar";
 
-const StatusBadge = ({ status }) => {
-    const statusVariant = {
+const StatusBadge = ({ status } : any) => {
+    const statusVariant : any = {
         Draft: "outline",
         Sent: "secondary",
         Paid: "default",
         Overdue: "destructive",
+        Cancelled: "secondary",
     };
     return <Badge variant={statusVariant[status] || "secondary"}>{status}</Badge>;
 };
 
-export const columns: ColumnDef<HydratedInvoice>[] = [
-    {
-        id: "select",
-        header: ({ table }) => (
-            <Checkbox
-                checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                aria-label="Select all"
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                aria-label="Select row"
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
+export const columns: ColumnDef<any>[] = [
     {
         accessorKey: "invoiceNumber",
-        header: "Invoice #",
+        header: "Number",
     },
     {
         accessorKey: "client.name",
         header: "Client",
         id: "client_name",
+    },
+    {
+        accessorKey: "project.name",
+        header: "Project",
+        id: "project_name",
     },
     {
         accessorKey: "status",
@@ -88,6 +71,7 @@ export const columns: ColumnDef<HydratedInvoice>[] = [
     {
         accessorKey: "amount",
         header: ({ column }) => (
+          <div className="text-right">
             <Button
                 variant="ghost"
                 onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
@@ -95,18 +79,25 @@ export const columns: ColumnDef<HydratedInvoice>[] = [
                 Amount
                 <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
+          </div>
         ),
-        cell: ({ row }) => formatCurrency(row.getValue("amount")),
+        cell: ({ row }) => <div className="text-right">{formatCurrency(row.getValue("amount"))}</div>,
     },
     {
-        accessorKey: "startDate",
-        header: "Invoice Date",
-        cell: ({ row }) => format(new Date(row.getValue("startDate")), "PPP"),
-    },
-    {
-        accessorKey: "endDate",
+        accessorKey: "dueDate",
         header: "Due Date",
-        cell: ({ row }) => format(new Date(row.getValue("endDate")), "PPP"),
+        cell: ({ row }) => {
+            const date = row.getValue("dueDate");
+            return date ? format(new Date(date as string), "PPP") : null;
+        },
+    },
+    {
+        accessorKey: "createdAt",
+        header: "Created At",
+        cell: ({ row }) => {
+            const date = row.getValue("createdAt");
+            return date ? format(new Date(date as string), "PP") : null;
+        },
     },
     {
         id: "actions",
@@ -131,13 +122,11 @@ export const columns: ColumnDef<HydratedInvoice>[] = [
     },
 ];
 
-export function InvoicesDataTable({ onEdit, onDelete, onCreate }) {
+export function InvoicesDataTable({ data, onEdit, onDelete, onCreate }: any) {
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = React.useState({});
-
-    const data = useStore(s => s.hydratedInvoices);
 
     const table = useReactTable({
         data,

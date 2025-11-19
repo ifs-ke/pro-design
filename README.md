@@ -4,7 +4,7 @@ A comprehensive costing, quoting, and client management application for interior
 
 ## Overview
 
-DesignCost Pro is an all-in-one tool designed to streamline the business operations of interior design studios. It helps professionals move from initial cost calculations to generating professional client quotes, all while managing clients, properties, and projects in a single, cohesive interface. The application is built as a responsive, offline-first web app, with all data stored locally in your browser for privacy and convenience.
+DesignCost Pro is an all-in-one tool designed to streamline the business operations of interior design studios. It helps professionals move from initial cost calculations to generating professional client quotes, all while managing clients, properties, and projects in a single, cohesive interface. The application is built as a responsive web app.
 
 ## Core Features
 
@@ -23,7 +23,7 @@ DesignCost Pro is an all-in-one tool designed to streamline the business operati
 - **UI Library:** React 19 with Server Components
 - **Styling:** Tailwind CSS
 - **Components:** shadcn/ui
-- **State Management:** Zustand (with `persist` for local storage)
+- **State Management:** Zustand
 - **Form Handling:** React Hook Form
 - **Schema Validation:** Zod
 - **Database:** Prisma

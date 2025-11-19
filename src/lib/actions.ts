@@ -71,6 +71,45 @@ const invoiceSchema = z.object({
   quoteId: z.string().optional(),
 });
 
+const quoteStatusSchema = z.object({
+  id: z.string(),
+  status: z.enum(['Draft', 'Sent', 'Approved', 'Declined', 'Received']),
+});
+
+export async function updateQuoteStatusAction(id: string, status: z.infer<typeof quoteStatusSchema>['status']) {
+  const validatedFields = quoteStatusSchema.safeParse({ id, status });
+
+  if (!validatedFields.success) {
+    return {
+      type: 'error' as const,
+      message: 'Invalid data. Failed to update status.',
+    };
+  }
+
+  try {
+    const updatedQuote = await prisma.quote.update({
+      where: { id },
+      data: { status },
+      include: { client: true, project: true },
+    });
+
+    revalidatePath('/quotes');
+    revalidatePath(`/quotes/${id}`);
+
+    return {
+      type: 'success' as const,
+      message: `Updated status to ${status}`,
+      quote: updatedQuote,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      type: 'error' as const,
+      message: 'Database Error: Failed to Update Quote Status.',
+    };
+  }
+}
+
 export async function upsertInvoice(prevState: any, formData: FormData) {
   const id = formData.get('id') as string | null;
   const validatedFields = invoiceSchema.safeParse({
