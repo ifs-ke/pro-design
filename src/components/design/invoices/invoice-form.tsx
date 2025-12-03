@@ -84,9 +84,15 @@ export function InvoiceForm({ invoice, clients, projects, quotes, onSuccess }: I
   const selectedProjectId = form.watch("projectId");
   const selectedQuoteId = form.watch("quoteId");
 
-  const availableProjects = selectedClientId ? projects.filter((p: any) => p.clientId === selectedClientId) : [];
+  const approvedQuotes = quotes.filter((q: any) => q.status === 'Approved');
+  const clientsWithApprovedQuotes = clients.filter((c: any) => approvedQuotes.some((q: any) => q.clientId === c.id));
+
+  const availableProjects = selectedClientId 
+    ? projects.filter((p: any) => p.clientId === selectedClientId && approvedQuotes.some(q => q.projectId === p.id))
+    : [];
+
   const availableQuotes = selectedProjectId
-    ? quotes.filter((q: any) => q.projectId === selectedProjectId && q.status === 'Approved')
+    ? approvedQuotes.filter((q: any) => q.projectId === selectedProjectId)
     : [];
 
   useEffect(() => {
@@ -125,7 +131,7 @@ export function InvoiceForm({ invoice, clients, projects, quotes, onSuccess }: I
                     </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                    {clients.map((client: any) => (
+                    {clientsWithApprovedQuotes.map((client: any) => (
                         <SelectItem key={client.id} value={client.id}>
                         {client.name}
                         </SelectItem>

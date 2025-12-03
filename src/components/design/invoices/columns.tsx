@@ -8,6 +8,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import type { HydratedInvoice } from "@/store/cost-store";
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from 'next/link';
+import { DataTableRowActions } from './row-actions';
 
 export const columns: ColumnDef<HydratedInvoice>[] = [
   {
@@ -101,4 +102,11 @@ export const columns: ColumnDef<HydratedInvoice>[] = [
        return quote ? <Link href={`/quotes/${quote.id}`} className="hover:underline">{quote.id}</Link> : 'N/A';
     }
   },
+  {
+    id: 'actions',
+    cell: ({ row, table }) => {
+      const { onEdit, onDelete } = table.options.meta as any;
+      return <DataTableRowActions row={row} onEdit={onEdit} onDelete={onDelete} />;
+    }
+  }
 ];

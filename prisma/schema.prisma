@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,11 +18,17 @@ model Client {
   updatedAt      DateTime   @updatedAt
   responsiveness String?    @default("Warm")
   status         String     @default("Lead")
+
+  // SECURITY: Link to the user who owns this client
+  userId         String
+  
   projects       Project[]
   properties     Property[]
   quotes         Quote[]
   interactions   Interaction[]
   invoices       Invoice[]
+
+  @@index([userId])
 }
 
 model Property {
@@ -31,8 +38,14 @@ model Property {
   clientId  String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  // SECURITY: Link to the user who owns this property
+  userId    String
+
   projects  Project[]
   client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Project {
@@ -49,10 +62,16 @@ model Project {
   otherSpaces String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // SECURITY: Link to the user who owns this project
+  userId      String
+
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   property    Property? @relation(fields: [propertyId], references: [id])
   quotes      Quote[]
   invoices    Invoice[]
+
+  @@index([userId])
 }
 
 model Quote {
@@ -67,9 +86,15 @@ model Quote {
   timestamp             DateTime
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+
+  // SECURITY: Link to the user who owns this quote
+  userId                String
+
   client                Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   project               Project?  @relation(fields: [projectId], references: [id])
   invoices              Invoice[]
+
+  @@index([userId])
 }
 
 model Interaction {
@@ -79,21 +104,33 @@ model Interaction {
   notes     String
   timestamp DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // SECURITY: Link to the user who owns this interaction
+  userId    String
+
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Invoice {
   id            String   @id @default(cuid())
   invoiceNumber String   @unique
   amount        Float
-  status        String   @default("Draft") // e.g., Draft, Sent, Paid, Overdue
+  status        String   @default("Draft")
   dueDate       DateTime
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   clientId      String
   projectId     String?
   quoteId       String?
+
+  // SECURITY: Link to the user who owns this invoice
+  userId        String
+
   client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   project       Project? @relation(fields: [projectId], references: [id])
   quote         Quote?   @relation(fields: [quoteId], references: [id])
+
+  @@index([userId])
 }

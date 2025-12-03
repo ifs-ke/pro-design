@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, timeSince } from "@/lib/utils";
-import { MoreHorizontal, Edit, Trash2, Building, FileText, HomeIcon, FilePen, MessageSquarePlus, Bot } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { MoreHorizontal, Edit, Trash2, Building, FileText, HomeIcon, FilePen } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -123,7 +123,7 @@ export function ClientCard({ client }: ClientCardProps) {
                                 <ul className="space-y-1 text-sm text-muted-foreground">
                                     {client.properties.map((p) => (
                                       <li key={p.id}>
-                                        <Link href={`/properties`} className="hover:underline">{p.name}</Link>
+                                        <Link href={`/properties/${p.id}`} className="hover:underline">{p.name}</Link>
                                       </li>
                                     ))}
                                 </ul>
@@ -135,7 +135,7 @@ export function ClientCard({ client }: ClientCardProps) {
                                 <ul className="space-y-1 text-sm text-muted-foreground">
                                     {client.projects.map((p) => (
                                       <li key={p.id}>
-                                         <Link href={`/projects`} className="hover:underline">{p.name}</Link>
+                                         <Link href={`/projects/${p.id}`} className="hover:underline">{p.name}</Link>
                                       </li>
                                     ))}
                                 </ul>

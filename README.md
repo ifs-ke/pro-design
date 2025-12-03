@@ -48,49 +48,50 @@ To get the project running locally, follow these steps:
 
 1.  **Install Dependencies:**
     Open a terminal in the project's root directory and run:
-    ```bash
-    pnpm install
-    ```
+        ```bash
+            pnpm install
+                ```
 
-2.  **Push the Database Schema:**
-    ```bash
-    pnpm db:push
-    ```
+                2.  **Push the Database Schema:**
+                    ```bash
+                        pnpm db:push
+                            ```
 
-3.  **Seed the Database:**
-    ```bash
-    pnpm prisma:seed
-    ```
+                            3.  **Seed the Database:**
+                                ```bash
+                                    pnpm prisma:seed
+                                        ```
 
-4.  **Run the Development Server:**
-    After the installation is complete, start the Next.js development server:
-    ```bash
-    pnpm dev
-    ```
+                                        4.  **Run the Development Server:**
+                                            After the installation is complete, start the Next.js development server:
+                                                ```bash
+                                                    pnpm dev
+                                                        ```
 
-5.  **Open the Application:**
-    Open your browser and navigate to [http://localhost:9002](http://localhost:9002) to see the application in action.
+                                                        5.  **Open the Application:**
+                                                            Open your browser and navigate to [http://localhost:9002](http://localhost:9002) to see the application in action.
 
-## Database Seeding
+                                                            ## Database Seeding
 
-The database is seeded with initial data using Prisma. The seed script is located in `prisma/seed.ts`. To manually seed the database, run the following command:
+                                                            The database is seeded with initial data using Prisma. The seed script is located in `prisma/seed.ts`. To manually seed the database, run the following command:
 
-```bash
-pnpm prisma:seed
-```
+                                                            ```bash
+                                                            pnpm prisma:seed
+                                                            ```
 
-## Deployment
+                                                            ## Deployment
 
-This application is designed to be deployed to any platform that supports Next.js. Here are the general steps for deployment:
+                                                            This application is designed to be deployed to any platform that supports Next.js. Here are the general steps for deployment:
 
-1.  **Build the Application:**
-    ```bash
-    pnpm build
-    ```
+                                                            1.  **Build the Application:**
+                                                                ```bash
+                                                                    pnpm build
+                                                                        ```
 
-2.  **Start the Application:**
-    ```bash
-    pnpm start
-    ```
+                                                                        2.  **Start the Application:**
+                                                                            ```bash
+                                                                                pnpm start
+                                                                                    ```
 
-For more detailed instructions, please refer to the documentation of your deployment platform of choice.
+                                                                                    For more detailed instructions, please refer to the documentation of your deployment platform of choice.
+                                                                                    

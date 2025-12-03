@@ -19,6 +19,13 @@ import { Home, FileText, Calculator, Building, Users, HomeIcon, Receipt } from "
 import { ThemeToggle } from "@/components/design/theme-toggle";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { use } from "react";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from "@clerk/nextjs";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: HomeIcon },
@@ -89,8 +96,15 @@ export default function AppShell({
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-2 mt-auto flex-col items-center group-data-[collapsible=icon]:items-center">
-              <div className="group-data-[collapsible=icon]:hidden h-8" />
-              <ThemeToggle />
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
+            <SignedOut>
+              <SignInButton />
+              <SignUpButton />
+            </SignedOut>
+            <div className="group-data-[collapsible=icon]:hidden h-8" />
+            <ThemeToggle />
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
